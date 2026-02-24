@@ -85,6 +85,9 @@ export interface BackendHealthPayload {
   ocrConfigured: boolean;
   antiwordBinaryAvailable: boolean;
   antiwordHomeExists: boolean;
+  pdfTextLayerScriptAvailable?: boolean;
+  pdfSinglePipelineEnabled?: boolean;
+  pdfSelectiveOcrEnabled?: boolean;
 }
 
 export const readBackendHealth = async (

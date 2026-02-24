@@ -96,3 +96,9 @@ export {
   logAgentError,
   logAgentSkipped,
 } from "./telemetry";
+
+// ─── PDF Text-Layer-First Pipeline ───────────────────────────────
+export {
+  runPdfTextLayerFirstPipeline,
+  renderDocumentText,
+} from "./pdf-extractor";

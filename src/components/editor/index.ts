@@ -8,4 +8,5 @@ export type {
   DocumentStats,
   EditorCommand,
   FileImportMode,
+  ImportClassificationContext,
 } from "./editor-area.types";

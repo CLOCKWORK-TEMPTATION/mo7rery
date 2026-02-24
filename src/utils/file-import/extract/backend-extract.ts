@@ -94,6 +94,7 @@ const normalizeEndpoint = (endpoint: string): string =>
 export interface BackendExtractOptions {
   endpoint?: string;
   timeoutMs?: number;
+  pdfPreferFormData?: boolean;
 }
 
 /**
@@ -118,6 +119,13 @@ const resolveBackendExtractionEndpoint = (endpoint?: string): string => {
   }
 
   return normalizeEndpoint(resolved);
+};
+
+const resolvePdfFormDataEndpoint = (endpoint: string): string => {
+  if (endpoint.endsWith("/api/file-extract")) {
+    return `${endpoint.slice(0, -"/api/file-extract".length)}/api/files/extract`;
+  }
+  return endpoint;
 };
 
 const parseBackendExtractionResult = (
@@ -192,6 +200,52 @@ const parseBackendExtractionResult = (
   };
 };
 
+const extractBackendErrorMessage = (
+  responseText: string,
+  status: number
+): string => {
+  if (!responseText.trim()) {
+    return `Backend returned HTTP ${status}`;
+  }
+
+  try {
+    const parsed = JSON.parse(responseText) as {
+      error?: unknown;
+      message?: unknown;
+    };
+    if (typeof parsed.error === "string" && parsed.error.trim()) {
+      return `Backend returned HTTP ${status}: ${parsed.error.trim()}`;
+    }
+    if (typeof parsed.message === "string" && parsed.message.trim()) {
+      return `Backend returned HTTP ${status}: ${parsed.message.trim()}`;
+    }
+  } catch {
+    // ignore parse failure
+  }
+
+  return `Backend returned HTTP ${status}: ${responseText.trim()}`;
+};
+
+const executeBackendExtractionRequest = async (
+  endpoint: string,
+  fileType: ImportedFileType,
+  requestInit: RequestInit
+): Promise<FileExtractionResult> => {
+  const response = await fetch(endpoint, requestInit);
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    throw new Error(extractBackendErrorMessage(responseText, response.status));
+  }
+
+  if (!responseText.trim()) {
+    throw new Error("Backend extraction response was empty.");
+  }
+
+  const body = JSON.parse(responseText) as FileExtractionResponse;
+  return parseBackendExtractionResult(fileType, body);
+};
+
 /**
  * يستخرج نص الملف عبر Backend API.
  *
@@ -212,63 +266,74 @@ export const extractFileWithBackend = async (
   const endpoint = resolveBackendExtractionEndpoint(options?.endpoint);
 
   const timeoutMs = options?.timeoutMs ?? 45_000;
+  const pdfPreferFormData = options?.pdfPreferFormData ?? true;
   const controller = new AbortController();
   const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const arrayBuffer = await file.arrayBuffer();
-    const payload = {
-      filename: file.name,
-      extension: fileType,
-      fileBase64: arrayBufferToBase64(arrayBuffer),
+    const sendJsonRequest = async (): Promise<FileExtractionResult> => {
+      const arrayBuffer = await file.arrayBuffer();
+      const payload = {
+        filename: file.name,
+        extension: fileType,
+        fileBase64: arrayBufferToBase64(arrayBuffer),
+      };
+
+      return executeBackendExtractionRequest(endpoint, fileType, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
     };
 
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
+    if (fileType === "pdf" && pdfPreferFormData) {
+      const formDataEndpoint = resolvePdfFormDataEndpoint(endpoint);
+      try {
+        const formData = new FormData();
+        formData.append("file", file, file.name);
 
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      let backendError = "";
-      if (responseText) {
-        try {
-          const parsed = JSON.parse(responseText) as {
-            error?: unknown;
-            message?: unknown;
-          };
-          if (typeof parsed.error === "string" && parsed.error.trim()) {
-            backendError = parsed.error.trim();
-          } else if (
-            typeof parsed.message === "string" &&
-            parsed.message.trim()
-          ) {
-            backendError = parsed.message.trim();
+        return await executeBackendExtractionRequest(
+          formDataEndpoint,
+          fileType,
+          {
+            method: "POST",
+            body: formData,
+            signal: controller.signal,
           }
-        } catch {
-          backendError = responseText.trim();
+        );
+      } catch (formDataError) {
+        try {
+          const jsonResult = await sendJsonRequest();
+          return {
+            ...jsonResult,
+            warnings: [
+              `فشل نقل PDF عبر FormData: ${
+                formDataError instanceof Error
+                  ? formDataError.message
+                  : String(formDataError)
+              }`,
+              ...jsonResult.warnings,
+            ],
+            attempts: [...jsonResult.attempts, "backend-formdata-failed"],
+          };
+        } catch (jsonError) {
+          throw new Error(
+            `فشل استخراج PDF عبر Backend (FormData + JSON). form-data: ${
+              formDataError instanceof Error
+                ? formDataError.message
+                : String(formDataError)
+            } | json: ${
+              jsonError instanceof Error ? jsonError.message : String(jsonError)
+            }`
+          );
         }
       }
-
-      if (backendError) {
-        throw new Error(
-          `Backend returned HTTP ${response.status}: ${backendError}`
-        );
-      }
-      throw new Error(`Backend returned HTTP ${response.status}`);
     }
 
-    if (!responseText.trim()) {
-      throw new Error("Backend extraction response was empty.");
-    }
-
-    const body = JSON.parse(responseText) as FileExtractionResponse;
-    return parseBackendExtractionResult(fileType, body);
+    return await sendJsonRequest();
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("Backend extraction timed out.");

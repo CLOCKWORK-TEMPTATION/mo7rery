@@ -6,8 +6,12 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { randomUUID } from "crypto";
 import { config as loadEnv } from "dotenv";
-import { extractPdfTextWithOcr, getPdfOcrModel } from "./pdf-ocr.mjs";
+import {
+  isPdfTextLayerScriptAvailable,
+  runPdfTextLayerFlow
+} from "./pdf-textlayer-runner.mjs";
 import {
   AgentReviewValidationError,
   getAnthropicReviewModel,
@@ -20,8 +24,6 @@ loadEnv();
 const HOST = process.env.FILE_IMPORT_HOST || "127.0.0.1";
 const PORT = Number(process.env.FILE_IMPORT_PORT || 8787);
 const MAX_BODY_SIZE = 40 * 1024 * 1024;
-
-const OCR_MODEL = getPdfOcrModel();
 
 const DOC_CONVERTER_TIMEOUT_MS = 30_000;
 const DOCX_TO_DOC_CONVERTER_TIMEOUT_MS = 90_000;
@@ -44,7 +46,6 @@ const SUPPORTED_EXTRACTION_METHODS = new Set([
   "native-text",
   "pdfjs-text-layer",
   "doc-converter-flow",
-  "ocr-mistral",
   "backend-api",
   "app-payload",
 ]);
@@ -90,6 +91,9 @@ const normalizeTextForStructure = (value) =>
     .replace(/\f/g, "\n")
     .replace(/^\uFEFF/, "");
 
+const normalizeNewlinesOnly = (value) =>
+  String(value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
 const sendJson = (res, statusCode, payload) => {
   res.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
@@ -98,7 +102,7 @@ const sendJson = (res, statusCode, payload) => {
   res.end(JSON.stringify(payload));
 };
 
-const readBody = async (req) =>
+const readRawBody = async (req) =>
   new Promise((resolve, reject) => {
     let total = 0;
     const chunks = [];
@@ -114,16 +118,21 @@ const readBody = async (req) =>
     });
 
     req.on("end", () => {
-      const raw = Buffer.concat(chunks).toString("utf8");
-      try {
-        resolve(JSON.parse(raw));
-      } catch {
-        reject(new Error("Invalid JSON body."));
-      }
+      resolve(Buffer.concat(chunks));
     });
 
     req.on("error", reject);
   });
+
+const readJsonBody = async (req) => {
+  const raw = await readRawBody(req);
+  const text = raw.toString("utf8");
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Invalid JSON body.");
+  }
+};
 
 const validateExtractRequestBody = (rawBody) => {
   if (!isObjectRecord(rawBody)) {
@@ -151,6 +160,148 @@ const validateExtractRequestBody = (rawBody) => {
     filename,
     extension,
     fileBase64,
+  };
+};
+
+const getRequestContentType = (req) => {
+  const header = req.headers["content-type"];
+  if (Array.isArray(header)) {
+    return header[0] ?? "";
+  }
+  return header ?? "";
+};
+
+const parseMultipartBoundary = (contentType) => {
+  const match = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
+  const boundary = match?.[1] ?? match?.[2] ?? "";
+  if (!boundary) {
+    throw new RequestValidationError(
+      "Invalid multipart request: boundary is missing."
+    );
+  }
+  return boundary;
+};
+
+const decodeMultipartFilename = (rawFilename) =>
+  normalizeIncomingText(rawFilename, 512)
+    .replace(/^["']|["']$/g, "")
+    .replace(/\\/g, "/")
+    .split("/")
+    .pop();
+
+const parseMultipartContentDisposition = (headerLine) => {
+  const line = String(headerLine || "");
+  const nameMatch = line.match(/\bname="([^"]+)"/i);
+  const filenameMatch = line.match(/\bfilename="([^"]*)"/i);
+  return {
+    fieldName: nameMatch?.[1] ?? "",
+    filename: filenameMatch?.[1] ?? "",
+  };
+};
+
+const parseMultipartExtractRequestBody = (rawBody, contentType) => {
+  const boundary = parseMultipartBoundary(contentType);
+  const payload = rawBody.toString("latin1");
+  const delimiter = `--${boundary}`;
+  const parts = payload.split(delimiter);
+
+  for (const part of parts) {
+    if (!part || part === "--" || part === "--\r\n") {
+      continue;
+    }
+
+    let normalizedPart = part;
+    if (normalizedPart.startsWith("\r\n")) {
+      normalizedPart = normalizedPart.slice(2);
+    }
+    if (normalizedPart.endsWith("\r\n")) {
+      normalizedPart = normalizedPart.slice(0, -2);
+    }
+    if (normalizedPart.endsWith("--")) {
+      normalizedPart = normalizedPart.slice(0, -2);
+    }
+
+    if (!normalizedPart.trim()) {
+      continue;
+    }
+
+    const headerSeparatorIndex = normalizedPart.indexOf("\r\n\r\n");
+    if (headerSeparatorIndex < 0) {
+      continue;
+    }
+
+    const headersRaw = normalizedPart.slice(0, headerSeparatorIndex);
+    const bodyRaw = normalizedPart.slice(headerSeparatorIndex + 4);
+    const headerLines = headersRaw.split("\r\n");
+    const dispositionHeader = headerLines.find((line) =>
+      line.toLowerCase().startsWith("content-disposition:")
+    );
+    if (!dispositionHeader) {
+      continue;
+    }
+
+    const { fieldName, filename } =
+      parseMultipartContentDisposition(dispositionHeader);
+    if (fieldName !== "file") {
+      continue;
+    }
+
+    const resolvedFilename = decodeMultipartFilename(filename);
+    if (!resolvedFilename) {
+      throw new RequestValidationError(
+        "Invalid multipart request: uploaded file has no filename."
+      );
+    }
+
+    const extension = extname(resolvedFilename).replace(/^\./, "").toLowerCase();
+    if (!SUPPORTED_EXTENSIONS.has(extension)) {
+      throw new RequestValidationError(
+        `Unsupported extension: ${extension || "unknown"}`
+      );
+    }
+
+    const normalizedBody = bodyRaw.endsWith("\r\n")
+      ? bodyRaw.slice(0, -2)
+      : bodyRaw;
+    const buffer = Buffer.from(normalizedBody, "latin1");
+    if (!buffer.length) {
+      throw new RequestValidationError("Uploaded file is empty.");
+    }
+
+    return {
+      filename: resolvedFilename,
+      extension,
+      buffer,
+    };
+  }
+
+  throw new RequestValidationError(
+    "Invalid multipart request: missing file field."
+  );
+};
+
+const parseExtractRequest = async (req) => {
+  const contentType = getRequestContentType(req).toLowerCase();
+  const rawBody = await readRawBody(req);
+
+  if (contentType.includes("multipart/form-data")) {
+    return parseMultipartExtractRequestBody(rawBody, contentType);
+  }
+
+  const bodyText = rawBody.toString("utf8");
+  let parsedBody;
+  try {
+    parsedBody = JSON.parse(bodyText);
+  } catch {
+    throw new RequestValidationError("Invalid JSON body.");
+  }
+
+  const { filename, extension, fileBase64 } =
+    validateExtractRequestBody(parsedBody);
+  return {
+    filename,
+    extension,
+    buffer: decodeBase64(fileBase64),
   };
 };
 
@@ -182,30 +333,30 @@ const normalizeExtractionResponseData = (result, fileType) => {
     attempts,
     qualityScore:
       typeof result.qualityScore === "number" &&
-      Number.isFinite(result.qualityScore)
+        Number.isFinite(result.qualityScore)
         ? result.qualityScore
         : undefined,
     normalizationApplied: Array.isArray(result.normalizationApplied)
       ? result.normalizationApplied
-          .filter((entry) => isNonEmptyString(entry))
-          .slice(0, 24)
+        .filter((entry) => isNonEmptyString(entry))
+        .slice(0, 24)
       : undefined,
     structuredBlocks: Array.isArray(result.structuredBlocks)
       ? result.structuredBlocks
-          .filter(
-            (block) =>
-              isObjectRecord(block) &&
-              isNonEmptyString(block.formatId) &&
-              typeof block.text === "string"
-          )
-          .map((block) => ({
-            formatId: block.formatId.trim(),
-            text: block.text,
-          }))
+        .filter(
+          (block) =>
+            isObjectRecord(block) &&
+            isNonEmptyString(block.formatId) &&
+            typeof block.text === "string"
+        )
+        .map((block) => ({
+          formatId: block.formatId.trim(),
+          text: block.text,
+        }))
       : undefined,
     payloadVersion:
       typeof result.payloadVersion === "number" &&
-      Number.isInteger(result.payloadVersion)
+        Number.isInteger(result.payloadVersion)
         ? result.payloadVersion
         : undefined,
   };
@@ -430,13 +581,12 @@ const convertDocBufferToText = async (buffer, filename) => {
     const stderrText = decodeUtf8Buffer(error?.stderr).trim();
     if (stderrText) warnings.push(stderrText);
     throw new Error(
-      `فشل تحويل ملف DOC عبر antiword (${runtime.antiwordPath}): ${
-        error instanceof Error ? error.message : String(error)
+      `فشل تحويل ملف DOC عبر antiword (${runtime.antiwordPath}): ${error instanceof Error ? error.message : String(error)
       }`
     );
   } finally {
     if (tempDirPath) {
-      await rm(tempDirPath, { recursive: true, force: true }).catch(() => {});
+      await rm(tempDirPath, { recursive: true, force: true }).catch(() => { });
     }
   }
 };
@@ -487,13 +637,12 @@ const convertDocxBufferToDocThenExtract = async (buffer, filename) => {
     if (stderrText) warnings.push(stderrText);
 
     throw new Error(
-      `فشل مسار تحويل DOCX→DOC عبر docx-to-doc.final.ts: ${
-        error instanceof Error ? error.message : String(error)
+      `فشل مسار تحويل DOCX→DOC عبر docx-to-doc.final.ts: ${error instanceof Error ? error.message : String(error)
       }${warnings.length > 0 ? ` | logs: ${warnings.join(" | ")}` : ""}`
     );
   } finally {
     if (tempDirPath) {
-      await rm(tempDirPath, { recursive: true, force: true }).catch(() => {});
+      await rm(tempDirPath, { recursive: true, force: true }).catch(() => { });
     }
   }
 };
@@ -504,6 +653,48 @@ const decodeUtf8Fallback = (buffer) => {
     utf8Text.includes("\uFFFD") || utf8Text.includes("�");
   if (!hasReplacementChars) return utf8Text;
   return buffer.toString("latin1");
+};
+
+const extractPdfTextWithTextLayerPipeline = async (buffer, filename) => {
+  const attempts = [];
+  const warnings = [];
+
+  if (!isPdfTextLayerScriptAvailable()) {
+    throw new Error("Text-layer PDF pipeline script is not available.");
+  }
+
+  try {
+    const textLayerResult = await runPdfTextLayerFlow(buffer, filename);
+    attempts.push(...textLayerResult.attempts);
+    warnings.push(...textLayerResult.warnings);
+    const text = normalizeNewlinesOnly(textLayerResult.text);
+
+    if (!text.trim()) {
+      throw new Error("pdf-textlayer-first أعاد نصًا فارغًا.");
+    }
+
+    const usedOcr =
+      textLayerResult.stats?.patchedLines > 0 ||
+      textLayerResult.stats?.pagesSentToOcr > 0;
+
+    return {
+      text,
+      method: "pdfjs-text-layer",
+      usedOcr,
+      attempts,
+      warnings,
+      normalizationApplied: ["pdf-text-layer-first-fidelity"],
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    attempts.push("pdf-textlayer-failed");
+    warnings.push(`فشل مسار PDF text-layer-first: ${reason}`);
+    throw new Error(
+      `فشل استخراج PDF عبر المسار الموحد text-layer-first${
+        warnings.length > 0 ? ` | ${warnings.join(" | ")}` : ""
+      }`
+    );
+  }
 };
 
 const extractByType = async (buffer, extension, filename) => {
@@ -518,14 +709,7 @@ const extractByType = async (buffer, extension, filename) => {
   }
 
   if (extension === "pdf") {
-    const text = await extractPdfTextWithOcr(buffer, normalizeText);
-    return {
-      text,
-      method: "ocr-mistral",
-      usedOcr: true,
-      attempts: ["ocr-mistral"],
-      warnings: [],
-    };
+    return extractPdfTextWithTextLayerPipeline(buffer, filename);
   }
 
   if (extension === "doc") {
@@ -562,11 +746,7 @@ const extractByType = async (buffer, extension, filename) => {
 
 const handleExtract = async (req, res) => {
   try {
-    const body = await readBody(req);
-    const { filename, extension, fileBase64 } =
-      validateExtractRequestBody(body);
-
-    const buffer = decodeBase64(fileBase64);
+    const { filename, extension, buffer } = await parseExtractRequest(req);
     const extracted = await extractByType(buffer, extension, filename);
     const normalizedData = normalizeExtractionResponseData(
       extracted,
@@ -593,8 +773,11 @@ const handleExtract = async (req, res) => {
 };
 
 const handleAgentReview = async (req, res) => {
+  let importOpId = null;
   try {
-    const rawBody = await readBody(req);
+    const rawBody = await readJsonBody(req);
+    // Extract importOpId early for error response
+    importOpId = typeof rawBody?.importOpId === "string" ? rawBody.importOpId : null;
     const body = validateAgentReviewRequestBody(rawBody);
     const response = await requestAnthropicReview(body);
     sendJson(res, 200, response);
@@ -602,16 +785,16 @@ const handleAgentReview = async (req, res) => {
     const message = error instanceof Error ? error.message : String(error);
     const statusCode =
       error instanceof AgentReviewValidationError ? error.statusCode : 500;
+    // v2-compliant error response
     sendJson(res, statusCode, {
+      apiVersion: "2.0",
+      mode: "auto-apply",
+      importOpId: importOpId ?? "unknown",
+      requestId: randomUUID(),
       status: "error",
-      model: getAnthropicReviewModel(),
       commands: [],
       message,
       latencyMs: 0,
-      apiVersion: "2.0",
-      mode: "auto-apply",
-      importOpId: "",
-      requestId: "",
     });
   }
 };
@@ -631,17 +814,27 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/health") {
+    const ocrProvider = (process.env.OCR_PROVIDER || "mistral")
+      .trim()
+      .toLowerCase();
+    const selectiveOcrEnabled = ocrProvider !== "none";
+    const selectiveOcrConfigured =
+      !selectiveOcrEnabled || Boolean(process.env.MISTRAL_API_KEY);
+
     sendJson(res, 200, {
       ok: true,
       service: "file-import-backend",
-      ocrConfigured: Boolean(process.env.MISTRAL_API_KEY),
+      ocrConfigured: selectiveOcrConfigured,
+      pdfTextLayerScriptAvailable: isPdfTextLayerScriptAvailable(),
+      pdfSinglePipelineEnabled: true,
+      pdfSelectiveOcrEnabled: selectiveOcrEnabled,
       antiwordPath: process.env.ANTIWORD_PATH || DEFAULT_ANTIWORD_PATH,
       antiwordHome: process.env.ANTIWORDHOME || DEFAULT_ANTIWORD_HOME,
       antiwordBinaryAvailable: ANTIWORD_PREFLIGHT.binaryAvailable,
       antiwordHomeExists: ANTIWORD_PREFLIGHT.antiwordHomeExists,
       antiwordWarnings: ANTIWORD_PREFLIGHT.warnings,
       agentReviewConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
-      model: OCR_MODEL,
+      model: selectiveOcrEnabled ? "mistral-ocr-latest" : "none",
       reviewModel: getAnthropicReviewModel(),
     });
     return;

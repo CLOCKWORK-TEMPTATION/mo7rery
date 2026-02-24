@@ -31,6 +31,7 @@ import {
   isBackendExtractionConfigured,
   type BackendExtractOptions,
 } from "./backend-extract";
+
 const importExtractLogger = logger.createScope("file-import.extract");
 
 /** عتبة الجودة التي تُحفّز التحويل إلى Backend لملفات PDF */
@@ -38,7 +39,6 @@ const LOW_PDF_QUALITY_THRESHOLD = 0.42;
 const STRICT_PASTE_PARITY_TYPES = new Set<FileExtractionResult["fileType"]>([
   "doc",
   "docx",
-  "txt",
 ]);
 
 /**
@@ -57,6 +57,9 @@ export interface ExtractImportedFileOptions extends BackendExtractOptions {
  */
 const normalizeExtractedText = (text: string): string =>
   normalizeTextForStructure(text);
+
+const normalizeNewlinesOnly = (text: string): string =>
+  String(text ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
 const withStructuredBlocks = (
   result: FileExtractionResult
@@ -94,6 +97,18 @@ const finalizeExtraction = (
       text: sourceText,
       normalizationApplied: result.normalizationApplied ?? [],
       qualityScore: computeImportedTextQualityScore(sourceText),
+    };
+  }
+
+  if (result.fileType === "pdf") {
+    const pdfRawText = normalizeNewlinesOnly(sourceText);
+    return {
+      ...result,
+      text: pdfRawText,
+      normalizationApplied: result.normalizationApplied ?? [],
+      qualityScore:
+        result.qualityScore ?? computeImportedTextQualityScore(pdfRawText),
+      structuredBlocks: result.structuredBlocks,
     };
   }
 

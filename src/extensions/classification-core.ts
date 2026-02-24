@@ -42,6 +42,7 @@ const DEFAULT_CONFIG: ReviewerConfig = {
   agentForcedLowerBound: 90,
   enabledDetectors: new Set([
     "sequence-violation",
+    "source-hint-mismatch",
     "content-type-mismatch",
     "split-character-fragment",
     "statistical-anomaly",
@@ -360,6 +361,23 @@ const createContentTypeMismatchDetector = (): SuspicionDetector => ({
   },
 });
 
+const createSourceHintMismatchDetector = (): SuspicionDetector => ({
+  id: "source-hint-mismatch",
+
+  detect(line: ClassifiedLine): DetectorFinding | null {
+    if (line.sourceProfile !== "pdf-open") return null;
+    if (!line.sourceHintType) return null;
+    if (line.assignedType === line.sourceHintType) return null;
+
+    return {
+      detectorId: "source-hint-mismatch",
+      suspicionScore: 93,
+      reason: `تصنيف "${line.assignedType}" لا يطابق تلميح المصدر "${line.sourceHintType}" في مسار pdf-open`,
+      suggestedType: line.sourceHintType,
+    };
+  },
+});
+
 const createSplitCharacterFragmentDetector = (): SuspicionDetector => ({
   id: "split-character-fragment",
 
@@ -558,6 +576,7 @@ const isCriticalMismatchFromFindings = (
 ): boolean =>
   findings.some(
     (finding) =>
+      finding.detectorId === "source-hint-mismatch" ||
       (finding.detectorId === "content-type-mismatch" &&
         finding.suggestedType !== null) ||
       finding.detectorId === "split-character-fragment"
@@ -656,6 +675,7 @@ export class PostClassificationReviewer {
   private initializeDetectors(): readonly SuspicionDetector[] {
     const allDetectors: readonly SuspicionDetector[] = [
       createSequenceViolationDetector(),
+      createSourceHintMismatchDetector(),
       createContentTypeMismatchDetector(),
       createSplitCharacterFragmentDetector(),
       createStatisticalAnomalyDetector(),

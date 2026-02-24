@@ -62,6 +62,15 @@ export type LegacyElementType =
 export type ClassificationMethod = "regex" | "context" | "fallback" | "ml";
 
 /**
+ * مصدر/بروفايل تدفق التصنيف الذي أنشأ السطر.
+ *
+ * - `paste` — لصق مباشر من المستخدم
+ * - `generic-open` — فتح/إدراج ملف عام (غير PDF)
+ * - `pdf-open` — فتح PDF عبر OCR ثم التصنيف
+ */
+export type ClassificationSourceProfile = "paste" | "generic-open" | "pdf-open";
+
+/**
  * سطر مُصنّف — نتيجة نهائية لتصنيف سطر واحد.
  */
 export interface ClassifiedLine {
@@ -70,6 +79,8 @@ export interface ClassifiedLine {
   readonly assignedType: ElementType;
   readonly originalConfidence: number;
   readonly classificationMethod: ClassificationMethod;
+  readonly sourceHintType?: ElementType;
+  readonly sourceProfile?: ClassificationSourceProfile;
 }
 
 /**
@@ -170,6 +181,8 @@ export interface ClassifiedDraft {
   readonly header2?: string;
   readonly confidence: number;
   readonly classificationMethod: ClassificationMethod;
+  readonly sourceHintType?: ElementType;
+  readonly sourceProfile?: ClassificationSourceProfile;
 }
 
 const LEGACY_TO_ELEMENT: Record<LegacyElementType, ElementType> = {

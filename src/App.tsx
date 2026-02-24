@@ -890,7 +890,7 @@ export function App(): React.JSX.Element {
     try {
       const extraction = await extractImportedFile(file);
       const action = buildFileOpenPipelineAction(extraction, mode);
-      let appliedPipeline: "paste-classifier" | "sanitized-classifier" = "paste-classifier";
+      let appliedPipeline: "paste-classifier" = "paste-classifier";
 
       if (action.kind === "reject") {
         toast(action.toast);
@@ -899,12 +899,19 @@ export function App(): React.JSX.Element {
 
       if (action.kind === "import-structured-blocks") {
         await area.importStructuredBlocks(action.blocks, mode);
-      } else if (action.kind === "import-sanitized-text") {
-        await area.importSanitizedText(action.text, mode);
-        appliedPipeline = "sanitized-classifier";
       } else {
+        const classificationProfile =
+          extraction.fileType === "pdf" ? "pdf-open" : "generic-open";
         // open/import for raw text mirrors paste-classifier in a single pass.
-        await area.importClassifiedText(action.text, mode);
+        await area.importClassifiedText(action.text, mode, {
+          sourceFileType: extraction.fileType,
+          sourceMethod: extraction.method,
+          classificationProfile,
+          structuredHints:
+            extraction.fileType === "pdf"
+              ? extraction.structuredBlocks
+              : undefined,
+        });
         appliedPipeline = "paste-classifier";
       }
 
@@ -1253,12 +1260,10 @@ export function App(): React.JSX.Element {
   const settingsPanel = (
     <div className="mt-2 space-y-3 rounded-xl border border-white/10 bg-neutral-900/70 p-3 text-right">
       <div className="space-y-1">
-        <label htmlFor="typing-system-mode" className="block text-xs font-semibold text-neutral-200">
+        <label className="block text-xs font-semibold text-neutral-200">
           وضع نظام الكتابة
         </label>
         <select
-          id="typing-system-mode"
-          name="typing-system-mode"
           className="w-full rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 text-xs text-neutral-100 outline-none focus:border-[var(--brand)]"
           value={typingSystemSettings.typingSystemMode}
           onChange={(event) =>
@@ -1286,8 +1291,6 @@ export function App(): React.JSX.Element {
           <span>مهلة المعالجة الحية</span>
         </div>
         <input
-          id="live-idle-minutes"
-          name="live-idle-minutes"
           type="range"
           min={1}
           max={15}

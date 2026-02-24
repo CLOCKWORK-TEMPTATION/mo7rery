@@ -3,6 +3,10 @@ import type { ElementType } from "../../extensions/classification-types";
 import type { ScreenplayBlock } from "../../utils/file-import";
 import type { ClipboardOrigin } from "../../types/editor-clipboard";
 import type { RunEditorCommandOptions } from "../../types/editor-engine";
+import type {
+  ExtractionMethod,
+  ImportedFileType,
+} from "../../types/file-import";
 
 /**
  * @description إحصائيات المستند لغرض العرض في شريط الحالة.
@@ -32,6 +36,13 @@ export type EditorCommand =
  */
 export type FileImportMode = "replace" | "insert";
 
+export interface ImportClassificationContext {
+  sourceFileType?: ImportedFileType;
+  sourceMethod?: ExtractionMethod;
+  classificationProfile?: "paste" | "generic-open" | "pdf-open";
+  structuredHints?: ScreenplayBlock[];
+}
+
 /**
  * @description مقبض واجهة المحرر (Editor Handle) المُصدَّر للمكونات الأب للتحكم الخارجي.
  */
@@ -47,7 +58,11 @@ export interface EditorHandle {
   runCommand: (command: EditorCommand | RunEditorCommandOptions) => boolean;
   setFormat: (format: ElementType) => boolean;
   getCurrentFormat: () => ElementType | null;
-  importClassifiedText: (text: string, mode?: FileImportMode) => Promise<void>;
+  importClassifiedText: (
+    text: string,
+    mode?: FileImportMode,
+    context?: ImportClassificationContext
+  ) => Promise<void>;
   importStructuredBlocks: (
     blocks: ScreenplayBlock[],
     mode?: FileImportMode

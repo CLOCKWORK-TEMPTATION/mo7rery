@@ -5,7 +5,6 @@
  *
  * - `import-structured-blocks` — كتل بنيوية جاهزة للإدراج المباشر
  * - `import-classified-text` — نص خام يحتاج تصنيف اللصق
- * - `import-sanitized-text` — نص يحتاج تنظيف مسبق (ملفات شاذة)
  * - `reject` — ملف فارغ أو غير صالح
  *
  * يتضمن بناء بيانات القياس (telemetry) ورسائل التنبيه بالعربية.
@@ -15,7 +14,6 @@ import type {
   FileImportMode,
 } from "../../types/file-import";
 import type { ScreenplayBlock } from "./document-model";
-import { shouldUseSanitizedPipeline } from "../../pipeline/sanitized-import-pipeline";
 
 type SuccessVariant = "default";
 type ErrorVariant = "destructive";
@@ -27,7 +25,7 @@ type FileOpenToast = {
 };
 
 type FileOpenPipelineTelemetry = {
-  openPipeline: "paste-classifier" | "structured-direct" | "sanitized-classifier";
+  openPipeline: "paste-classifier" | "structured-direct";
   method: FileExtractionResult["method"];
   source: "structured-blocks" | "extracted-text";
   usedOcr: boolean;
@@ -38,14 +36,6 @@ type FileOpenPipelineTelemetry = {
 
 type ImportClassifiedAction = {
   kind: "import-classified-text";
-  mode: FileImportMode;
-  text: string;
-  toast: FileOpenToast;
-  telemetry: FileOpenPipelineTelemetry;
-};
-
-type ImportSanitizedAction = {
-  kind: "import-sanitized-text";
   mode: FileImportMode;
   text: string;
   toast: FileOpenToast;
@@ -74,12 +64,11 @@ type RejectAction = {
 export type FileOpenPipelineAction =
   | ImportStructuredAction
   | ImportClassifiedAction
-  | ImportSanitizedAction
   | RejectAction;
 
 const FORCE_PASTE_CLASSIFIER_FILE_TYPES = new Set<
   FileExtractionResult["fileType"]
->(["doc", "docx", "txt"]);
+>(["doc", "docx", "pdf"]);
 
 /** يُرجع تسمية الوضع بالعربية: "تم فتح" أو "تم إدراج" */
 const buildModeLabel = (mode: FileImportMode): string =>
@@ -171,32 +160,6 @@ export function buildFileOpenPipelineAction(
         extraction,
         "extracted-text",
         "paste-classifier"
-      ),
-    };
-  }
-
-  // --- مسار التنظيف للملفات الشاذة ---
-  if (shouldUseSanitizedPipeline(sourceText)) {
-    let sanitizedDescription = `${modeLabel} الملف بنجاح\nتم كشف تنسيق غير قياسي — سيتم تنظيفه وتصنيفه`;
-    if (extraction.usedOcr) {
-      sanitizedDescription += " (تم استخدام OCR)";
-    }
-    if (extraction.warnings.length > 0) {
-      sanitizedDescription += `\n⚠️ ${extraction.warnings[0]}`;
-    }
-
-    return {
-      kind: "import-sanitized-text",
-      mode,
-      text: sourceText,
-      toast: {
-        title: modeLabel,
-        description: sanitizedDescription,
-      },
-      telemetry: buildTelemetry(
-        extraction,
-        "extracted-text",
-        "sanitized-classifier"
       ),
     };
   }

@@ -23,11 +23,12 @@ import type {
   ClassifiedDraft,
   ClassificationContext,
   ClassifiedLine,
+  ClassificationSourceProfile,
   ElementType,
   LLMReviewPacket,
   SuspiciousLine,
 } from "./classification-types";
-import { isElementType } from "./classification-types";
+import { fromLegacyElementType, isElementType } from "./classification-types";
 import { ContextMemoryManager } from "./context-memory-manager";
 import {
   getDialogueProbability,
@@ -159,6 +160,21 @@ export interface ApplyPasteClassifierFlowOptions {
   from?: number;
   /** موضع النهاية في العرض (اختياري) */
   to?: number;
+  /** بروفايل مصدر التصنيف (paste | generic-open | pdf-open) */
+  classificationProfile?: string; // ClassificationSourceProfile in classification-types
+  /** نوع الملف المصدر (اختياري) */
+  sourceFileType?: string;
+  /** طريقة الاستخراج (اختياري) */
+  sourceMethod?: string;
+  /** تلميحات بنيوية من المصدر (Filmlane، PDF، إلخ) */
+  structuredHints?: readonly unknown[]; // ScreenplayBlock[]
+}
+
+export interface ClassifyLinesContext {
+  classificationProfile?: string;
+  sourceFileType?: string;
+  sourceMethod?: string;
+  structuredHints?: readonly unknown[];
 }
 
 const buildContext = (
@@ -182,21 +198,109 @@ const buildContext = (
 const hasTemporalSceneSignal = (text: string): boolean =>
   DATE_PATTERNS.test(text) || TIME_PATTERNS.test(text);
 
+interface StructuredHintLike {
+  formatId?: unknown;
+  text?: unknown;
+}
+
+const normalizeHintLookupText = (value: string): string => {
+  const bulletNormalized = parseBulletLine(value) ?? value;
+  return convertHindiToArabic(bulletNormalized).replace(/\s+/g, " ").trim();
+};
+
+const toSourceProfile = (
+  value: string | undefined
+): ClassificationSourceProfile | undefined => {
+  if (
+    value === "paste" ||
+    value === "generic-open" ||
+    value === "pdf-open"
+  ) {
+    return value;
+  }
+  return undefined;
+};
+
+const toHintElementType = (formatId: unknown): ElementType | null => {
+  if (typeof formatId !== "string") return null;
+  return fromLegacyElementType(formatId);
+};
+
+const buildStructuredHintQueues = (
+  structuredHints: readonly unknown[] | undefined
+): Map<string, ElementType[]> => {
+  const queues = new Map<string, ElementType[]>();
+  if (!structuredHints || structuredHints.length === 0) return queues;
+
+  for (const hintEntry of structuredHints) {
+    if (!hintEntry || typeof hintEntry !== "object") continue;
+    const hint = hintEntry as StructuredHintLike;
+    const hintType = toHintElementType(hint.formatId);
+    if (!hintType || typeof hint.text !== "string") continue;
+
+    const hintLines = hint.text
+      .split(/\r?\n/)
+      .map((line) => normalizeHintLookupText(line))
+      .filter((line) => line.length > 0);
+
+    for (const line of hintLines) {
+      const queue = queues.get(line);
+      if (queue) {
+        queue.push(hintType);
+      } else {
+        queues.set(line, [hintType]);
+      }
+    }
+  }
+
+  return queues;
+};
+
+const consumeSourceHintTypeForLine = (
+  lineText: string,
+  hintQueues: Map<string, ElementType[]>
+): ElementType | undefined => {
+  const normalized = normalizeHintLookupText(lineText);
+  if (!normalized) return undefined;
+
+  const queue = hintQueues.get(normalized);
+  if (!queue || queue.length === 0) return undefined;
+
+  const hintType = queue.shift();
+  if (queue.length === 0) {
+    hintQueues.delete(normalized);
+  }
+
+  return hintType;
+};
+
 /**
  * تصنيف النصوص المُلصقة محلياً مع توليد معرف فريد (_itemId) لكل عنصر.
  * المعرّف يُستخدم لاحقاً في تتبع الأوامر من الوكيل.
  */
-export const classifyLines = (text: string): ClassifiedDraftWithId[] => {
+export const classifyLines = (
+  text: string,
+  context?: ClassifyLinesContext
+): ClassifiedDraftWithId[] => {
   const lines = text.split(/\r?\n/);
   const classified: ClassifiedDraftWithId[] = [];
 
   const memoryManager = new ContextMemoryManager();
   const hybridClassifier = new HybridClassifier();
 
+  // استخراج الخيارات من السياق
+  const isPdfOpenProfile = context?.classificationProfile === "pdf-open";
+  const sourceProfile = toSourceProfile(context?.classificationProfile);
+  const hintQueues = buildStructuredHintQueues(context?.structuredHints);
+  let activeSourceHintType: ElementType | undefined;
+
   const push = (entry: ClassifiedDraft): void => {
     const withId: ClassifiedDraftWithId = {
       ...entry,
       _itemId: crypto.randomUUID(),
+      // إضافة بيانات المصدر إذا كانت متوفرة
+      sourceProfile,
+      sourceHintType: activeSourceHintType,
     };
     classified.push(withId);
     memoryManager.record(entry);
@@ -205,6 +309,7 @@ export const classifyLines = (text: string): ClassifiedDraftWithId[] => {
   for (const rawLine of lines) {
     const trimmed = parseBulletLine(rawLine);
     if (!trimmed) continue;
+    activeSourceHintType = consumeSourceHintTypeForLine(trimmed, hintQueues);
     const normalizedForClassification = convertHindiToArabic(trimmed);
     const detectedDialect = detectDialect(normalizedForClassification);
 
@@ -224,7 +329,8 @@ export const classifyLines = (text: string): ClassifiedDraftWithId[] => {
         continue;
       }
 
-      if (shouldMergeWrappedLines(previous.text, trimmed, previous.type)) {
+      // تخطي دمج الأسطر الملفوفة في وضع pdf-open
+      if (!isPdfOpenProfile && shouldMergeWrappedLines(previous.text, trimmed, previous.type)) {
         const merged: ClassifiedDraft = {
           ...previous,
           text: `${previous.text} ${trimmed}`.replace(/\s+/g, " ").trim(),
@@ -511,6 +617,8 @@ const toClassifiedLineRecords = (
     assignedType: item.type,
     originalConfidence: item.confidence,
     classificationMethod: item.classificationMethod,
+    sourceHintType: item.sourceHintType,
+    sourceProfile: item.sourceProfile,
   }));
 
 interface ReviewRoutingStats {
@@ -631,8 +739,8 @@ const toUniqueSortedIndexes = (values: readonly number[]): number[] =>
 const toNormalizedMetaIds = (value: unknown): string[] =>
   Array.isArray(value)
     ? [...new Set(
-        value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-      )].sort()
+      value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    )].sort()
     : [];
 
 /**
@@ -656,7 +764,7 @@ const toValidAgentReviewMeta = (raw: unknown): AgentReviewResponseMeta | undefin
 
   const requestedCount =
     typeof record.requestedCount === "number" &&
-    Number.isFinite(record.requestedCount)
+      Number.isFinite(record.requestedCount)
       ? Math.max(0, Math.trunc(record.requestedCount))
       : 0;
 
@@ -1688,9 +1796,10 @@ export const classifyText = (
   text: string,
   agentReview?: (
     classified: readonly ClassifiedDraftWithId[]
-  ) => ClassifiedDraftWithId[]
+  ) => ClassifiedDraftWithId[],
+  options?: ClassifyLinesContext
 ): ClassifiedDraftWithId[] => {
-  const initiallyClassified = classifyLines(text);
+  const initiallyClassified = classifyLines(text, options);
   return applyAgentReview(initiallyClassified, agentReview);
 };
 
@@ -1728,10 +1837,23 @@ export const classifyTextWithAgentReview = async (
 export const applyPasteClassifierFlowToView = async (
   view: EditorView,
   text: string,
-  options: ApplyPasteClassifierFlowOptions = {}
+  options?: ApplyPasteClassifierFlowOptions
 ): Promise<boolean> => {
+  const customReview = options?.agentReview;
+  const classificationProfile = options?.classificationProfile;
+  const sourceFileType = options?.sourceFileType;
+  const sourceMethod = options?.sourceMethod;
+  const structuredHints = options?.structuredHints;
+
   // --- المرحلة 1: Render-First — تصنيف محلي فوري ---
-  const classified = classifyText(text, options.agentReview);
+  const initiallyClassified = classifyLines(text, {
+    classificationProfile,
+    sourceFileType,
+    sourceMethod,
+    structuredHints
+  });
+  const classified = applyAgentReview(initiallyClassified, customReview);
+
   if (classified.length === 0 || view.isDestroyed) return false;
 
   const nodes = classifiedToNodes(classified, view.state.schema);
@@ -1740,8 +1862,8 @@ export const applyPasteClassifierFlowToView = async (
   // عرض فوري في المحرر
   const fragment = Fragment.from(nodes);
   const slice = new Slice(fragment, 0, 0);
-  const from = options.from ?? view.state.selection.from;
-  const to = options.to ?? view.state.selection.to;
+  const from = options?.from ?? view.state.selection.from;
+  const to = options?.to ?? view.state.selection.to;
   const tr = view.state.tr;
   tr.replaceRange(from, to, slice);
   view.dispatch(tr);

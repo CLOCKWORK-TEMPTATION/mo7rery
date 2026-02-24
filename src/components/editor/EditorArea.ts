@@ -25,15 +25,8 @@ import {
 } from "../../constants";
 import {
   htmlToScreenplayBlocks,
-  screenplayBlocksToHtml,
   type ScreenplayBlock,
 } from "../../utils/file-import";
-import {
-  assessTrustLevel,
-  resolveImportAction,
-  type StructuredInput,
-} from "../../pipeline";
-import { runSanitizedImportPipeline } from "../../pipeline/sanitized-import-pipeline";
 import {
   FILMLANE_CLIPBOARD_MIME,
   type ClipboardOrigin,
@@ -46,6 +39,7 @@ import type {
   EditorCommand,
   EditorHandle,
   FileImportMode,
+  ImportClassificationContext,
 } from "./editor-area.types";
 import { logger } from "../../utils/logger";
 
@@ -317,51 +311,10 @@ export class EditorArea implements EditorHandle {
     return format ? formatLabelByType[format] : "—";
   };
 
-  /**
-   * نقطة دخول موحدة لاستيراد النص — تقيّم مستوى الثقة وتوجّه حسب النتيجة.
-   *
-   * @param input - المدخل (نص خام أو كتل مهيكلة)
-   * @param mode - وضع الاستيراد (replace أو insert)
-   * @param source - مصدر المدخل (اختياري)
-   */
-  runTextIngestionPipeline = async (
-    input: { text: string } | { blocks: ScreenplayBlock[] },
-    mode: FileImportMode = "replace",
-    source?: string
-  ): Promise<void> => {
-    if ("blocks" in input && input.blocks.length > 0) {
-      // مسار مهيكل — تقييم الثقة
-      const structuredInput: StructuredInput = {
-        blocks: input.blocks.map((b) => ({ type: b.formatId, text: b.text })),
-        source: source ?? "structured-import",
-        systemGenerated: true,
-        schemaValid: true,
-        integrityChecked: true,
-      };
-      const assessment = assessTrustLevel(structuredInput);
-      const action = resolveImportAction(assessment.level);
-
-      if (action === "direct_import_with_bg_check" || action === "direct_import") {
-        await this.importStructuredBlocks(input.blocks, mode);
-        this.requestProductionSelfCheck(input.blocks[0]?.text ?? "");
-        return;
-      }
-
-      // fallback_to_classifier — تحويل الكتل إلى نص وتصنيف من جديد
-      const plainText = input.blocks.map((b) => b.text).join("\n");
-      await this.importClassifiedText(plainText, mode);
-      return;
-    }
-
-    if ("text" in input) {
-      await this.importClassifiedText(input.text, mode);
-      return;
-    }
-  };
-
   importClassifiedText = async (
     text: string,
-    mode: FileImportMode = "replace"
+    mode: FileImportMode = "replace",
+    context?: ImportClassificationContext
   ): Promise<void> => {
     // ضمان تفعيل دورة القياس في امتداد الصفحات قبل/بعد إدراج النص.
     this.editor.commands.focus(mode === "replace" ? "start" : "end");
@@ -378,6 +331,10 @@ export class EditorArea implements EditorHandle {
       {
         from,
         to,
+        classificationProfile: context?.classificationProfile,
+        sourceFileType: context?.sourceFileType,
+        sourceMethod: context?.sourceMethod,
+        structuredHints: context?.structuredHints,
       }
     );
     if (!applied) return;
@@ -397,79 +354,20 @@ export class EditorArea implements EditorHandle {
     }
   };
 
-  /**
-   * خط أنابيب الاستيراد المُنظَّف — مسار مستقل للملفات الشاذة.
-   *
-   * 1. يُنظّف النص من التنسيقات غير القياسية
-   * 2. يُمرر النص النظيف للتصنيف والمراجعة والوكيل
-   */
-  importSanitizedText = async (
-    text: string,
-    mode: FileImportMode = "replace"
-  ): Promise<void> => {
-    const { cleanText } = runSanitizedImportPipeline(text);
-
-    this.editor.commands.focus(mode === "replace" ? "start" : "end");
-
-    const state = this.editor.view.state;
-    const replaceAllFrom = 0;
-    const replaceAllTo = state.doc.content.size;
-    const from = mode === "replace" ? replaceAllFrom : state.selection.from;
-    const to = mode === "replace" ? replaceAllTo : state.selection.to;
-
-    const applied = await applyPasteClassifierFlowToView(
-      this.editor.view,
-      cleanText,
-      {
-        from,
-        to,
-      }
-    );
-    if (!applied) return;
-
-    this.editor.commands.focus(mode === "replace" ? "start" : "end");
-    this.refreshPageModel(true);
-    this.scheduleCharacterWidowFix();
-    this.emitState();
-    this.requestProductionSelfCheck(cleanText);
-
-    if (typeof window !== "undefined") {
-      window.requestAnimationFrame(() => {
-        this.refreshPageModel(true);
-        this.scheduleCharacterWidowFix();
-        this.emitState();
-      });
-    }
-  };
-
   importStructuredBlocks = async (
     blocks: ScreenplayBlock[],
     mode: FileImportMode = "replace"
   ): Promise<void> => {
     if (!blocks || blocks.length === 0) return;
 
-    this.editor.commands.focus(mode === "replace" ? "start" : "end");
+    const sourceText = blocks
+      .map((block) => (block.text ?? "").trim())
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+    if (!sourceText) return;
 
-    const html = screenplayBlocksToHtml(blocks);
-
-    if (mode === "replace") {
-      this.editor.commands.setContent(html);
-    } else {
-      this.editor.commands.insertContent(html);
-    }
-
-    this.refreshPageModel(true);
-    this.scheduleCharacterWidowFix();
-    this.emitState();
-    this.requestProductionSelfCheck(blocks[0]?.text ?? "");
-
-    if (typeof window !== "undefined") {
-      window.requestAnimationFrame(() => {
-        this.refreshPageModel(true);
-        this.scheduleCharacterWidowFix();
-        this.emitState();
-      });
-    }
+    await this.importClassifiedText(sourceText, mode);
   };
 
   getBlocks = (): ScreenplayBlock[] =>
@@ -483,10 +381,10 @@ export class EditorArea implements EditorHandle {
     const hasSelection = this.hasSelection();
     const plainText = hasSelection
       ? this.editor.state.doc.textBetween(
-        this.editor.state.selection.from,
-        this.editor.state.selection.to,
-        "\n"
-      )
+          this.editor.state.selection.from,
+          this.editor.state.selection.to,
+          "\n"
+        )
       : this.getAllText();
 
     if (!plainText.trim()) return false;
