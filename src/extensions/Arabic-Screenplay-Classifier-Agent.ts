@@ -20,10 +20,7 @@ import type {
   RelabelCommand,
   SplitCommand,
 } from "../types/agent-review";
-import {
-  AGENT_API_VERSION,
-  AGENT_API_MODE,
-} from "../types/agent-review";
+import { AGENT_API_VERSION, AGENT_API_MODE } from "../types/agent-review";
 import type { LineType } from "../types/screenplay";
 
 // ─── الثوابت والإعدادات ────────────────────────────────────────────
@@ -191,9 +188,7 @@ export const parseReviewCommands = (rawText: string): AgentCommand[] => {
       // ─── معالجة أوامر split ───
       if (op === "split") {
         const splitAt =
-          typeof record.splitAt === "number"
-            ? Math.trunc(record.splitAt)
-            : -1;
+          typeof record.splitAt === "number" ? Math.trunc(record.splitAt) : -1;
         const leftType = record.leftType as unknown;
         const rightType = record.rightType as unknown;
 
@@ -242,8 +237,8 @@ export const parseReviewCommands = (rawText: string): AgentCommand[] => {
 
 // ─── Client Transport Functions ─────────────────────────────────
 
-import type { 
-  AgentReviewRequestPayload, 
+import type {
+  AgentReviewRequestPayload,
   AgentReviewResponsePayload,
   AgentSuspiciousLinePayload,
 } from "../types/agent-review";
@@ -252,31 +247,29 @@ import { logger } from "../utils/logger";
 const clientLogger = logger.createScope("agent-review-client");
 
 /** endpoint للـ agent review */
-const AGENT_REVIEW_ENDPOINT = 
-  (import.meta.env.VITE_AGENT_REVIEW_BACKEND_URL as string | undefined) ?? 
+const AGENT_REVIEW_ENDPOINT =
+  (import.meta.env.VITE_AGENT_REVIEW_BACKEND_URL as string | undefined) ??
   "http://127.0.0.1:8787/api/agent/review";
 
 /**
  * إرسال طلب مراجعة إلى الوكيل (Client Transport)
- * 
+ *
  * @param payload - بيانات الطلب
  * @returns استجابة الوكيل
  */
-export const requestAgentReview = async (
-  payload: {
-    importOpId: string;
-    sessionId: string;
-    items: Array<{
-      itemId: string;
-      type: string;
-      text: string;
-      fingerprint: string;
-    }>;
-    requiredItemIds: string[];
-    forcedItemIds: string[];
-    context?: { source: string; totalItems: number };
-  }
-): Promise<AgentReviewResponsePayload> => {
+export const requestAgentReview = async (payload: {
+  importOpId: string;
+  sessionId: string;
+  items: Array<{
+    itemId: string;
+    type: LineType;
+    text: string;
+    fingerprint: string;
+  }>;
+  requiredItemIds: string[];
+  forcedItemIds: string[];
+  context?: { source: string; totalItems: number };
+}): Promise<AgentReviewResponsePayload> => {
   clientLogger.info("sending-agent-review-request", {
     sessionId: payload.sessionId,
     importOpId: payload.importOpId,
@@ -284,16 +277,20 @@ export const requestAgentReview = async (
   });
 
   // تحويل items إلى suspiciousLines
-  const suspiciousLines: AgentSuspiciousLinePayload[] = payload.items.map((item, index) => ({
-    itemId: item.itemId,
-    lineIndex: index,
-    text: item.text,
-    assignedType: item.type as any,
-    fingerprint: item.fingerprint,
-    totalSuspicion: payload.forcedItemIds.includes(item.itemId) ? 100 : 50,
-    reasons: payload.forcedItemIds.includes(item.itemId) ? ["forced-item"] : ["suspicious"],
-    contextLines: [],
-  }));
+  const suspiciousLines: AgentSuspiciousLinePayload[] = payload.items.map(
+    (item, index) => ({
+      itemId: item.itemId,
+      lineIndex: index,
+      text: item.text,
+      assignedType: item.type,
+      fingerprint: item.fingerprint,
+      totalSuspicion: payload.forcedItemIds.includes(item.itemId) ? 100 : 50,
+      reasons: payload.forcedItemIds.includes(item.itemId)
+        ? ["forced-item"]
+        : ["suspicious"],
+      contextLines: [],
+    })
+  );
 
   const request: AgentReviewRequestPayload = {
     importOpId: payload.importOpId,
@@ -322,8 +319,8 @@ export const requestAgentReview = async (
       throw new Error(`Agent review failed: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json() as AgentReviewResponsePayload;
-    
+    const data = (await response.json()) as AgentReviewResponsePayload;
+
     clientLogger.info("agent-review-response-received", {
       requestId: data.requestId,
       status: data.status,
@@ -334,7 +331,7 @@ export const requestAgentReview = async (
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     clientLogger.error("agent-review-request-failed", { error: errorMsg });
-    
+
     // إرجاع استجابة خطأ
     return {
       status: "error",

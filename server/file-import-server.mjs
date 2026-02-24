@@ -10,7 +10,7 @@ import { randomUUID } from "crypto";
 import { config as loadEnv } from "dotenv";
 import {
   isPdfTextLayerScriptAvailable,
-  runPdfTextLayerFlow
+  runPdfTextLayerFlow,
 } from "./pdf-textlayer-runner.mjs";
 import {
   AgentReviewValidationError,
@@ -73,26 +73,60 @@ const normalizeIncomingText = (value, maxLength = 50_000) => {
   return value.trim().slice(0, maxLength);
 };
 
+const stripAsciiControlChars = (value, options = {}) => {
+  const { preserveTabs = false, preserveNewlines = false } = options;
+  const text = String(value ?? "");
+  let cleaned = "";
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const code = ch.charCodeAt(0);
+    const isAsciiControl = code <= 0x1f || code === 0x7f;
+
+    if (!isAsciiControl) {
+      cleaned += ch;
+      continue;
+    }
+
+    if (preserveTabs && code === 0x09) {
+      cleaned += ch;
+      continue;
+    }
+
+    if (preserveNewlines && (code === 0x0a || code === 0x0d)) {
+      cleaned += ch;
+    }
+  }
+
+  return cleaned;
+};
+
 const normalizeText = (value) =>
-  String(value ?? "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+  stripAsciiControlChars(
+    String(value ?? "")
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n"),
+    {
+      preserveNewlines: true,
+    }
+  )
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-const normalizeTextForStructure = (value) =>
-  String(value ?? "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .replace(/\u2028|\u2029/g, "\n")
-    .replace(/\u0000/g, "")
-    .replace(/\u000B/g, "\n")
-    .replace(/\f/g, "\n")
-    .replace(/^\uFEFF/, "");
-
 const normalizeNewlinesOnly = (value) =>
-  String(value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  stripAsciiControlChars(
+    String(value ?? "")
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .replace(/\u2028|\u2029/g, "\n")
+      .replaceAll("\u000B", "\n")
+      .replaceAll("\f", "\n")
+      .replace(/^\uFEFF/, ""),
+    {
+      preserveNewlines: true,
+      preserveTabs: true,
+    }
+  );
 
 const sendJson = (res, statusCode, payload) => {
   res.writeHead(statusCode, {
@@ -253,7 +287,9 @@ const parseMultipartExtractRequestBody = (rawBody, contentType) => {
       );
     }
 
-    const extension = extname(resolvedFilename).replace(/^\./, "").toLowerCase();
+    const extension = extname(resolvedFilename)
+      .replace(/^\./, "")
+      .toLowerCase();
     if (!SUPPORTED_EXTENSIONS.has(extension)) {
       throw new RequestValidationError(
         `Unsupported extension: ${extension || "unknown"}`
@@ -333,30 +369,30 @@ const normalizeExtractionResponseData = (result, fileType) => {
     attempts,
     qualityScore:
       typeof result.qualityScore === "number" &&
-        Number.isFinite(result.qualityScore)
+      Number.isFinite(result.qualityScore)
         ? result.qualityScore
         : undefined,
     normalizationApplied: Array.isArray(result.normalizationApplied)
       ? result.normalizationApplied
-        .filter((entry) => isNonEmptyString(entry))
-        .slice(0, 24)
+          .filter((entry) => isNonEmptyString(entry))
+          .slice(0, 24)
       : undefined,
     structuredBlocks: Array.isArray(result.structuredBlocks)
       ? result.structuredBlocks
-        .filter(
-          (block) =>
-            isObjectRecord(block) &&
-            isNonEmptyString(block.formatId) &&
-            typeof block.text === "string"
-        )
-        .map((block) => ({
-          formatId: block.formatId.trim(),
-          text: block.text,
-        }))
+          .filter(
+            (block) =>
+              isObjectRecord(block) &&
+              isNonEmptyString(block.formatId) &&
+              typeof block.text === "string"
+          )
+          .map((block) => ({
+            formatId: block.formatId.trim(),
+            text: block.text,
+          }))
       : undefined,
     payloadVersion:
       typeof result.payloadVersion === "number" &&
-        Number.isInteger(result.payloadVersion)
+      Number.isInteger(result.payloadVersion)
         ? result.payloadVersion
         : undefined,
   };
@@ -581,12 +617,16 @@ const convertDocBufferToText = async (buffer, filename) => {
     const stderrText = decodeUtf8Buffer(error?.stderr).trim();
     if (stderrText) warnings.push(stderrText);
     throw new Error(
-      `فشل تحويل ملف DOC عبر antiword (${runtime.antiwordPath}): ${error instanceof Error ? error.message : String(error)
-      }`
+      `فشل تحويل ملف DOC عبر antiword (${runtime.antiwordPath}): ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      {
+        cause: error,
+      }
     );
   } finally {
     if (tempDirPath) {
-      await rm(tempDirPath, { recursive: true, force: true }).catch(() => { });
+      await rm(tempDirPath, { recursive: true, force: true }).catch(() => {});
     }
   }
 };
@@ -637,12 +677,16 @@ const convertDocxBufferToDocThenExtract = async (buffer, filename) => {
     if (stderrText) warnings.push(stderrText);
 
     throw new Error(
-      `فشل مسار تحويل DOCX→DOC عبر docx-to-doc.final.ts: ${error instanceof Error ? error.message : String(error)
-      }${warnings.length > 0 ? ` | logs: ${warnings.join(" | ")}` : ""}`
+      `فشل مسار تحويل DOCX→DOC عبر docx-to-doc.final.ts: ${
+        error instanceof Error ? error.message : String(error)
+      }${warnings.length > 0 ? ` | logs: ${warnings.join(" | ")}` : ""}`,
+      {
+        cause: error,
+      }
     );
   } finally {
     if (tempDirPath) {
-      await rm(tempDirPath, { recursive: true, force: true }).catch(() => { });
+      await rm(tempDirPath, { recursive: true, force: true }).catch(() => {});
     }
   }
 };
@@ -692,7 +736,10 @@ const extractPdfTextWithTextLayerPipeline = async (buffer, filename) => {
     throw new Error(
       `فشل استخراج PDF عبر المسار الموحد text-layer-first${
         warnings.length > 0 ? ` | ${warnings.join(" | ")}` : ""
-      }`
+      }`,
+      {
+        cause: error,
+      }
     );
   }
 };
@@ -777,7 +824,8 @@ const handleAgentReview = async (req, res) => {
   try {
     const rawBody = await readJsonBody(req);
     // Extract importOpId early for error response
-    importOpId = typeof rawBody?.importOpId === "string" ? rawBody.importOpId : null;
+    importOpId =
+      typeof rawBody?.importOpId === "string" ? rawBody.importOpId : null;
     const body = validateAgentReviewRequestBody(rawBody);
     const response = await requestAnthropicReview(body);
     sendJson(res, 200, response);
@@ -867,10 +915,8 @@ server.listen(PORT, HOST, () => {
   // eslint-disable-next-line no-console
   console.log(`health:           http://${HOST}:${PORT}/health`);
   if (ANTIWORD_PREFLIGHT.warnings.length > 0) {
-    // eslint-disable-next-line no-console
     console.warn("[antiword preflight] warnings:");
     for (const warning of ANTIWORD_PREFLIGHT.warnings) {
-      // eslint-disable-next-line no-console
       console.warn(`- ${warning}`);
     }
   }

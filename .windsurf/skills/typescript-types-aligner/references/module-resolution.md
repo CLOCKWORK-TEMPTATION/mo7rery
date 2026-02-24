@@ -10,13 +10,15 @@
 ### استراتيجيات البحث عن الملفات
 
 #### 1. Non-relative Imports
+
 ```typescript
-import { User } from "@/types/user";  // Path alias
-import { utils } from "../utils";       // Parent directory
-import { config } from "./config";      // Same directory
+import { User } from "@/types/user"; // Path alias
+import { utils } from "../utils"; // Parent directory
+import { config } from "./config"; // Same directory
 ```
 
 #### 2. Path Aliases (tsconfig.json)
+
 ```json
 {
   "compilerOptions": {
@@ -30,7 +32,9 @@ import { config } from "./config";      // Same directory
 ```
 
 #### 3. Extension Resolution
+
 TypeScript يحاول امتدادات الملفات بالترتيب:
+
 1. `.ts`
 2. `.tsx`
 3. `.d.ts`
@@ -39,17 +43,20 @@ TypeScript يحاول امتدادات الملفات بالترتيب:
 ## أخطاء Module Resolution الشائعة
 
 ### الخطأ: Cannot find module
+
 ```
 error TS2307: Cannot find module './utils' or its corresponding type declarations.
 ```
 
 **الأسباب:**
+
 1. الملف مش موجود
 2. الخطأ في المسار (case sensitivity)
 3. extension غلط
 4. tsconfig paths مش مضبوط
 
 **الحلول:**
+
 ```typescript
 // ❌ خطأ - الملف مش موجود
 import { helper } from "./util";
@@ -62,16 +69,19 @@ import { helper } from "./utils.ts";
 ```
 
 ### الخطأ: Module has no exported member
+
 ```
 error TS2305: Module '"./types"' has no exported member 'User'.
 ```
 
 **الأسباب:**
+
 1. الاسم غلط
 2. الـ export مش موجود
 3. الـ export default vs named export
 
 **الحلول:**
+
 ```typescript
 // في types.ts
 export interface User { ... }          // Named export
@@ -90,6 +100,7 @@ import { User } from "./types";
 ## استراتيجيات Import/Export المتقدمة
 
 ### 1. Re-exports
+
 ```typescript
 // index.ts - Barrel export
 export * from "./user";
@@ -98,6 +109,7 @@ export { default as Logger } from "./logger";
 ```
 
 ### 2. Type-only Imports
+
 ```typescript
 // ✅ TypeScript 3.8+
 import type { User } from "./types";
@@ -109,6 +121,7 @@ import type { User } from "./types";
 ```
 
 ### 3. Module Augmentation
+
 ```typescript
 // augment-external-module.d.ts
 declare module "external-library" {
@@ -121,6 +134,7 @@ declare module "external-library" {
 ## Circular Dependencies
 
 ### الكشف عن Circular Dependencies
+
 ```
 File A imports from B
 File B imports from C
@@ -128,6 +142,7 @@ File C imports from A  // ⭕ Circular!
 ```
 
 ### الحلول
+
 1. **إعادة التنظيم**: نقل الأنواع المشتركة لملف مستقل
 2. **Interface Segregation**: تقسيم interfaces كبيرة
 3. **Dependency Injection**: تجنب الـ import المباشر

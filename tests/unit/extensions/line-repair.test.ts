@@ -60,9 +60,9 @@ describe("shouldMergeWrappedLines — ثم + فعل وصفي (اختبار A)", 
 
 describe("shouldMergeWrappedLines — شروط عامة", () => {
   it("لا يدمج إذا previousType ليس dialogue", () => {
-    expect(
-      shouldMergeWrappedLines("نص عادي", "و استكمال", "action")
-    ).toBe(false);
+    expect(shouldMergeWrappedLines("نص عادي", "و استكمال", "action")).toBe(
+      false
+    );
   });
 
   it("لا يدمج إذا السطر السابق ينتهي بعلامة جملة", () => {
@@ -72,15 +72,15 @@ describe("shouldMergeWrappedLines — شروط عامة", () => {
   });
 
   it("لا يدمج إذا السطر الحالي ينتهي بنقطتين (اسم شخصية)", () => {
-    expect(
-      shouldMergeWrappedLines("حوار عادي", "و أحمد:", "dialogue")
-    ).toBe(false);
+    expect(shouldMergeWrappedLines("حوار عادي", "و أحمد:", "dialogue")).toBe(
+      false
+    );
   });
 
   it("لا يدمج إذا بدأ بشرطة", () => {
-    expect(
-      shouldMergeWrappedLines("حوار", "- بند جديد", "dialogue")
-    ).toBe(false);
+    expect(shouldMergeWrappedLines("حوار", "- بند جديد", "dialogue")).toBe(
+      false
+    );
   });
 
   it("يرفض السطور الفارغة", () => {

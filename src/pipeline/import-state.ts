@@ -1,11 +1,11 @@
 /**
  * @fileoverview Import State — إدارة حالة عمليات الاستيراد
- * 
+ *
  * يحفظ:
  * - snapshots للعناصر المستوردة
  * - requestIds المطبقة (لـ idempotency)
  * - fingerprints للتحقق من التغييرات
- * 
+ *
  * @module pipeline/import-state
  */
 
@@ -44,9 +44,9 @@ export function createImportSnapshot(
 
   for (const item of items) {
     if (!item._itemId) continue;
-    
+
     const fingerprint = calculateFingerprint(item.type, item.text);
-    
+
     itemMap.set(item._itemId, {
       itemId: item._itemId,
       type: item.type,
@@ -79,7 +79,9 @@ export function createImportSnapshot(
 /**
  * الحصول على snapshot موجود
  */
-export function getImportSnapshot(importOpId: string): ImportSnapshot | undefined {
+export function getImportSnapshot(
+  importOpId: string
+): ImportSnapshot | undefined {
   return activeSnapshots.get(importOpId);
 }
 
@@ -99,7 +101,7 @@ export function addRequestId(importOpId: string, requestId: string): void {
   const snapshot = activeSnapshots.get(importOpId);
   if (snapshot) {
     snapshot.appliedRequestIds.add(requestId);
-    
+
     importStateLogger.info("request-id-added", {
       importOpId,
       requestId,
@@ -118,18 +120,24 @@ export function verifyFingerprint(
 ): boolean {
   const snapshot = activeSnapshots.get(importOpId);
   if (!snapshot) {
-    importStateLogger.warn("snapshot-not-found-for-fingerprint", { importOpId, itemId });
+    importStateLogger.warn("snapshot-not-found-for-fingerprint", {
+      importOpId,
+      itemId,
+    });
     return false;
   }
 
   const item = snapshot.items.get(itemId);
   if (!item) {
-    importStateLogger.warn("item-not-found-for-fingerprint", { importOpId, itemId });
+    importStateLogger.warn("item-not-found-for-fingerprint", {
+      importOpId,
+      itemId,
+    });
     return false;
   }
 
   const matches = item.fingerprint === expectedFingerprint;
-  
+
   if (!matches) {
     importStateLogger.info("fingerprint-mismatch", {
       importOpId,
@@ -155,7 +163,7 @@ export function getSnapshotItem(
 
 /**
  * حساب fingerprint للعنصر ( synchronous )
- * 
+ *
  * fingerprint = sha1(type + "\u241F" + rawText)
  * - بدون trim
  * - المسافات الداخلية كما هي
@@ -166,7 +174,7 @@ export function calculateFingerprint(type: string, rawText: string): string {
   // استخدام unit separator (U+241F) كفاصل
   const separator = "\u241F";
   const content = type + separator + rawText;
-  
+
   // Simple hash for synchronous usage
   return simpleHash(content);
 }
@@ -178,7 +186,7 @@ function simpleHash(message: string): string {
   let hash = 0;
   for (let i = 0; i < message.length; i++) {
     const char = message.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
   return Math.abs(hash).toString(16).padStart(8, "0");
@@ -189,7 +197,7 @@ function simpleHash(message: string): string {
  */
 function cleanupOldSnapshots(): void {
   const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-  
+
   for (const [importOpId, snapshot] of activeSnapshots.entries()) {
     if (snapshot.createdAt < fiveMinutesAgo) {
       activeSnapshots.delete(importOpId);
@@ -212,7 +220,7 @@ export function createImportSnapshotWithMethods(
   items: Array<{ _itemId?: string; type: string; text: string }>
 ): ImportSnapshotWithIdMethods {
   const snapshot = createImportSnapshot(importOpId, items);
-  
+
   return {
     ...snapshot,
     hasRequestId(requestId: string): boolean {

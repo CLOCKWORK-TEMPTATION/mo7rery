@@ -18,4 +18,3 @@ describe("open pipeline pdf force path", () => {
     expect(action.kind).toBe("import-classified-text");
   });
 });
-

@@ -21,6 +21,7 @@
 **المشكلة:** نمط "ثم + فعل وصفي" كان يُدمج خطأً كاستمرار حوار.
 
 **الحل:**
+
 - إضافة قائمة `ACTION_VERBS_AFTER_THUMMA` (46 فعل مصرف للمذكر والمؤنث)
 - إضافة regex `THUMMA_ACTION_RE` يطابق `^ثم\s+(?:يخرج|تدخل|...)`
 - فحص إضافي في `shouldMergeWrappedLines` يمنع الدمج عند مطابقة النمط
@@ -35,11 +36,11 @@
 
 ثلاثة مستويات ثقة:
 
-| المستوى | الشروط | مسار المعالجة |
-|---------|--------|--------------|
+| المستوى              | الشروط                                                          | مسار المعالجة                 |
+| -------------------- | --------------------------------------------------------------- | ----------------------------- |
 | `trusted_structured` | systemGenerated + schemaValid + sourceTagged + integrityChecked | `direct_import_with_bg_check` |
-| `semi_structured` | schemaValid فقط | `fallback_to_classifier` |
-| `raw_text` | المخطط غير صالح أو كتل فارغة | `fallback_to_classifier` |
+| `semi_structured`    | schemaValid فقط                                                 | `fallback_to_classifier`      |
+| `raw_text`           | المخطط غير صالح أو كتل فارغة                                    | `fallback_to_classifier`      |
 
 **الدوال المُصدّرة:** `assessTrustLevel`, `resolveImportAction`
 
@@ -51,15 +52,15 @@
 
 التغييرات الجوهرية:
 
-| v1 | v2 |
-|----|----|
-| `decisions[]` | `commands[]` |
-| `itemIndex: number` | `itemId: string` |
-| `AgentReviewDecision` | `RelabelCommand \| SplitCommand` |
-| لا يوجد | `importOpId`, `requestId` |
-| لا يوجد | `apiVersion: "2.0"`, `mode: "auto-apply"` |
+| v1                    | v2                                          |
+| --------------------- | ------------------------------------------- |
+| `decisions[]`         | `commands[]`                                |
+| `itemIndex: number`   | `itemId: string`                            |
+| `AgentReviewDecision` | `RelabelCommand \| SplitCommand`            |
+| لا يوجد               | `importOpId`, `requestId`                   |
+| لا يوجد               | `apiVersion: "2.0"`, `mode: "auto-apply"`   |
 | `requiredItemIndexes` | محذوف — يُستخدم `isForced` في packet-budget |
-| `forcedItemIndexes` | محذوف |
+| `forcedItemIndexes`   | محذوف                                       |
 
 أمر `split` يستخدم `splitAt` (UTF-16 index) بدون `leftText`/`rightText`.
 
@@ -93,11 +94,13 @@
 **الملف:** `src/extensions/paste-classifier.ts`
 
 النمط الجديد:
+
 1. التصنيف المحلي يُعرض فوراً (render-first)
 2. المراجعة بالوكيل تعمل في الخلفية (review-later)
 3. النتائج تُطبّق تلقائياً (auto-apply)
 
 التغييرات:
+
 - `ClassifiedDraftWithId` مع حقل `_itemId`
 - `applyRemoteAgentReview` → `applyRemoteAgentReviewV2`
 - كل `itemIndex` → `itemId`
@@ -123,17 +126,18 @@
 
 **الملف:** `src/pipeline/command-engine.ts`
 
-| الوظيفة | الوصف |
-|---------|-------|
-| `validateAndFilterCommands` | تحقق C — قبول/رفض أوامر حسب المخطط |
+| الوظيفة                      | الوصف                                   |
+| ---------------------------- | --------------------------------------- |
+| `validateAndFilterCommands`  | تحقق C — قبول/رفض أوامر حسب المخطط      |
 | `normalizeAndDedupeCommands` | تحقق E — حل التضاربات (split > relabel) |
-| `checkResponseValidity` | تحقق D — كشف stale و idempotent |
-| `applyRelabelCommand` | تطبيق أمر relabel |
-| `applySplitCommand` | تطبيق أمر split (UTF-16 index) |
-| `applyCommandBatch` | تطبيق دفعة كاملة مع telemetry |
-| `createImportOperationState` | إنشاء حالة عملية استيراد |
+| `checkResponseValidity`      | تحقق D — كشف stale و idempotent         |
+| `applyRelabelCommand`        | تطبيق أمر relabel                       |
+| `applySplitCommand`          | تطبيق أمر split (UTF-16 index)          |
+| `applyCommandBatch`          | تطبيق دفعة كاملة مع telemetry           |
+| `createImportOperationState` | إنشاء حالة عملية استيراد                |
 
 سياسة التضارب:
+
 - أمر واحد لكل `itemId`
 - `split` يتفوق على `relabel` لنفس `itemId`
 - أكثر من `split` لنفس `itemId` = تضارب → رفض الكل
@@ -169,6 +173,7 @@
 trust-policy, fingerprint, command-engine, packet-budget, telemetry
 
 **`src/types/index.ts`** — مُحدّث:
+
 - أُزيل: `AgentReviewDecision` وأنماط v1
 - أُضيف: `RelabelCommand`, `SplitCommand`, `AgentCommand`, `AGENT_API_VERSION`, `AGENT_API_MODE`, وباقي أنماط v2
 
@@ -184,50 +189,53 @@ Test Files  5 passed (5)
 
 ### تفصيل الاختبارات
 
-| الاختبار | الملف | العدد | الحالة |
-|----------|-------|-------|--------|
-| A — Root-Cause Regression | `line-repair.test.ts` | 19 | ✅ |
-| B — Trust Policy | `trust-policy.test.ts` | 9 | ✅ |
-| C — Command Parsing | `command-engine.test.ts` | 8 | ✅ |
-| D — Stale/Idempotency | `command-engine.test.ts` | 3 | ✅ |
-| E — Conflict Policy | `command-engine.test.ts` | 4 | ✅ |
-| F — Fingerprint Spec | `fingerprint.test.ts` | 9 | ✅ |
-| — — Command Apply | `command-engine.test.ts` | 6 | ✅ |
-| — — Packet Budget | `packet-budget.test.ts` | 7 | ✅ |
-| — — Batch Apply | `command-engine.test.ts` | 4 | ✅ |
+| الاختبار                  | الملف                    | العدد | الحالة |
+| ------------------------- | ------------------------ | ----- | ------ |
+| A — Root-Cause Regression | `line-repair.test.ts`    | 19    | ✅     |
+| B — Trust Policy          | `trust-policy.test.ts`   | 9     | ✅     |
+| C — Command Parsing       | `command-engine.test.ts` | 8     | ✅     |
+| D — Stale/Idempotency     | `command-engine.test.ts` | 3     | ✅     |
+| E — Conflict Policy       | `command-engine.test.ts` | 4     | ✅     |
+| F — Fingerprint Spec      | `fingerprint.test.ts`    | 9     | ✅     |
+| — — Command Apply         | `command-engine.test.ts` | 6     | ✅     |
+| — — Packet Budget         | `packet-budget.test.ts`  | 7     | ✅     |
+| — — Batch Apply           | `command-engine.test.ts` | 4     | ✅     |
 
 ---
 
 ## قائمة الملفات المُعدّلة/المُنشأة
 
 ### ملفات جديدة (pipeline/)
-| الملف | الأسطر | الوصف |
-|-------|--------|-------|
-| `src/pipeline/trust-policy.ts` | 163 | سياسة الثقة |
-| `src/pipeline/fingerprint.ts` | 133 | مواصفة البصمة |
-| `src/pipeline/command-engine.ts` | 486 | محرك الأوامر |
-| `src/pipeline/packet-budget.ts` | 205 | ميزانية الحزم |
-| `src/pipeline/telemetry.ts` | 119 | التسجيل الهيكلي |
-| `src/pipeline/index.ts` | 20 | barrel exports |
+
+| الملف                            | الأسطر | الوصف           |
+| -------------------------------- | ------ | --------------- |
+| `src/pipeline/trust-policy.ts`   | 163    | سياسة الثقة     |
+| `src/pipeline/fingerprint.ts`    | 133    | مواصفة البصمة   |
+| `src/pipeline/command-engine.ts` | 486    | محرك الأوامر    |
+| `src/pipeline/packet-budget.ts`  | 205    | ميزانية الحزم   |
+| `src/pipeline/telemetry.ts`      | 119    | التسجيل الهيكلي |
+| `src/pipeline/index.ts`          | 20     | barrel exports  |
 
 ### ملفات مُعدّلة
-| الملف | التغيير |
-|-------|---------|
-| `src/extensions/line-repair.ts` | إضافة THUMMA_ACTION_RE |
-| `src/types/agent-review.ts` | إعادة كتابة كاملة → v2 |
-| `src/types/index.ts` | تحديث barrel exports |
-| `server/agent-review.mjs` | تحويل من v1 → v2 |
+
+| الملف                                                  | التغيير                            |
+| ------------------------------------------------------ | ---------------------------------- |
+| `src/extensions/line-repair.ts`                        | إضافة THUMMA_ACTION_RE             |
+| `src/types/agent-review.ts`                            | إعادة كتابة كاملة → v2             |
+| `src/types/index.ts`                                   | تحديث barrel exports               |
+| `server/agent-review.mjs`                              | تحويل من v1 → v2                   |
 | `src/extensions/Arabic-Screenplay-Classifier-Agent.ts` | حذف v1 + إضافة parseReviewCommands |
-| `src/extensions/paste-classifier.ts` | Render-First/Review-Later + v2 |
+| `src/extensions/paste-classifier.ts`                   | Render-First/Review-Later + v2     |
 
 ### اختبارات جديدة
-| الملف | عدد الاختبارات |
-|-------|---------------|
-| `tests/unit/extensions/line-repair.test.ts` | 19 |
-| `tests/unit/pipeline/trust-policy.test.ts` | 9 |
-| `tests/unit/pipeline/command-engine.test.ts` | 21 |
-| `tests/unit/pipeline/fingerprint.test.ts` | 9 |
-| `tests/unit/pipeline/packet-budget.test.ts` | 7 |
+
+| الملف                                        | عدد الاختبارات |
+| -------------------------------------------- | -------------- |
+| `tests/unit/extensions/line-repair.test.ts`  | 19             |
+| `tests/unit/pipeline/trust-policy.test.ts`   | 9              |
+| `tests/unit/pipeline/command-engine.test.ts` | 21             |
+| `tests/unit/pipeline/fingerprint.test.ts`    | 9              |
+| `tests/unit/pipeline/packet-budget.test.ts`  | 7              |
 
 ---
 

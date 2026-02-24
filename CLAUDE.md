@@ -19,6 +19,7 @@ pnpm format                 # تنسيق بـ Prettier
 ```
 
 الخادم الخلفي (`server/file-import-server.mjs`) يعمل على المنفذ 8787 ويوفر:
+
 - `POST /api/file-extract` — استخراج النص من PDF/DOC/DOCX
 - `POST /api/agent/review` — مراجعة AI بـ Claude Opus 4.6
 
@@ -38,14 +39,14 @@ pnpm format                 # تنسيق بـ Prettier
 
 ### الطبقات الرئيسية
 
-| الطبقة | الملفات |
-|--------|---------|
-| نقطة الدخول | `main.tsx`, `App.tsx` |
-| محرك التحرير | `components/editor/EditorArea.ts`, `editor.ts` |
-| عُقد السيناريو (10 أنواع) | `extensions/{action,character,dialogue,...}.ts` |
-| خط أنابيب التصنيف | `extensions/paste-classifier.ts`, `classification-core.ts`, `hybrid-classifier.ts`, `arabic-patterns.ts` |
-| استيراد الملفات | `utils/file-import/*.ts` |
-| الخادم الخلفي | `server/*.mjs` |
+| الطبقة                    | الملفات                                                                                                  |
+| ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| نقطة الدخول               | `main.tsx`, `App.tsx`                                                                                    |
+| محرك التحرير              | `components/editor/EditorArea.ts`, `editor.ts`                                                           |
+| عُقد السيناريو (10 أنواع) | `extensions/{action,character,dialogue,...}.ts`                                                          |
+| خط أنابيب التصنيف         | `extensions/paste-classifier.ts`, `classification-core.ts`, `hybrid-classifier.ts`, `arabic-patterns.ts` |
+| استيراد الملفات           | `utils/file-import/*.ts`                                                                                 |
+| الخادم الخلفي             | `server/*.mjs`                                                                                           |
 
 ## خط أنابيب التصنيف (الميزة الأساسية)
 
@@ -59,6 +60,7 @@ pnpm format                 # تنسيق بـ Prettier
 ### نظام المراجعة اللاحقة (`PostClassificationReviewer`)
 
 يعمل بعد التصنيف في `classification-core.ts` عبر 5 كاشفات:
+
 - `sequence-violation` — تسلسل عناصر غير منطقي
 - `content-type-mismatch` — محتوى لا يتوافق مع التصنيف (الأكثر تعقيداً)
 - `split-character-fragment` — اسم شخصية مقسم على سطرين
@@ -66,6 +68,7 @@ pnpm format                 # تنسيق بـ Prettier
 - `confidence-drop` — ثقة منخفضة في التصنيف
 
 **نطاقات التوجيه (routing bands)**:
+
 - `pass` (< 65): لا إجراء
 - `local-review` (65-80): تصحيح محلي
 - `agent-candidate` (80-90): قد يُصعّد للوكيل
@@ -102,15 +105,15 @@ Tab:   وصف → شخصية → حوار → تعليمات حوار → انت
 
 ## اصطلاحات الكود
 
-| العنصر | الاصطلاح |
-|--------|----------|
-| أسماء الملفات | `kebab-case.ts` |
-| مكونات/فئات | `PascalCase` |
-| ثوابت | `SCREAMING_SNAKE_CASE` |
-| متغيرات | `camelCase` |
-| خطافات | بادئة `use-` |
-| استيرادات الأنواع | `import type` دائماً |
-| مسار مختصر | `@/*` → `./src/*` |
+| العنصر            | الاصطلاح               |
+| ----------------- | ---------------------- |
+| أسماء الملفات     | `kebab-case.ts`        |
+| مكونات/فئات       | `PascalCase`           |
+| ثوابت             | `SCREAMING_SNAKE_CASE` |
+| متغيرات           | `camelCase`            |
+| خطافات            | بادئة `use-`           |
+| استيرادات الأنواع | `import type` دائماً   |
+| مسار مختصر        | `@/*` → `./src/*`      |
 
 - **Prettier**: مسافتان، فاصلة منقوطة، علامات اقتباس مزدوجة، 80 حرف عرض، `prettier-plugin-tailwindcss`
 - **TypeScript strict mode**: مع `noUnusedLocals` و `noUnusedParameters`

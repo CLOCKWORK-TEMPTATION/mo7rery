@@ -142,7 +142,7 @@ describe("runSanitizedImportPipeline() — full regression test", () => {
   it("report shows pstyle-bracket-prefix rule applied", () => {
     result = runSanitizedImportPipeline(realInput);
     const appliedRule = result.sanitizationReport.rulesApplied.find(
-      (r) => r.ruleId === "pstyle-bracket-prefix",
+      (r) => r.ruleId === "pstyle-bracket-prefix"
     );
     expect(appliedRule).toBeDefined();
     expect(appliedRule?.matchCount).toBeGreaterThan(0);

@@ -69,7 +69,7 @@ const looksLikeCharacterCue = (line: string): boolean =>
   stripDirectionalMarks(line).trim().length <= 48;
 
 const BULLET_PREFIX_REGEX =
-  /^[\s\u200E\u200F\u061C\uFEFF]*[•·∙⋅●○◦■□▪▫◆◇–—−‒―‣⁃*+\-]+\s*/u;
+  /^[\s\u200E\u200F\u061C\uFEFF]*[•·∙⋅●○◦■□▪▫◆◇–—−‒―‣⁃*+-]+\s*/u;
 
 /**
  * يزيل رمز التعداد النقطي من بداية السطر (•, ●, -, *, إلخ).

@@ -298,9 +298,12 @@ export const normalizeTextForStructure = (text: string): string =>
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .replace(/\u2028|\u2029/g, "\n")
-    .replace(/\u0000/g, "")
-    .replace(/\u000B/g, "\n")
-    .replace(/\f/g, "\n")
+    .split("\u0000")
+    .join("")
+    .split("\u000B")
+    .join("\n")
+    .split("\f")
+    .join("\n")
     .replace(/^\uFEFF/, "");
 
 /**

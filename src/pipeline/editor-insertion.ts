@@ -1,6 +1,6 @@
 /**
  * @fileoverview Editor Insertion — إدراج العناصر المصنفة في المحرر
- * 
+ *
  * @module pipeline/editor-insertion
  */
 
@@ -35,7 +35,7 @@ export async function insertClassifiedItems(
   options: InsertionOptions = {}
 ): Promise<void> {
   const { from = 0, to = view.state.doc.content.size } = options;
-  
+
   insertionLogger.info("inserting-classified-items", {
     itemCount: items.length,
     from,
@@ -43,23 +43,25 @@ export async function insertClassifiedItems(
   });
 
   const tr = view.state.tr;
-  
-  // بناء عقد ProseMirror من العناصر المصنفة
-  const nodes = items.map((item) => {
-    const nodeType = view.state.schema.nodes[item.type];
-    if (!nodeType) {
-      insertionLogger.warn("unknown-node-type", { type: item.type });
-      return null;
-    }
 
-    // إنشاء العقدة مع البيانات الوصفية
-    const node = nodeType.create(
-      { "data-item-id": item._itemId },
-      view.state.schema.text(item.text)
-    );
-    
-    return node;
-  }).filter((n): n is NonNullable<typeof n> => n !== null);
+  // بناء عقد ProseMirror من العناصر المصنفة
+  const nodes = items
+    .map((item) => {
+      const nodeType = view.state.schema.nodes[item.type];
+      if (!nodeType) {
+        insertionLogger.warn("unknown-node-type", { type: item.type });
+        return null;
+      }
+
+      // إنشاء العقدة مع البيانات الوصفية
+      const node = nodeType.create(
+        { "data-item-id": item._itemId },
+        view.state.schema.text(item.text)
+      );
+
+      return node;
+    })
+    .filter((n): n is NonNullable<typeof n> => n !== null);
 
   if (nodes.length === 0) {
     insertionLogger.warn("no-nodes-to-insert");

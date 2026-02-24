@@ -19,9 +19,27 @@ const decodeUtf8Buffer = (value) => {
   return new TextDecoder("utf-8").decode(value);
 };
 
+const stripAsciiControlChars = (value) => {
+  const text = String(value ?? "");
+  let cleaned = "";
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const code = ch.charCodeAt(0);
+    const isBlocked =
+      (code >= 0x00 && code <= 0x08) ||
+      code === 0x0b ||
+      code === 0x0c ||
+      (code >= 0x0e && code <= 0x1f) ||
+      code === 0x7f;
+    if (!isBlocked) cleaned += ch;
+  }
+
+  return cleaned;
+};
+
 const cleanExtractedText = (text) =>
-  normalizeNewlines(text)
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+  stripAsciiControlChars(normalizeNewlines(text))
     .replace(/\u00a0/g, " ")
     .split("\n")
     .map((line) => line.replace(/[^\S\r\n]{2,}/g, " ").trimEnd())
@@ -137,7 +155,6 @@ export const convertDocBufferToText = async (buffer, filename) => {
       warnings.push(stderrText);
     }
 
-    // eslint-disable-next-line no-console
     console.error("[doc-converter-flow] failed", {
       resolvedAntiwordPath: runtime.antiwordPath,
       resolvedAntiwordHome: runtime.antiwordHome,

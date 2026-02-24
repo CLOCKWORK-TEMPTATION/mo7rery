@@ -89,8 +89,8 @@ import {
   saveToStorage,
   subscribeIsMobile,
   toast,
-  useAutoSave,
-  useIsMobile,
+  useAutoSave as scheduleAutoSave,
+  useIsMobile as getIsMobile,
   useMenuCommandResolver,
 } from "./hooks";
 import {
@@ -485,6 +485,9 @@ const readTypingSystemSettings = (): TypingSystemSettings => {
 export function App(): React.JSX.Element {
   const editorMountRef = useRef<HTMLDivElement | null>(null);
   const editorAreaRef = useRef<EditorArea | null>(null);
+  const handleMenuActionRef = useRef<
+    ((actionId: MenuActionId) => Promise<void>) | null
+  >(null);
   const liveTypingWorkflowTimeoutRef = useRef<number | null>(null);
   const applyingTypingWorkflowRef = useRef(false);
   const lastLiveWorkflowTextRef = useRef("");
@@ -500,7 +503,7 @@ export function App(): React.JSX.Element {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [openSidebarItem, setOpenSidebarItem] = useState<string | null>(null);
   const [documentText, setDocumentText] = useState("");
-  const [isMobile, setIsMobile] = useState<boolean>(() => useIsMobile());
+  const [isMobile, setIsMobile] = useState<boolean>(() => getIsMobile());
   const [typingSystemSettings, setTypingSystemSettings] =
     useState<TypingSystemSettings>(() => readTypingSystemSettings());
 
@@ -591,7 +594,7 @@ export function App(): React.JSX.Element {
     const normalizedText = documentText.trim();
     if (!normalizedText) return;
 
-    useAutoSave<EditorAutosaveSnapshot>(
+    scheduleAutoSave<EditorAutosaveSnapshot>(
       AUTOSAVE_DRAFT_STORAGE_KEY,
       {
         text: normalizedText,
@@ -840,15 +843,15 @@ export function App(): React.JSX.Element {
       switch (key) {
         case "s":
           event.preventDefault();
-          void handleMenuAction("save-file");
+          void handleMenuActionRef.current?.("save-file");
           break;
         case "o":
           event.preventDefault();
-          void handleMenuAction("open-file");
+          void handleMenuActionRef.current?.("open-file");
           break;
         case "n":
           event.preventDefault();
-          void handleMenuAction("new-file");
+          void handleMenuActionRef.current?.("new-file");
           break;
         case "z":
           event.preventDefault();
@@ -890,7 +893,7 @@ export function App(): React.JSX.Element {
     try {
       const extraction = await extractImportedFile(file);
       const action = buildFileOpenPipelineAction(extraction, mode);
-      let appliedPipeline: "paste-classifier" = "paste-classifier";
+      let appliedPipeline = "paste-classifier" as const;
 
       if (action.kind === "reject") {
         toast(action.toast);
@@ -1182,6 +1185,10 @@ export function App(): React.JSX.Element {
         break;
     }
   };
+
+  useEffect(() => {
+    handleMenuActionRef.current = handleMenuAction;
+  }, [handleMenuAction]);
 
   const handleSidebarItemAction = async (
     sectionId: string,

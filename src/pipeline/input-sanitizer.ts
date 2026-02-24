@@ -154,8 +154,7 @@ const wordFieldCodes: SanitizationRule = {
  * في بداية كل سطر ويحذفها.
  */
 const BRACKET_META_LINE_RE = /^\[(?:style|class|lang|align|dir)=[^\]]*\]\s*/;
-const BRACKET_META_DETECT_RE =
-  /^\[(?:style|class|lang|align|dir)=[^\]]*\]/m;
+const BRACKET_META_DETECT_RE = /^\[(?:style|class|lang|align|dir)=[^\]]*\]/m;
 
 const doubleBracketMetadata: SanitizationRule = {
   id: "double-bracket-metadata",

@@ -1,27 +1,46 @@
 /**
  * @fileoverview Ingestion Orchestrator — نقطة دخول موحدة لجميع عمليات إدخال النص
- * 
+ *
  * يدير المسارات المختلفة حسب مستوى الثقة:
  * - trusted_structured: استيراد مباشر بدون مراجعة
  * - semi_structured: فحص سريع + استيراد
  * - raw_text: تصنيف كامل + مراجعة وكيل
- * 
+ *
  * @module pipeline/ingestion-orchestrator
  */
 
 import type { EditorView } from "@tiptap/pm/view";
 import { DOMParser as ProseMirrorDOMParser } from "@tiptap/pm/model";
 import type { ScreenplayBlock } from "../utils/file-import";
-import type { ElementType } from "../extensions/classification-types";
-import { assessTrustLevel, type InputTrustLevel } from "./trust-policy";
-import { applyCommandBatch, createImportOperationState } from "./command-engine";
-import { createImportSnapshotWithMethods, type ImportSnapshotWithIdMethods } from "./import-state";
-import { buildPacketWithBudget, type PacketBudgetConfig, type PacketBuildResult } from "./packet-budget";
+import { toLegacyElementType } from "../extensions/classification-types";
+import {
+  assessTrustLevel,
+  type InputTrustLevel,
+  type StructuredBlock,
+} from "./trust-policy";
+import {
+  applyCommandBatch,
+  createImportOperationState,
+  type EditorItem,
+} from "./command-engine";
+import {
+  createImportSnapshotWithMethods,
+  type ImportItem,
+  type ImportSnapshotWithIdMethods,
+} from "./import-state";
+import type { ClassifiedItem } from "./editor-insertion";
+import {
+  buildPacketWithBudget,
+  type PacketBudgetConfig,
+  type PacketBuildResult,
+  type SuspiciousItemForPacket,
+} from "./packet-budget";
 import { telemetry } from "./telemetry";
 import { requestAgentReview } from "../extensions/Arabic-Screenplay-Classifier-Agent";
 import { classifyLines } from "../extensions/paste-classifier";
 import { logger } from "../utils/logger";
 import type { AgentCommand } from "../types/agent-review";
+import type { LineType } from "../types/screenplay";
 
 const orchestratorLogger = logger.createScope("ingestion-orchestrator");
 
@@ -72,9 +91,64 @@ const DEFAULT_PACKET_CONFIG: PacketBudgetConfig = {
   retryCount: 1,
 };
 
+const toStructuredBlocks = (
+  blocks: ScreenplayBlock[]
+): StructuredBlock[] =>
+  blocks.map((block) => ({
+    type: block.formatId,
+    text: block.text,
+  }));
+
+const toOperationSource = (
+  source: string
+): "open" | "paste" | "import" => {
+  if (source === "open" || source === "paste" || source === "import") {
+    return source;
+  }
+  return "import";
+};
+
+const LINE_TYPE_SET = new Set<LineType>([
+  "action",
+  "dialogue",
+  "character",
+  "scene-header-1",
+  "scene-header-2",
+  "scene-header-3",
+  "scene-header-top-line",
+  "transition",
+  "parenthetical",
+  "basmala",
+]);
+
+const toLineType = (value: string): LineType => {
+  const normalized =
+    value === "sceneHeaderTopLine"
+      ? "scene-header-top-line"
+      : value === "sceneHeader3"
+        ? "scene-header-3"
+        : value;
+
+  if (LINE_TYPE_SET.has(normalized as LineType)) {
+    return normalized as LineType;
+  }
+  return "action";
+};
+
+const getSnapshotItem = (
+  snapshot: ImportSnapshotWithIdMethods,
+  itemId: string
+): ImportItem | null => snapshot.items.get(itemId) ?? null;
+
+const toEditorItem = (item: ImportItem): EditorItem => ({
+  itemId: item.itemId,
+  type: toLineType(item.type),
+  text: item.text,
+});
+
 /**
  * نقطة دخول موحدة لجميع عمليات إدخال النص
- * 
+ *
  * @param view — عرض المحرر
  * @param input — النص أو البلوكات المهيكلة
  * @param options — خيارات التشغيل
@@ -101,13 +175,13 @@ export async function runTextIngestionPipeline(
   try {
     // ── الخطوة 1: تقييم مستوى الثقة ──
     const trustAssessment = assessTrustLevel({
-      blocks: typeof input === "string" ? [] : input as any,
+      blocks: typeof input === "string" ? [] : toStructuredBlocks(input),
       source: options.source,
       systemGenerated: options.metadata?.systemGenerated === true,
       integrityChecked: options.metadata?.integrityChecked === true,
     });
     const trustLevel = trustAssessment.level;
-    
+
     telemetry.recordIngestionStart(importOpId, {
       source: options.source,
       trustLevel,
@@ -124,10 +198,10 @@ export async function runTextIngestionPipeline(
           importOpId,
           options
         );
-        
+
         // تشغيل sanity check في الخلفية
         void runBackgroundSanityCheck(view, importOpId);
-        
+
         return result;
       }
 
@@ -184,7 +258,10 @@ async function handleTrustedPath(
   importOpId: string,
   options: RunTextIngestionPipelineOptions
 ): Promise<IngestionResult> {
-  orchestratorLogger.info("trusted-path-executing", { importOpId, blockCount: blocks.length });
+  orchestratorLogger.info("trusted-path-executing", {
+    importOpId,
+    blockCount: blocks.length,
+  });
 
   // استيراد مباشر بدون تحويل إلى نص
   const { screenplayBlocksToHtml } = await import("../utils/file-import");
@@ -194,7 +271,7 @@ async function handleTrustedPath(
   const tr = view.state.tr;
   const from = options.from ?? 0;
   const to = options.to ?? view.state.doc.content.size;
-  
+
   // استخدام parseHTML لتحويل HTML إلى عقد ProseMirror
   const parser = ProseMirrorDOMParser.fromSchema(view.state.schema);
   const domElement = document.createElement("div");
@@ -237,23 +314,17 @@ async function handleSemiTrustedPath(
   if (typeof input === "string") {
     const classified = classifyLines(input);
     blocks = classified.map((item) => ({
-      type: item.type as ElementType,
+      formatId: toLegacyElementType(item.type),
       text: item.text,
-      content: item.text,
-      formatId: item.type as any,
     }));
   } else {
     blocks = input;
   }
 
   // فحص سريع للتحقق من السلامة
-  const suspiciousItems = blocks.filter((block) => {
-    // كشف عن حالات مشبوهة بسيطة
-    if ((block as any).type === "dialogue" && (block as any).content?.includes("ثم ")) {
-      return true;
-    }
-    return false;
-  });
+  const suspiciousItems = blocks.filter(
+    (block) => block.formatId === "dialogue" && block.text.includes("ثم ")
+  );
 
   // إذا كان هناك عناصر مشبوهة، استخدم مسار النص الخام
   if (suspiciousItems.length > 0) {
@@ -261,7 +332,10 @@ async function handleSemiTrustedPath(
       importOpId,
       suspiciousCount: suspiciousItems.length,
     });
-    const text = typeof input === "string" ? input : blocks.map((b) => (b as any).content || (b as any).text).join("\n");
+    const text =
+      typeof input === "string"
+        ? input
+        : blocks.map((block) => block.text).join("\n");
     return handleRawTextPath(view, text, importOpId, options);
   }
 
@@ -279,11 +353,14 @@ async function handleRawTextPath(
   options: RunTextIngestionPipelineOptions
 ): Promise<IngestionResult> {
   const startTime = performance.now();
-  orchestratorLogger.info("raw-text-path-executing", { importOpId, textLength: text.length });
+  orchestratorLogger.info("raw-text-path-executing", {
+    importOpId,
+    textLength: text.length,
+  });
 
   // ── الخطوة 1: التصنيف المحلي الفوري ──
   const classified = classifyLines(text);
-  
+
   // إنشاء snapshot للحالة
   const snapshot = createImportSnapshotWithMethods(importOpId, classified);
 
@@ -294,12 +371,17 @@ async function handleRawTextPath(
   }));
 
   // إدراج فوري في المحرر
-  // @ts-ignore - سيتم إصلاح هذا عند توفر الملف
-  const editorInsertion = await import("./editor-insertion").catch(() => ({ insertClassifiedItems: async () => {} }));
-  await editorInsertion.insertClassifiedItems(view, itemsWithIds as any, {
-    from: options.from,
-    to: options.to,
-  });
+  const editorInsertion = await import("./editor-insertion").catch(() => ({
+    insertClassifiedItems: async () => {},
+  }));
+  await editorInsertion.insertClassifiedItems(
+    view,
+    itemsWithIds as ClassifiedItem[],
+    {
+      from: options.from,
+      to: options.to,
+    }
+  );
 
   orchestratorLogger.info("raw-text-rendered", {
     importOpId,
@@ -309,10 +391,10 @@ async function handleRawTextPath(
 
   // ── الخطوة 3: بناء حزمة المراجعة في الخلفية ──
   const config = { ...DEFAULT_PACKET_CONFIG, ...options.packetBudget };
-  
+
   // تحويل العناصر لصيغة SuspiciousItemForPacket
   const { prepareItemForPacket } = await import("./packet-budget");
-  const suspiciousItems = itemsWithIds.map((item, index) => 
+  const suspiciousItems = itemsWithIds.map((item, index) =>
     prepareItemForPacket(
       item._itemId,
       item.text,
@@ -321,7 +403,7 @@ async function handleRawTextPath(
       config
     )
   );
-  
+
   const packet = buildPacketWithBudget(suspiciousItems, config);
 
   if (packet.included.length === 0) {
@@ -379,27 +461,33 @@ async function runAgentReviewAndApply(
   void _view; // تجنب تحذير unused parameter
 
   try {
-    // إعداد طلب المراجعة
-    const request = {
+    const includedItems = packet.included
+      .map((packetItem) => getSnapshotItem(snapshot, packetItem.itemId))
+      .filter((item): item is ImportItem => item !== null);
+
+    const request: Parameters<typeof requestAgentReview>[0] = {
       sessionId: options.sessionId ?? importOpId,
       importOpId,
-      items: packet.included.map((item: any) => ({
-        itemId: item._itemId,
-        type: item.type,
+      items: includedItems.map((item) => ({
+        itemId: item.itemId,
+        type: toLineType(item.type),
         text: item.text,
         fingerprint: item.fingerprint,
       })),
-      requiredItemIds: packet.included.map((i: any) => i._itemId || i.itemId),
-      forcedItemIds: packet.included.filter((i: any) => i.isForced).map((i: any) => i._itemId || i.itemId),
+      requiredItemIds: packet.included.map((item) => item.itemId),
+      forcedItemIds: packet.included
+        .filter((item) => item.isForced)
+        .map((item) => item.itemId),
       context: {
         source: options.source,
         totalItems: packet.included.length,
       },
     };
 
+    // إعداد طلب المراجعة
     telemetry.recordAgentReviewStart(importOpId, {
       itemsSent: packet.included.length,
-      forcedItems: packet.included.filter((i: any) => i.isForced).length,
+      forcedItems: packet.included.filter((item) => item.isForced).length,
     });
 
     // إرسال الطلب
@@ -437,16 +525,17 @@ async function runAgentReviewAndApply(
     // ── تطبيق الأوامر ──
     if (response.commands && response.commands.length > 0) {
       // إنشاء ImportOperationState للتطبيق
-      const state = createImportOperationState(importOpId, options.source as any);
-      
-      // TODO: بناء items Map من المحرر للتطبيق
-      const items = new Map();
-      
-      const applyResult = await applyCommandBatch(
-        response,
-        state,
-        items,
-        () => crypto.randomUUID()
+      const state = createImportOperationState(
+        importOpId,
+        toOperationSource(options.source)
+      );
+
+      const items = new Map<string, EditorItem>(
+        includedItems.map((item) => [item.itemId, toEditorItem(item)])
+      );
+
+      const applyResult = await applyCommandBatch(response, state, items, () =>
+        crypto.randomUUID()
       );
 
       orchestratorLogger.info("commands-applied", {
@@ -460,7 +549,8 @@ async function runAgentReviewAndApply(
         commandsNormalized: applyResult.telemetry.commandsNormalized,
         commandsApplied: applyResult.telemetry.commandsApplied,
         commandsSkipped: applyResult.telemetry.commandsSkipped,
-        skippedFingerprintMismatch: applyResult.telemetry.skippedFingerprintMismatchCount,
+        skippedFingerprintMismatch:
+          applyResult.telemetry.skippedFingerprintMismatchCount,
         skippedMissingItem: applyResult.telemetry.skippedMissingItemCount,
         skippedInvalidCommand: applyResult.telemetry.skippedInvalidCommandCount,
         skippedConflict: applyResult.telemetry.skippedConflictCount,

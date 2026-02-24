@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../src/extensions/line-repair", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("../../../src/extensions/line-repair")>();
+    await importOriginal<
+      typeof import("../../../src/extensions/line-repair")
+    >();
   return {
     ...actual,
     shouldMergeWrappedLines: vi.fn(() => true),

@@ -63,7 +63,11 @@ const makeResponse = (
   latencyMs: 100,
 });
 
-const makeItem = (itemId: string, type = "dialogue", text = "نص اختبار"): EditorItem => ({
+const makeItem = (
+  itemId: string,
+  type = "dialogue",
+  text = "نص اختبار"
+): EditorItem => ({
   itemId,
   type: type as EditorItem["type"],
   text,
@@ -77,7 +81,13 @@ const generateId = () => `gen-${++idCounter}`;
 describe("validateAndFilterCommands (اختبار C)", () => {
   it("يقبل أمر relabel صالح", () => {
     const { valid, invalidCount } = validateAndFilterCommands([
-      { op: "relabel", itemId: "abc", newType: "action", confidence: 0.9, reason: "سبب" },
+      {
+        op: "relabel",
+        itemId: "abc",
+        newType: "action",
+        confidence: 0.9,
+        reason: "سبب",
+      },
     ]);
     expect(valid).toHaveLength(1);
     expect(valid[0].op).toBe("relabel");
@@ -87,9 +97,13 @@ describe("validateAndFilterCommands (اختبار C)", () => {
   it("يقبل أمر split صالح", () => {
     const { valid, invalidCount } = validateAndFilterCommands([
       {
-        op: "split", itemId: "abc", splitAt: 10,
-        leftType: "dialogue", rightType: "action",
-        confidence: 0.8, reason: "تقسيم",
+        op: "split",
+        itemId: "abc",
+        splitAt: 10,
+        leftType: "dialogue",
+        rightType: "action",
+        confidence: 0.8,
+        reason: "تقسيم",
       },
     ]);
     expect(valid).toHaveLength(1);
@@ -100,9 +114,13 @@ describe("validateAndFilterCommands (اختبار C)", () => {
   it("يرفض أمر split مع leftText/rightText", () => {
     const { valid, invalidCount } = validateAndFilterCommands([
       {
-        op: "split", itemId: "abc", splitAt: 10,
-        leftType: "dialogue", rightType: "action",
-        leftText: "نص", rightText: "آخر",
+        op: "split",
+        itemId: "abc",
+        splitAt: 10,
+        leftType: "dialogue",
+        rightType: "action",
+        leftText: "نص",
+        rightText: "آخر",
       },
     ]);
     expect(valid).toHaveLength(0);
@@ -141,7 +159,13 @@ describe("validateAndFilterCommands (اختبار C)", () => {
 
   it("يرفض splitAt سالب", () => {
     const { valid } = validateAndFilterCommands([
-      { op: "split", itemId: "abc", splitAt: -1, leftType: "dialogue", rightType: "action" },
+      {
+        op: "split",
+        itemId: "abc",
+        splitAt: -1,
+        leftType: "dialogue",
+        rightType: "action",
+      },
     ]);
     expect(valid).toHaveLength(0);
   });

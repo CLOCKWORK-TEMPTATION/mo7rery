@@ -2,9 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PostClassificationReviewer } from "../../../src/extensions/classification-core";
 import type { ClassifiedLine } from "../../../src/extensions/classification-types";
 
-const buildLine = (
-  overrides: Partial<ClassifiedLine>
-): ClassifiedLine => ({
+const buildLine = (overrides: Partial<ClassifiedLine>): ClassifiedLine => ({
   lineIndex: 0,
   text: "ثم يخرج ورقة مكتوب عليها عنوان",
   assignedType: "dialogue",
@@ -26,10 +24,14 @@ describe("classification-core source hints", () => {
     expect(packet.totalSuspicious).toBe(1);
     const suspicious = packet.suspiciousLines[0];
     expect(
-      suspicious.findings.some((finding) => finding.detectorId === "source-hint-mismatch")
+      suspicious.findings.some(
+        (finding) => finding.detectorId === "source-hint-mismatch"
+      )
     ).toBe(true);
     expect(suspicious.criticalMismatch).toBe(true);
-    expect(["agent-candidate", "agent-forced"]).toContain(suspicious.routingBand);
+    expect(["agent-candidate", "agent-forced"]).toContain(
+      suspicious.routingBand
+    );
   });
 
   it("does not trigger source-hint detector outside pdf-open profile", () => {

@@ -24,7 +24,6 @@ if (isMainModule) {
   const args = process.argv.slice(2);
 
   if (args.length < 2) {
-    // eslint-disable-next-line no-console
     console.error(
       "طريقة الاستخدام: node server/docx-to-txt.mjs <input.docx> <output.txt>"
     );
@@ -34,7 +33,6 @@ if (isMainModule) {
   const [inputDocx, outputTxt] = args;
   convertDocxToTxt(path.resolve(inputDocx), path.resolve(outputTxt)).catch(
     (error) => {
-      // eslint-disable-next-line no-console
       console.error("حدث خطأ أثناء تحويل DOCX:", error);
       process.exit(1);
     }

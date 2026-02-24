@@ -21,6 +21,29 @@ import { extractPayloadFromText } from "../document-model";
 const normalizeNewlines = (value: string): string =>
   (value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
+const isAllowedLegacyDocCodePoint = (code: number): boolean => {
+  if (code === 0x09 || code === 0x0a || code === 0x0d) return true;
+  if (code >= 0x20 && code <= 0x7e) return true;
+  if (code >= 0x00a0 && code <= 0x00ff) return true;
+  if (code >= 0x0600 && code <= 0x06ff) return true;
+  if (code >= 0x0750 && code <= 0x077f) return true;
+  if (code >= 0x08a0 && code <= 0x08ff) return true;
+  return false;
+};
+
+const stripUnsupportedLegacyDocChars = (value: string): string => {
+  let output = "";
+  for (const ch of value) {
+    const code = ch.codePointAt(0);
+    if (code !== undefined && isAllowedLegacyDocCodePoint(code)) {
+      output += ch;
+    } else {
+      output += " ";
+    }
+  }
+  return output;
+};
+
 /**
  * تنظيف best-effort لملفات DOC عند الاستخراج داخل المتصفح:
  * - إزالة المحارف الثنائية غير القابلة للعرض.
@@ -28,11 +51,7 @@ const normalizeNewlines = (value: string): string =>
  * - ضغط الفراغات المتكررة دون الإضرار بفواصل الأسطر.
  */
 const normalizeLegacyDocBestEffortText = (value: string): string =>
-  normalizeNewlines(value)
-    .replace(
-      /[^\u0009\u000A\u000D\u0020-\u007E\u00A0-\u00FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/g,
-      " "
-    )
+  stripUnsupportedLegacyDocChars(normalizeNewlines(value))
     .replace(/[ \t]{2,}/g, " ")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")

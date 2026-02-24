@@ -79,4 +79,3 @@ describe("backend extract transport", () => {
     expect(result.attempts).toContain("backend-formdata-failed");
   });
 });
-

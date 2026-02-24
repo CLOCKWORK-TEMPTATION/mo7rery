@@ -139,10 +139,7 @@ export const normalizeAndDedupeCommands = (
 
 // ─── المرحلة 7: Idempotency + Stale + Partial Apply ──────────
 
-export type DiscardReason =
-  | "stale_discarded"
-  | "idempotent_discarded"
-  | null;
+export type DiscardReason = "stale_discarded" | "idempotent_discarded" | null;
 
 /**
  * فحص ما إذا كانت الاستجابة قديمة أو مكررة.
@@ -272,7 +269,12 @@ export const applySplitCommand = (
  */
 export interface BatchApplyResult {
   /** الحالة النهائية */
-  status: "applied" | "partial" | "stale_discarded" | "idempotent_discarded" | "error";
+  status:
+    | "applied"
+    | "partial"
+    | "stale_discarded"
+    | "idempotent_discarded"
+    | "error";
   /** تفاصيل كل أمر */
   results: CommandApplyResult[];
   /** إحصائيات */
@@ -388,9 +390,16 @@ export const applyCommandBatch = async (
 
 const VALID_OPS = new Set(["relabel", "split"]);
 const VALID_TYPES = new Set([
-  "action", "dialogue", "character",
-  "scene-header-top-line", "scene-header-1", "scene-header-2", "scene-header-3",
-  "transition", "parenthetical", "basmala",
+  "action",
+  "dialogue",
+  "character",
+  "scene-header-top-line",
+  "scene-header-1",
+  "scene-header-2",
+  "scene-header-3",
+  "transition",
+  "parenthetical",
+  "basmala",
 ]);
 
 /**
@@ -441,15 +450,21 @@ export const validateAndFilterCommands = (
       });
     } else if (op === "split") {
       const splitAt = record.splitAt;
-      if (typeof splitAt !== "number" || !Number.isInteger(splitAt) || splitAt < 0) {
+      if (
+        typeof splitAt !== "number" ||
+        !Number.isInteger(splitAt) ||
+        splitAt < 0
+      ) {
         invalidCount += 1;
         continue;
       }
       const leftType = record.leftType;
       const rightType = record.rightType;
       if (
-        typeof leftType !== "string" || !VALID_TYPES.has(leftType) ||
-        typeof rightType !== "string" || !VALID_TYPES.has(rightType)
+        typeof leftType !== "string" ||
+        !VALID_TYPES.has(leftType) ||
+        typeof rightType !== "string" ||
+        !VALID_TYPES.has(rightType)
       ) {
         invalidCount += 1;
         continue;

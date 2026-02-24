@@ -103,7 +103,8 @@ describe("classification-core scoring", () => {
     // so this should NOT be flagged as embedded narrative action
     const embeddedFindings = packet.suspiciousLines.filter((s) =>
       s.findings.some(
-        (f) => f.detectorId === "content-type-mismatch" && f.suspicionScore >= 96
+        (f) =>
+          f.detectorId === "content-type-mismatch" && f.suspicionScore >= 96
       )
     );
     expect(embeddedFindings).toHaveLength(0);
@@ -127,13 +128,14 @@ describe("classification-core scoring", () => {
     const reviewer = new PostClassificationReviewer();
     const packet = reviewer.review(reviewInput);
 
-    const classifiedAsAction = classified.some((item) => item.type === "action");
+    const classifiedAsAction = classified.some(
+      (item) => item.type === "action"
+    );
 
     const embeddedFindings = packet.suspiciousLines.filter((s) =>
       s.findings.some(
         (f) =>
-          f.detectorId === "content-type-mismatch" &&
-          f.suspicionScore >= 96
+          f.detectorId === "content-type-mismatch" && f.suspicionScore >= 96
       )
     );
 
@@ -151,7 +153,9 @@ describe("classification-core scoring", () => {
 
     expect(packet.totalSuspicious).toBe(1);
     expect(packet.suspiciousLines[0].routingBand).toBe("local-review");
-    expect(packet.suspiciousLines[0].escalationScore).toBeGreaterThanOrEqual(65);
+    expect(packet.suspiciousLines[0].escalationScore).toBeGreaterThanOrEqual(
+      65
+    );
     expect(packet.suspiciousLines[0].escalationScore).toBeLessThan(80);
   });
 });

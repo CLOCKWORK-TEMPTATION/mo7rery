@@ -70,7 +70,7 @@ const extractTextFeatures = (text: string): TextFeatures => {
     wordCount: words.length,
     startsWithDash: /^[-–—]/.test(normalized),
     startsWithBullet: startsWithBullet(normalized),
-    isParenthetical: /^\s*[\(（].*[\)）]\s*$/.test(normalized),
+    isParenthetical: /^\s*[(（].*[)）]\s*$/.test(normalized),
     hasActionIndicators: detectActionIndicators(normalized),
     hasPunctuation: /[.!?؟،,؛:;"'«»]/.test(normalized),
     endsWithColon: /[:：]\s*$/.test(normalized),
@@ -128,7 +128,11 @@ const hasEmbeddedNarrativeActionInDialogue = (text: string): boolean => {
   const thenMatch = normalized.match(CONNECTOR_THEN_ACTION_RE);
   if (thenMatch?.[1]) {
     const verbToken = cleanArabicToken(thenMatch[1]);
-    if (verbToken && (FULL_ACTION_VERB_SET.has(verbToken) || ACTION_VERB_LIKE_RE.test(verbToken))) {
+    if (
+      verbToken &&
+      (FULL_ACTION_VERB_SET.has(verbToken) ||
+        ACTION_VERB_LIKE_RE.test(verbToken))
+    ) {
       return true;
     }
   }
@@ -144,7 +148,10 @@ const hasEmbeddedNarrativeActionInDialogue = (text: string): boolean => {
 
     const nextToken = cleanArabicToken(tokens[index + 1]);
     if (!nextToken) continue;
-    if (FULL_ACTION_VERB_SET.has(nextToken) || ACTION_VERB_LIKE_RE.test(nextToken)) {
+    if (
+      FULL_ACTION_VERB_SET.has(nextToken) ||
+      ACTION_VERB_LIKE_RE.test(nextToken)
+    ) {
       return true;
     }
   }
@@ -169,7 +176,7 @@ const isLikelyCharacterFragment = (
     normalized.length > limits.maxChars
   )
     return false;
-  if (/[.!?؟،,؛;"'«»()\[\]{}]/.test(normalized)) return false;
+  if (/[.!?؟،,؛;"'«»()\x5B\x5D{}]/.test(normalized)) return false;
 
   const tokens = normalized.split(/\s+/).filter(Boolean);
   if (tokens.length === 0 || tokens.length > limits.maxWords) return false;
@@ -587,8 +594,9 @@ const computeEscalationScore = (
   findings: readonly DetectorFinding[],
   totalSuspicion: number
 ): { score: number; breakdown: SuspicionScoreBreakdown } => {
-  const distinctDetectors = new Set(findings.map((finding) => finding.detectorId))
-    .size;
+  const distinctDetectors = new Set(
+    findings.map((finding) => finding.detectorId)
+  ).size;
   const criticalMismatch = isCriticalMismatchFromFindings(findings);
   const breakdown: SuspicionScoreBreakdown = {
     detectorBase: totalSuspicion,
@@ -655,8 +663,9 @@ export class PostClassificationReviewer {
     const routingBand = this.routeSuspicionBand(score);
     if (routingBand === "pass") return null;
 
-    const distinctDetectors = new Set(findings.map((finding) => finding.detectorId))
-      .size;
+    const distinctDetectors = new Set(
+      findings.map((finding) => finding.detectorId)
+    ).size;
     const criticalMismatch = isCriticalMismatchFromFindings(findings);
 
     return {

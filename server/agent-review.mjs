@@ -1,4 +1,3 @@
-
 import { config } from "dotenv";
 import axios from "axios";
 import { randomUUID } from "crypto";
@@ -299,9 +298,10 @@ export const validateAgentReviewRequestBody = (rawBody) => {
   const requiredItemIds =
     normalizeItemIdList(rawBody.requiredItemIds, "requiredItemIds") ??
     defaultRequired;
-  const forcedItemIds =
-    normalizeItemIdList(rawBody.forcedItemIds, "forcedItemIds") ??
-    [...new Set(defaultForced)];
+  const forcedItemIds = normalizeItemIdList(
+    rawBody.forcedItemIds,
+    "forcedItemIds"
+  ) ?? [...new Set(defaultForced)];
 
   for (const itemId of requiredItemIds) {
     if (!suspiciousIdsSet.has(itemId)) {
@@ -754,13 +754,9 @@ const parseReviewCommands = (rawText) => {
             ? Math.trunc(command.splitAt)
             : -1;
         const leftType =
-          typeof command.leftType === "string"
-            ? command.leftType.trim()
-            : "";
+          typeof command.leftType === "string" ? command.leftType.trim() : "";
         const rightType =
-          typeof command.rightType === "string"
-            ? command.rightType.trim()
-            : "";
+          typeof command.rightType === "string" ? command.rightType.trim() : "";
 
         if (splitAt < 0) continue;
         if (!leftType || !ALLOWED_LINE_TYPES.has(leftType)) continue;
@@ -802,7 +798,9 @@ const parseReviewCommands = (rawText) => {
  * إرجاع قائمة فريدة ومرتبة من itemIds
  */
 const uniqueSortedStrings = (values) =>
-  [...new Set((values ?? []).filter((value) => isNonEmptyString(value)))].sort();
+  [
+    ...new Set((values ?? []).filter((value) => isNonEmptyString(value))),
+  ].sort();
 
 /**
  * تطبيع الأوامر ضد الطلب (API v2)
@@ -1034,7 +1032,9 @@ export const reviewSuspiciousLinesWithClaude = async (request) => {
     try {
       const apiKey = process.env.ANTHROPIC_API_KEY;
       if (!apiKey) {
-        throw new Error("ANTHROPIC_API_KEY غير موجود");
+        throw new Error("ANTHROPIC_API_KEY غير موجود", {
+          cause: sdkError,
+        });
       }
       const response = await axios.post(
         "https://api.anthropic.com/v1/messages",

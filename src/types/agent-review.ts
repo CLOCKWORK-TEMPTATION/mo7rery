@@ -60,11 +60,7 @@ export interface SplitCommand {
 export type AgentCommand = RelabelCommand | SplitCommand;
 
 // ─── حالة الاستجابة ─────────────────────────────────────────────
-export type AgentResponseStatus =
-  | "applied"
-  | "partial"
-  | "skipped"
-  | "error";
+export type AgentResponseStatus = "applied" | "partial" | "skipped" | "error";
 
 // ─── حمولة الطلب (الواجهة → السيرفر) ──────────────────────────
 /**

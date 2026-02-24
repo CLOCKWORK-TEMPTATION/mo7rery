@@ -72,7 +72,11 @@ describe("matchesSnapshot", () => {
     const snapshots = await buildItemSnapshots([
       { itemId: "a", type: "dialogue", rawText: "مرحباً" },
     ]);
-    const matches = await matchesSnapshot(snapshots[0], "dialogue", "مرحباً يا");
+    const matches = await matchesSnapshot(
+      snapshots[0],
+      "dialogue",
+      "مرحباً يا"
+    );
     expect(matches).toBe(false);
   });
 

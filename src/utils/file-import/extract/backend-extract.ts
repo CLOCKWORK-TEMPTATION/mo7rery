@@ -246,6 +246,12 @@ const executeBackendExtractionRequest = async (
   return parseBackendExtractionResult(fileType, body);
 };
 
+const createErrorWithCause = (message: string, cause: unknown): Error => {
+  const error = new Error(message) as Error & { cause?: unknown };
+  error.cause = cause;
+  return error;
+};
+
 /**
  * يستخرج نص الملف عبر Backend API.
  *
@@ -320,14 +326,15 @@ export const extractFileWithBackend = async (
             attempts: [...jsonResult.attempts, "backend-formdata-failed"],
           };
         } catch (jsonError) {
-          throw new Error(
+          throw createErrorWithCause(
             `فشل استخراج PDF عبر Backend (FormData + JSON). form-data: ${
               formDataError instanceof Error
                 ? formDataError.message
                 : String(formDataError)
             } | json: ${
               jsonError instanceof Error ? jsonError.message : String(jsonError)
-            }`
+            }`,
+            jsonError
           );
         }
       }
@@ -336,10 +343,13 @@ export const extractFileWithBackend = async (
     return await sendJsonRequest();
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("Backend extraction timed out.");
+      throw createErrorWithCause("Backend extraction timed out.", error);
     }
     if (error instanceof TypeError) {
-      throw new Error(`تعذر الاتصال بخدمة Backend extraction على ${endpoint}.`);
+      throw createErrorWithCause(
+        `تعذر الاتصال بخدمة Backend extraction على ${endpoint}.`,
+        error
+      );
     }
     throw error;
   } finally {

@@ -3,7 +3,10 @@ import { Fragment, Node as PmNode, Schema, Slice } from "@tiptap/pm/model";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import { isActionLine } from "./action";
-import { MODEL_ID as AGENT_MODEL_ID, parseReviewCommands } from "./Arabic-Screenplay-Classifier-Agent";
+import {
+  MODEL_ID as AGENT_MODEL_ID,
+  parseReviewCommands,
+} from "./Arabic-Screenplay-Classifier-Agent";
 import {
   DATE_PATTERNS,
   TIME_PATTERNS,
@@ -73,10 +76,10 @@ import {
   telemetry as pipelineTelemetry,
 } from "../pipeline/telemetry";
 /** رقم نسخة Command API — v2 */
-const COMMAND_API_VERSION: "2.0" = "2.0";
+const COMMAND_API_VERSION = "2.0" as const;
 
 /** نمط التصنيف: Render-First / Review-Later */
-const CLASSIFICATION_MODE: "auto-apply" = "auto-apply";
+const CLASSIFICATION_MODE = "auto-apply" as const;
 
 const AGENT_REVIEW_MODEL = AGENT_MODEL_ID;
 const AGENT_REVIEW_DEADLINE_MS = 25_000;
@@ -211,11 +214,7 @@ const normalizeHintLookupText = (value: string): string => {
 const toSourceProfile = (
   value: string | undefined
 ): ClassificationSourceProfile | undefined => {
-  if (
-    value === "paste" ||
-    value === "generic-open" ||
-    value === "pdf-open"
-  ) {
+  if (value === "paste" || value === "generic-open" || value === "pdf-open") {
     return value;
   }
   return undefined;
@@ -330,7 +329,10 @@ export const classifyLines = (
       }
 
       // تخطي دمج الأسطر الملفوفة في وضع pdf-open
-      if (!isPdfOpenProfile && shouldMergeWrappedLines(previous.text, trimmed, previous.type)) {
+      if (
+        !isPdfOpenProfile &&
+        shouldMergeWrappedLines(previous.text, trimmed, previous.type)
+      ) {
         const merged: ClassifiedDraft = {
           ...previous,
           text: `${previous.text} ${trimmed}`.replace(/\s+/g, " ").trim(),
@@ -730,17 +732,23 @@ const isRetryableHttpStatus = (status: number): boolean =>
   status === 408 || status === 429 || status >= 500;
 
 const toUniqueSortedIndexes = (values: readonly number[]): number[] =>
-  [...new Set(values.filter((value) => Number.isInteger(value) && value >= 0))]
-    .sort((a, b) => a - b);
+  [
+    ...new Set(values.filter((value) => Number.isInteger(value) && value >= 0)),
+  ].sort((a, b) => a - b);
 
 /**
  * تحويل معرّفات الأوامر (UUIDs) إلى مصفوفة مرتبة فريدة.
  */
 const toNormalizedMetaIds = (value: unknown): string[] =>
   Array.isArray(value)
-    ? [...new Set(
-      value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-    )].sort()
+    ? [
+        ...new Set(
+          value.filter(
+            (item): item is string =>
+              typeof item === "string" && item.trim().length > 0
+          )
+        ),
+      ].sort()
     : [];
 
 /**
@@ -751,7 +759,9 @@ const toNormalizedMetaIds = (value: unknown): string[] =>
  * - forcedItemIds (بدل forcedItemIndexes)
  * - unresolvedForcedItemIds (بدل unresolvedForcedItemIndexes)
  */
-const toValidAgentReviewMeta = (raw: unknown): AgentReviewResponseMeta | undefined => {
+const toValidAgentReviewMeta = (
+  raw: unknown
+): AgentReviewResponseMeta | undefined => {
   if (!raw || typeof raw !== "object") return undefined;
 
   const record = raw as {
@@ -764,12 +774,13 @@ const toValidAgentReviewMeta = (raw: unknown): AgentReviewResponseMeta | undefin
 
   const requestedCount =
     typeof record.requestedCount === "number" &&
-      Number.isFinite(record.requestedCount)
+    Number.isFinite(record.requestedCount)
       ? Math.max(0, Math.trunc(record.requestedCount))
       : 0;
 
   const commandCount =
-    typeof record.commandCount === "number" && Number.isFinite(record.commandCount)
+    typeof record.commandCount === "number" &&
+    Number.isFinite(record.commandCount)
       ? Math.max(0, Math.trunc(record.commandCount))
       : 0;
 
@@ -778,7 +789,9 @@ const toValidAgentReviewMeta = (raw: unknown): AgentReviewResponseMeta | undefin
     commandCount,
     missingItemIds: toNormalizedMetaIds(record.missingItemIds),
     forcedItemIds: toNormalizedMetaIds(record.forcedItemIds),
-    unresolvedForcedItemIds: toNormalizedMetaIds(record.unresolvedForcedItemIds),
+    unresolvedForcedItemIds: toNormalizedMetaIds(
+      record.unresolvedForcedItemIds
+    ),
   };
 };
 
@@ -818,7 +831,8 @@ const toValidAgentCommands = (raw: unknown): AgentCommand[] => {
       if (opRaw === "relabel") {
         const newTypeRaw = (entry as { newType?: unknown }).newType;
         if (typeof newTypeRaw !== "string") return null;
-        if (!VALID_AGENT_DECISION_TYPES.has(newTypeRaw as LineType)) return null;
+        if (!VALID_AGENT_DECISION_TYPES.has(newTypeRaw as LineType))
+          return null;
 
         return {
           op: "relabel" as const,
@@ -844,8 +858,10 @@ const toValidAgentCommands = (raw: unknown): AgentCommand[] => {
         if (typeof leftTypeRaw !== "string") return null;
         if (typeof rightTypeRaw !== "string") return null;
 
-        if (!VALID_AGENT_DECISION_TYPES.has(leftTypeRaw as LineType)) return null;
-        if (!VALID_AGENT_DECISION_TYPES.has(rightTypeRaw as LineType)) return null;
+        if (!VALID_AGENT_DECISION_TYPES.has(leftTypeRaw as LineType))
+          return null;
+        if (!VALID_AGENT_DECISION_TYPES.has(rightTypeRaw as LineType))
+          return null;
 
         return {
           op: "split" as const,
@@ -876,7 +892,9 @@ const normalizeAgentReviewPayload = (
   fallbackText?: string
 ): AgentReviewResponsePayload => {
   if (!payload || typeof payload !== "object") {
-    const parsedFallback = fallbackText ? parseReviewCommands(fallbackText) : [];
+    const parsedFallback = fallbackText
+      ? parseReviewCommands(fallbackText)
+      : [];
     return {
       status: parsedFallback.length > 0 ? "applied" : "skipped",
       model: AGENT_REVIEW_MODEL,
@@ -966,7 +984,8 @@ const normalizeAgentReviewPayload = (
     requestId:
       typeof record.requestId === "string" ? record.requestId.trim() : "",
     apiVersion:
-      typeof record.apiVersion === "string" && record.apiVersion.trim() === "2.0"
+      typeof record.apiVersion === "string" &&
+      record.apiVersion.trim() === "2.0"
         ? "2.0"
         : COMMAND_API_VERSION,
     mode:
@@ -1177,7 +1196,9 @@ const buildAgentReviewMetaFallback = (
       if (!command) return true;
 
       // بحث عن العنصر بـ itemId
-      const originalIndex = classified.findIndex(item => item._itemId === itemId);
+      const originalIndex = classified.findIndex(
+        (item) => item._itemId === itemId
+      );
       if (originalIndex < 0) return true;
 
       const original = classified[originalIndex];
@@ -1342,10 +1363,13 @@ const applyRemoteAgentReviewV2 = async (
       entry.text,
       entry.totalSuspicion,
       entry.routingBand === "agent-forced",
-      DEFAULT_PACKET_BUDGET,
+      DEFAULT_PACKET_BUDGET
     )
   );
-  const packetResult = buildPacketWithBudget(packetItems, DEFAULT_PACKET_BUDGET);
+  const packetResult = buildPacketWithBudget(
+    packetItems,
+    DEFAULT_PACKET_BUDGET
+  );
   if (packetResult.wasTruncated) {
     const includedIds = new Set(packetResult.included.map((i) => i.itemId));
     agentReviewLogger.warn("packet-budget-truncated", {
@@ -1415,7 +1439,8 @@ const applyRemoteAgentReviewV2 = async (
   );
   const responseMeta = response.meta ?? fallbackMeta;
   const missingRequiredItemIds = responseMeta.missingItemIds ?? [];
-  const unresolvedForcedItemIdsFromMeta = responseMeta.unresolvedForcedItemIds ?? [];
+  const unresolvedForcedItemIdsFromMeta =
+    responseMeta.unresolvedForcedItemIds ?? [];
 
   // تسجيل اكتمال مراجعة الوكيل (telemetry)
   pipelineTelemetry.recordAgentReviewComplete(importOpId, {
@@ -1426,7 +1451,10 @@ const applyRemoteAgentReviewV2 = async (
 
   if (response.status === "error") {
     logAgentError(importOpId, response.message);
-    pipelineTelemetry.recordAgentReviewError(importOpId, response.message ?? "unknown");
+    pipelineTelemetry.recordAgentReviewError(
+      importOpId,
+      response.message ?? "unknown"
+    );
     throw new Error(
       `Agent review failed: status=${response.status} | message=${response.message}`
     );
@@ -1561,7 +1589,12 @@ const applyRemoteAgentReviewV2 = async (
       const leftType = lineTypeToElementType(command.leftType);
       const rightType = lineTypeToElementType(command.rightType);
 
-      if (!leftType || !rightType || !isElementType(leftType) || !isElementType(rightType)) {
+      if (
+        !leftType ||
+        !rightType ||
+        !isElementType(leftType) ||
+        !isElementType(rightType)
+      ) {
         unchangedCommandItemIds.push(command.itemId);
         continue;
       }
@@ -1596,9 +1629,15 @@ const applyRemoteAgentReviewV2 = async (
   // ─── تسجيل requestId لمنع التكرار ───
   opState.appliedRequestIds.add(response.requestId);
 
-  const uniqueAppliedCommandItemIds = toNormalizedMetaIds(appliedCommandItemIds);
-  const uniqueEffectiveAppliedItemIds = toNormalizedMetaIds(effectiveAppliedItemIds);
-  const uniqueUnchangedCommandItemIds = toNormalizedMetaIds(unchangedCommandItemIds);
+  const uniqueAppliedCommandItemIds = toNormalizedMetaIds(
+    appliedCommandItemIds
+  );
+  const uniqueEffectiveAppliedItemIds = toNormalizedMetaIds(
+    effectiveAppliedItemIds
+  );
+  const uniqueUnchangedCommandItemIds = toNormalizedMetaIds(
+    unchangedCommandItemIds
+  );
 
   const unresolvedForcedItemIdsFromEffect = forcedItemIds.filter(
     (itemId) => !uniqueEffectiveAppliedItemIds.includes(itemId)
@@ -1687,7 +1726,9 @@ const applyRemoteAgentReviewV2 = async (
  */
 const applyAgentReview = (
   classified: ClassifiedDraftWithId[],
-  agentReview?: (classified: readonly ClassifiedDraftWithId[]) => ClassifiedDraftWithId[]
+  agentReview?: (
+    classified: readonly ClassifiedDraftWithId[]
+  ) => ClassifiedDraftWithId[]
 ): ClassifiedDraftWithId[] => {
   if (!agentReview) return classified;
 
@@ -1814,12 +1855,12 @@ export const classifyTextWithAgentReview = async (
   ) => ClassifiedDraftWithId[]
 ): Promise<ClassifiedDraftWithId[]> => {
   const initiallyClassified = classifyLines(text);
-  const remotelyReviewed = await applyRemoteAgentReviewV2(initiallyClassified).catch(
-    (error) => {
-      agentReviewLogger.error("remote-review-failed-fallback", { error });
-      return initiallyClassified;
-    }
-  );
+  const remotelyReviewed = await applyRemoteAgentReviewV2(
+    initiallyClassified
+  ).catch((error) => {
+    agentReviewLogger.error("remote-review-failed-fallback", { error });
+    return initiallyClassified;
+  });
   return applyAgentReview(remotelyReviewed, agentReview);
 };
 
@@ -1850,7 +1891,7 @@ export const applyPasteClassifierFlowToView = async (
     classificationProfile,
     sourceFileType,
     sourceMethod,
-    structuredHints
+    structuredHints,
   });
   const classified = applyAgentReview(initiallyClassified, customReview);
 

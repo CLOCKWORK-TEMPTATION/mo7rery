@@ -96,10 +96,7 @@ export const logCommandApply = (data: CommandApplyTelemetryEvent): void => {
 };
 
 /** تسجيل خطأ في الوكيل */
-export const logAgentError = (
-  importOpId: string,
-  error: unknown
-): void => {
+export const logAgentError = (importOpId: string, error: unknown): void => {
   telemetryLogger.error("agent-error", {
     importOpId,
     error:
@@ -110,10 +107,7 @@ export const logAgentError = (
 };
 
 /** تسجيل تخطي مراجعة الوكيل */
-export const logAgentSkipped = (
-  importOpId: string,
-  reason: string
-): void => {
+export const logAgentSkipped = (importOpId: string, reason: string): void => {
   telemetryLogger.info("agent-skipped", { importOpId, reason });
 };
 
@@ -133,38 +127,53 @@ export interface IngestionTelemetryEvent {
 
 /** كائن التتبع الموحد */
 export const telemetry = {
-  recordIngestionStart: (importOpId: string, data: Partial<IngestionTelemetryEvent>): void => {
+  recordIngestionStart: (
+    importOpId: string,
+    data: Partial<IngestionTelemetryEvent>
+  ): void => {
     telemetryLogger.telemetry("ingestion-start", { importOpId, ...data });
   },
-  
-  recordIngestionComplete: (importOpId: string, data: Partial<IngestionTelemetryEvent>): void => {
+
+  recordIngestionComplete: (
+    importOpId: string,
+    data: Partial<IngestionTelemetryEvent>
+  ): void => {
     telemetryLogger.telemetry("ingestion-complete", { importOpId, ...data });
   },
-  
+
   recordIngestionError: (importOpId: string, error: string): void => {
     telemetryLogger.error("ingestion-error", { importOpId, error });
   },
-  
-  recordAgentReviewStart: (importOpId: string, data: { itemsSent: number; forcedItems: number }): void => {
+
+  recordAgentReviewStart: (
+    importOpId: string,
+    data: { itemsSent: number; forcedItems: number }
+  ): void => {
     telemetryLogger.telemetry("agent-review-start", { importOpId, ...data });
   },
-  
-  recordAgentReviewComplete: (importOpId: string, data: { status: string; commandsReceived: number; latencyMs: number }): void => {
+
+  recordAgentReviewComplete: (
+    importOpId: string,
+    data: { status: string; commandsReceived: number; latencyMs: number }
+  ): void => {
     telemetryLogger.telemetry("agent-review-complete", { importOpId, ...data });
   },
-  
+
   recordAgentReviewError: (importOpId: string, error: string): void => {
     telemetryLogger.error("agent-review-error", { importOpId, error });
   },
-  
-  recordCommandsApplied: (importOpId: string, data: Record<string, number | boolean>): void => {
+
+  recordCommandsApplied: (
+    importOpId: string,
+    data: Record<string, number | boolean>
+  ): void => {
     telemetryLogger.telemetry("commands-applied", { importOpId, ...data });
   },
-  
+
   recordStaleDiscard: (importOpId: string): void => {
     telemetryLogger.info("stale-discard", { importOpId });
   },
-  
+
   recordIdempotentDiscard: (importOpId: string, requestId: string): void => {
     telemetryLogger.info("idempotent-discard", { importOpId, requestId });
   },

@@ -24,13 +24,13 @@ description: >
 
 **الملفات**: `src/extensions/line-repair.ts`, `src/extensions/paste-classifier.ts`
 
-| # | الفحص | ماذا تبحث عنه |
-|---|-------|---------------|
-| 0.1 | فحص `line-repair.ts` | وجود الملف وتصديره |
-| 0.2 | Regex للأفعال الوصفية بعد «ثم» | ابحث عن `THUMMA_ACTION_RE` أو regex مكافئ يمنع دمج «ثم + فعل وصفي» كحوار |
-| 0.3 | اختبار الحالة الحرجة | ابحث في الاختبارات عن حالة «اطلع من البلد» + «ثم يخرج ورقه» — يجب ألا يُدمجا كـ dialogue واحد |
-| 0.4 | دمج الحوار الصحيح | تأكد أن `shouldMergeWrappedLines()` لا يزال يدمج الحوار المقطوع (`...` واستكمال العطف) |
-| 0.5 | (اختياري) Local Deterministic Split | ابحث في `paste-classifier.ts` عن منطق فصل محلي قبل إرسال للوكيل |
+| #   | الفحص                               | ماذا تبحث عنه                                                                                 |
+| --- | ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| 0.1 | فحص `line-repair.ts`                | وجود الملف وتصديره                                                                            |
+| 0.2 | Regex للأفعال الوصفية بعد «ثم»      | ابحث عن `THUMMA_ACTION_RE` أو regex مكافئ يمنع دمج «ثم + فعل وصفي» كحوار                      |
+| 0.3 | اختبار الحالة الحرجة                | ابحث في الاختبارات عن حالة «اطلع من البلد» + «ثم يخرج ورقه» — يجب ألا يُدمجا كـ dialogue واحد |
+| 0.4 | دمج الحوار الصحيح                   | تأكد أن `shouldMergeWrappedLines()` لا يزال يدمج الحوار المقطوع (`...` واستكمال العطف)        |
+| 0.5 | (اختياري) Local Deterministic Split | ابحث في `paste-classifier.ts` عن منطق فصل محلي قبل إرسال للوكيل                               |
 
 ---
 
@@ -38,13 +38,13 @@ description: >
 
 **الملفات**: `src/pipeline/trust-policy.ts`, `src/components/editor/EditorArea.ts`
 
-| # | الفحص | ماذا تبحث عنه |
-|---|-------|---------------|
-| 1.1 | فحص `trust-policy.ts` | وجود الملف مع تصديرات واضحة |
-| 1.2 | مستويات الثقة | تعريف `InputTrustLevel` يشمل: `trusted_structured` / `semi_structured` / `raw_text` |
-| 1.3 | Metadata | `TrustAssessment` يحتوي: `schemaVersion` + `source` + `integrityCheck` أو ما يكافئها |
-| 1.4 | القاعدة التشغيلية | `assessTrustLevel()` أو `resolveImportAction()`: system-generated → Direct Import، غير ذلك → fallback |
-| 1.5 | EditorArea.ts | `importStructuredBlocks()` لا يعمل join+re-classify على البيانات الموثوقة |
+| #   | الفحص                 | ماذا تبحث عنه                                                                                         |
+| --- | --------------------- | ----------------------------------------------------------------------------------------------------- |
+| 1.1 | فحص `trust-policy.ts` | وجود الملف مع تصديرات واضحة                                                                           |
+| 1.2 | مستويات الثقة         | تعريف `InputTrustLevel` يشمل: `trusted_structured` / `semi_structured` / `raw_text`                   |
+| 1.3 | Metadata              | `TrustAssessment` يحتوي: `schemaVersion` + `source` + `integrityCheck` أو ما يكافئها                  |
+| 1.4 | القاعدة التشغيلية     | `assessTrustLevel()` أو `resolveImportAction()`: system-generated → Direct Import، غير ذلك → fallback |
+| 1.5 | EditorArea.ts         | `importStructuredBlocks()` لا يعمل join+re-classify على البيانات الموثوقة                             |
 
 ---
 
@@ -52,14 +52,14 @@ description: >
 
 **الملفات**: `src/types/agent-review.ts`, `server/agent-review.mjs`
 
-| # | الفحص | ماذا تبحث عنه |
-|---|-------|---------------|
-| 2.1 | أنواع agent-review.ts | حذف `decisions[]` القديمة — المتبقي `commands[]` فقط |
-| 2.2 | عقد v2 | `apiVersion: "2.0"` / `mode: "auto-apply"` / `importOpId` / `requestId` / `commands[]` |
-| 2.3 | تعريف الأوامر | `RelabelCommand` (op: "relabel") + `SplitCommand` (op: "split", splitAt: number UTF-16) |
-| 2.4 | السيرفر v2 فقط | `server/agent-review.mjs` لا يحتوي على مسارات v1 قديمة |
-| 2.5 | Prompt الوكيل | الـ prompt يطلب JSON فقط / commands[] / بدون leftText |
-| 2.6 | Validation | `splitAt >= 0` / رفض malformed / `status = "partial"` عند إسقاط أوامر |
+| #   | الفحص                 | ماذا تبحث عنه                                                                           |
+| --- | --------------------- | --------------------------------------------------------------------------------------- |
+| 2.1 | أنواع agent-review.ts | حذف `decisions[]` القديمة — المتبقي `commands[]` فقط                                    |
+| 2.2 | عقد v2                | `apiVersion: "2.0"` / `mode: "auto-apply"` / `importOpId` / `requestId` / `commands[]`  |
+| 2.3 | تعريف الأوامر         | `RelabelCommand` (op: "relabel") + `SplitCommand` (op: "split", splitAt: number UTF-16) |
+| 2.4 | السيرفر v2 فقط        | `server/agent-review.mjs` لا يحتوي على مسارات v1 قديمة                                  |
+| 2.5 | Prompt الوكيل         | الـ prompt يطلب JSON فقط / commands[] / بدون leftText                                   |
+| 2.6 | Validation            | `splitAt >= 0` / رفض malformed / `status = "partial"` عند إسقاط أوامر                   |
 
 ---
 
@@ -67,12 +67,12 @@ description: >
 
 **الملفات**: `src/extensions/Arabic-Screenplay-Classifier-Agent.ts`
 
-| # | الفحص | ماذا تبحث عنه |
-|---|-------|---------------|
-| 3.1 | فحص الملف | وجود الملف (أو `agent-review-client.ts` بديل) |
-| 3.2 | الدور | الملف هو Client Transport فقط — لا يحتوي منطق وكيل AI حقيقي |
-| 3.3 | الدوال | `requestAgentReview()` + parse v2 + معالجة أخطاء شبكة + timeout |
-| 3.4 | ثوابت | `AGENT_API_VERSION = "2.0"` / `AGENT_API_MODE = "auto-apply"` |
+| #   | الفحص     | ماذا تبحث عنه                                                   |
+| --- | --------- | --------------------------------------------------------------- |
+| 3.1 | فحص الملف | وجود الملف (أو `agent-review-client.ts` بديل)                   |
+| 3.2 | الدور     | الملف هو Client Transport فقط — لا يحتوي منطق وكيل AI حقيقي     |
+| 3.3 | الدوال    | `requestAgentReview()` + parse v2 + معالجة أخطاء شبكة + timeout |
+| 3.4 | ثوابت     | `AGENT_API_VERSION = "2.0"` / `AGENT_API_MODE = "auto-apply"`   |
 
 ---
 
@@ -80,15 +80,15 @@ description: >
 
 **الملفات**: `src/extensions/paste-classifier.ts`, `src/extensions/classification-core.ts`, `src/pipeline/command-engine.ts`
 
-| # | الفحص | ماذا تبحث عنه |
-|---|-------|---------------|
-| 4.1 | فحص الملف | وجود `paste-classifier.ts` مع التصديرات الأساسية |
-| 4.2 | فصل المسؤوليات | دوال منفصلة: `classifyText` (محلي) / `buildSuspicionPacket` أو `PostClassificationReviewer` / `requestAgentReview` / `applyCommandsAuto` أو ما يكافئها |
-| 4.3 | Render-First | `applyPasteClassifierFlowToView()` يعرض فوراً بـ `view.dispatch()` ثم يطلق المراجعة async في الخلفية |
-| 4.4 | importOpId | وجود snapshot مع: `itemId` + `fingerprint` + `type` + `rawTextLength`، و `appliedRequestIds` محفوظ |
-| 4.5 | سياسات التجاهل | stale discard (importOpId mismatch) / partial apply (fingerprint mismatch) / idempotent discard (requestId مكرر) |
-| 4.6 | Conflict Resolution | normalize → dedupe → apply once / split أولوية على relabel / split+split = رفض |
-| 4.7 | تطبيق الأوامر | `applyRelabelCommand()` / `applySplitCommand()` بـ UTF-16 / التحقق الصامت: itemId + fingerprint + bounds |
+| #   | الفحص               | ماذا تبحث عنه                                                                                                                                          |
+| --- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 4.1 | فحص الملف           | وجود `paste-classifier.ts` مع التصديرات الأساسية                                                                                                       |
+| 4.2 | فصل المسؤوليات      | دوال منفصلة: `classifyText` (محلي) / `buildSuspicionPacket` أو `PostClassificationReviewer` / `requestAgentReview` / `applyCommandsAuto` أو ما يكافئها |
+| 4.3 | Render-First        | `applyPasteClassifierFlowToView()` يعرض فوراً بـ `view.dispatch()` ثم يطلق المراجعة async في الخلفية                                                   |
+| 4.4 | importOpId          | وجود snapshot مع: `itemId` + `fingerprint` + `type` + `rawTextLength`، و `appliedRequestIds` محفوظ                                                     |
+| 4.5 | سياسات التجاهل      | stale discard (importOpId mismatch) / partial apply (fingerprint mismatch) / idempotent discard (requestId مكرر)                                       |
+| 4.6 | Conflict Resolution | normalize → dedupe → apply once / split أولوية على relabel / split+split = رفض                                                                         |
+| 4.7 | تطبيق الأوامر       | `applyRelabelCommand()` / `applySplitCommand()` بـ UTF-16 / التحقق الصامت: itemId + fingerprint + bounds                                               |
 
 ---
 
@@ -96,12 +96,12 @@ description: >
 
 **الملفات**: `src/components/editor/EditorArea.ts`
 
-| # | الفحص | ماذا تبحث عنه |
-|---|-------|---------------|
-| 5.1 | الدالة الموحدة | وجود `runTextIngestionPipeline()` أو دالة مكافئة تجمع كل مسارات الإدخال |
-| 5.2 | المدخلات | تقبل: `text` / `structuredBlocks` / `source` / `metadata` |
-| 5.3 | التوجيه | التوجيه بناءً على Trust Level من المرحلة 1 |
-| 5.4 | Background Sanity | حتى `trusted_structured` يمر بفحص خلفي + Auto-Apply عند الرجوع |
+| #   | الفحص             | ماذا تبحث عنه                                                           |
+| --- | ----------------- | ----------------------------------------------------------------------- |
+| 5.1 | الدالة الموحدة    | وجود `runTextIngestionPipeline()` أو دالة مكافئة تجمع كل مسارات الإدخال |
+| 5.2 | المدخلات          | تقبل: `text` / `structuredBlocks` / `source` / `metadata`               |
+| 5.3 | التوجيه           | التوجيه بناءً على Trust Level من المرحلة 1                              |
+| 5.4 | Background Sanity | حتى `trusted_structured` يمر بفحص خلفي + Auto-Apply عند الرجوع          |
 
 ---
 
@@ -109,11 +109,11 @@ description: >
 
 **الملفات**: `src/pipeline/packet-budget.ts`
 
-| # | الفحص | ماذا تبحث عنه |
-|---|-------|---------------|
+| #   | الفحص          | ماذا تبحث عنه                                                                                        |
+| --- | -------------- | ---------------------------------------------------------------------------------------------------- |
 | 6.1 | الحدود المثبتة | `maxSuspiciousLines` / `maxChars` / `maxForced` / `maxPacketChars` / `timeout` / `retry` — قيم محددة |
-| 6.2 | أولوية العناصر | forced أولاً → ثم suspicion score → ثم الطول |
-| 6.3 | Chunking | (إن مفعّل) importOpId مشترك بين الأجزاء / requestId مختلف لكل جزء / idempotency |
+| 6.2 | أولوية العناصر | forced أولاً → ثم suspicion score → ثم الطول                                                         |
+| 6.3 | Chunking       | (إن مفعّل) importOpId مشترك بين الأجزاء / requestId مختلف لكل جزء / idempotency                      |
 
 ---
 
@@ -121,10 +121,10 @@ description: >
 
 **الملفات**: `src/pipeline/telemetry.ts`, `src/utils/logger.ts`
 
-| # | الفحص | ماذا تبحث عنه |
-|---|-------|---------------|
-| 7.1 | تيليمتري الإدخال | importOpId / source / trustLevel / suspiciousCount / sentToAgentCount |
-| 7.2 | تيليمتري الوكيل | requestId / latencyMs / status / commandsReceived |
+| #   | الفحص            | ماذا تبحث عنه                                                                     |
+| --- | ---------------- | --------------------------------------------------------------------------------- |
+| 7.1 | تيليمتري الإدخال | importOpId / source / trustLevel / suspiciousCount / sentToAgentCount             |
+| 7.2 | تيليمتري الوكيل  | requestId / latencyMs / status / commandsReceived                                 |
 | 7.3 | تيليمتري التطبيق | applied / skipped / fingerprint missing / invalid / conflict / stale / idempotent |
 
 ---
@@ -133,14 +133,14 @@ description: >
 
 **الملفات**: `tests/unit/extensions/`, `tests/unit/pipeline/`, `tests/harness/`
 
-| # | الفحص | ماذا تبحث عنه |
-|---|-------|---------------|
-| 8.1 | اختبارات Root Cause | منع دمج «ثم + فعل» / دمج الحوار الصحيح يعمل |
-| 8.2 | اختبارات Trust Policy | trusted → direct import / semi → fallback / raw → classifier |
-| 8.3 | اختبارات Command API v2 | parse relabel / split / رفض malformed / splitAt UTF-16 |
+| #   | الفحص                              | ماذا تبحث عنه                                                                  |
+| --- | ---------------------------------- | ------------------------------------------------------------------------------ |
+| 8.1 | اختبارات Root Cause                | منع دمج «ثم + فعل» / دمج الحوار الصحيح يعمل                                    |
+| 8.2 | اختبارات Trust Policy              | trusted → direct import / semi → fallback / raw → classifier                   |
+| 8.3 | اختبارات Command API v2            | parse relabel / split / رفض malformed / splitAt UTF-16                         |
 | 8.4 | اختبارات stale/partial/idempotency | importOpId mismatch → discard / fingerprint → partial / requestId → idempotent |
-| 8.5 | اختبارات Conflict Policy | split+relabel → split wins / split+split → reject |
-| 8.6 | Regression Test | الجملة المختلطة لا تنتهي كـ dialogue واحدة |
+| 8.5 | اختبارات Conflict Policy           | split+relabel → split wins / split+split → reject                              |
+| 8.6 | Regression Test                    | الجملة المختلطة لا تنتهي كـ dialogue واحدة                                     |
 
 ---
 
@@ -148,15 +148,15 @@ description: >
 
 بعد إتمام كل المراحل، تحقق من هذه المعايير السبعة:
 
-| # | المعيار | الملف/الدالة المرجعية |
-|---|--------|----------------------|
-| AC-1 | الإدراج يظهر فوراً بدون انتظار الوكيل | `applyPasteClassifierFlowToView()` → `view.dispatch()` قبل async |
-| AC-2 | فشل الوكيل لا يوقف الإدراج ولا rollback | `.catch()` في background review يسجّل خطأ ويتابع |
-| AC-3 | importOpId mismatch → discard كامل | `command-engine.ts` → stale check |
-| AC-4 | fingerprint mismatch → partial apply فقط | `matchesSnapshot()` → skip mismatched |
-| AC-5 | requestId مكرر → لا يُعاد تطبيقه | `appliedRequestIds` Set check |
-| AC-6 | trusted_structured → لا يُعاد تحويله لنص | `trust-policy.ts` → direct import path |
-| AC-7 | حوار + «ثم فعل وصفي» → لا تبقى مصنفة خطأ | `THUMMA_ACTION_RE` أو ما يكافئه في `line-repair.ts` |
+| #    | المعيار                                  | الملف/الدالة المرجعية                                            |
+| ---- | ---------------------------------------- | ---------------------------------------------------------------- |
+| AC-1 | الإدراج يظهر فوراً بدون انتظار الوكيل    | `applyPasteClassifierFlowToView()` → `view.dispatch()` قبل async |
+| AC-2 | فشل الوكيل لا يوقف الإدراج ولا rollback  | `.catch()` في background review يسجّل خطأ ويتابع                 |
+| AC-3 | importOpId mismatch → discard كامل       | `command-engine.ts` → stale check                                |
+| AC-4 | fingerprint mismatch → partial apply فقط | `matchesSnapshot()` → skip mismatched                            |
+| AC-5 | requestId مكرر → لا يُعاد تطبيقه         | `appliedRequestIds` Set check                                    |
+| AC-6 | trusted_structured → لا يُعاد تحويله لنص | `trust-policy.ts` → direct import path                           |
+| AC-7 | حوار + «ثم فعل وصفي» → لا تبقى مصنفة خطأ | `THUMMA_ACTION_RE` أو ما يكافئه في `line-repair.ts`              |
 
 ---
 
@@ -166,10 +166,12 @@ description: >
 
 ```markdown
 # تقرير مراجعة بايبلاين التصنيف
+
 **التاريخ**: [تاريخ اليوم]
 **الفرع**: [اسم الفرع]
 
 ## ملخص تنفيذي
+
 - المراحل المكتملة: X/9
 - الفحوصات الناجحة: X/Y
 - الفحوصات الفاشلة: X/Y
@@ -178,24 +180,30 @@ description: >
 ## تفاصيل المراحل
 
 ### المرحلة 0: Root-Cause Hardening
-| الفحص | النتيجة | التعليل |
-|-------|---------|---------|
-| 0.1   | PASS/FAIL/PARTIAL | ... |
+
+| الفحص | النتيجة           | التعليل |
+| ----- | ----------------- | ------- |
+| 0.1   | PASS/FAIL/PARTIAL | ...     |
+
 ...
 
 [كرر لكل مرحلة]
 
 ### معايير القبول
-| المعيار | النتيجة | التعليل |
-|---------|---------|---------|
-| AC-1   | PASS/FAIL | ... |
+
+| المعيار | النتيجة   | التعليل |
+| ------- | --------- | ------- |
+| AC-1    | PASS/FAIL | ...     |
+
 ...
 
 ## الحكم النهائي
+
 [ ] التنفيذ مكتمل — كل المعايير محققة
 [ ] يوجد نواقص — قائمة أرقام المراحل الفاشلة: [...]
 
 ## التوصيات (إن وُجدت نواقص)
+
 1. ...
 2. ...
 ```
@@ -204,17 +212,17 @@ description: >
 
 ## خريطة الملفات المرجعية
 
-| المرحلة | الملفات الأساسية |
-|---------|-----------------|
-| 0 | `src/extensions/line-repair.ts` |
-| 1 | `src/pipeline/trust-policy.ts`, `src/components/editor/EditorArea.ts` |
-| 2 | `src/types/agent-review.ts`, `server/agent-review.mjs` |
-| 3 | `src/extensions/Arabic-Screenplay-Classifier-Agent.ts` |
-| 4 | `src/extensions/paste-classifier.ts`, `src/extensions/classification-core.ts`, `src/pipeline/command-engine.ts` |
-| 5 | `src/components/editor/EditorArea.ts` |
-| 6 | `src/pipeline/packet-budget.ts` |
-| 7 | `src/pipeline/telemetry.ts` |
-| 8 | `tests/unit/extensions/`, `tests/unit/pipeline/` |
+| المرحلة | الملفات الأساسية                                                                                                |
+| ------- | --------------------------------------------------------------------------------------------------------------- |
+| 0       | `src/extensions/line-repair.ts`                                                                                 |
+| 1       | `src/pipeline/trust-policy.ts`, `src/components/editor/EditorArea.ts`                                           |
+| 2       | `src/types/agent-review.ts`, `server/agent-review.mjs`                                                          |
+| 3       | `src/extensions/Arabic-Screenplay-Classifier-Agent.ts`                                                          |
+| 4       | `src/extensions/paste-classifier.ts`, `src/extensions/classification-core.ts`, `src/pipeline/command-engine.ts` |
+| 5       | `src/components/editor/EditorArea.ts`                                                                           |
+| 6       | `src/pipeline/packet-budget.ts`                                                                                 |
+| 7       | `src/pipeline/telemetry.ts`                                                                                     |
+| 8       | `tests/unit/extensions/`, `tests/unit/pipeline/`                                                                |
 
 ---
 

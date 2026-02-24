@@ -23,13 +23,11 @@ import {
 } from "../../../src/pipeline/trust-policy";
 import type { StructuredInput } from "../../../src/pipeline/trust-policy";
 import {
-  applyRelabelCommand,
   applySplitCommand,
   applyCommandBatch,
   createImportOperationState,
 } from "../../../src/pipeline/command-engine";
 import type {
-  RelabelCommand,
   SplitCommand,
   AgentReviewResponsePayload,
 } from "../../../src/types/agent-review";
@@ -126,11 +124,8 @@ describe("fingerprint mismatch — تخطي أوامر مع بصمة لا تتط
       latencyMs: 50,
     };
 
-    const result = await applyCommandBatch(
-      response,
-      state,
-      items,
-      () => crypto.randomUUID()
+    const result = await applyCommandBatch(response, state, items, () =>
+      crypto.randomUUID()
     );
 
     // الأمر يجب أن يُتخطى بسبب عدم تطابق البصمة

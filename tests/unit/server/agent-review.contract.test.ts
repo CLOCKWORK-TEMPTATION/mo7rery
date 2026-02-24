@@ -18,12 +18,12 @@ const createSuspiciousLine = (
 
 describe("agent-review contract", () => {
   it("fills required/forced indexes from suspicious lines when omitted", async () => {
-    const { validateAgentReviewRequestBody } = await import(
-      "../../../server/agent-review.mjs"
-    );
+    const { validateAgentReviewRequestBody } =
+      await import("../../../server/agent-review.mjs");
 
     const payload = validateAgentReviewRequestBody({
       sessionId: "s-1",
+      importOpId: "op-1",
       totalReviewed: 2,
       suspiciousLines: [
         createSuspiciousLine(0, "agent-candidate"),
@@ -31,33 +31,32 @@ describe("agent-review contract", () => {
       ],
     });
 
-    expect(payload.requiredItemIndexes).toEqual([0, 1]);
-    expect(payload.forcedItemIndexes).toEqual([1]);
+    expect(payload.requiredItemIds).toEqual(["item-0", "item-1"]);
+    expect(payload.forcedItemIds).toEqual(["item-1"]);
   });
 
   it("rejects forced indexes outside required indexes", async () => {
-    const { validateAgentReviewRequestBody } = await import(
-      "../../../server/agent-review.mjs"
-    );
+    const { validateAgentReviewRequestBody } =
+      await import("../../../server/agent-review.mjs");
 
     expect(() =>
       validateAgentReviewRequestBody({
         sessionId: "s-2",
+        importOpId: "op-2",
         totalReviewed: 2,
         suspiciousLines: [
           createSuspiciousLine(0, "agent-candidate"),
           createSuspiciousLine(1, "agent-forced"),
         ],
-        requiredItemIndexes: [0],
-        forcedItemIndexes: [1],
+        requiredItemIds: ["item-0"],
+        forcedItemIds: ["item-1"],
       })
-    ).toThrow(/forcedItemIndexes must be subset of requiredItemIndexes/i);
+    ).toThrow(/forcedItemIds must be subset of requiredItemIds/i);
   });
 
   it("returns error with unresolved forced lines when ANTHROPIC_API_KEY is missing", async () => {
-    const { reviewSuspiciousLinesWithClaude } = await import(
-      "../../../server/agent-review.mjs"
-    );
+    const { reviewSuspiciousLinesWithClaude } =
+      await import("../../../server/agent-review.mjs");
 
     const previousKey = process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_API_KEY;
@@ -65,19 +64,20 @@ describe("agent-review contract", () => {
     try {
       const response = await reviewSuspiciousLinesWithClaude({
         sessionId: "s-3",
+        importOpId: "op-3",
         totalReviewed: 2,
         suspiciousLines: [
           createSuspiciousLine(0, "agent-candidate"),
           createSuspiciousLine(1, "agent-forced"),
         ],
-        requiredItemIndexes: [0, 1],
-        forcedItemIndexes: [1],
+        requiredItemIds: ["item-0", "item-1"],
+        forcedItemIds: ["item-1"],
       });
 
       expect(response.status).toBe("error");
       expect(response.meta?.requestedCount).toBe(2);
-      expect(response.meta?.missingItemIndexes).toEqual([0, 1]);
-      expect(response.meta?.unresolvedForcedItemIndexes).toEqual([1]);
+      expect(response.meta?.missingItemIds).toEqual(["item-0", "item-1"]);
+      expect(response.meta?.unresolvedForcedItemIds).toEqual(["item-1"]);
     } finally {
       if (previousKey) {
         process.env.ANTHROPIC_API_KEY = previousKey;
@@ -88,9 +88,8 @@ describe("agent-review contract", () => {
   });
 
   it("returns warning (not error) when no forced lines exist and key is missing", async () => {
-    const { reviewSuspiciousLinesWithClaude } = await import(
-      "../../../server/agent-review.mjs"
-    );
+    const { reviewSuspiciousLinesWithClaude } =
+      await import("../../../server/agent-review.mjs");
 
     const previousKey = process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_API_KEY;
@@ -98,16 +97,17 @@ describe("agent-review contract", () => {
     try {
       const response = await reviewSuspiciousLinesWithClaude({
         sessionId: "s-4",
+        importOpId: "op-4",
         totalReviewed: 1,
         suspiciousLines: [createSuspiciousLine(0, "agent-candidate")],
-        requiredItemIndexes: [0],
-        forcedItemIndexes: [],
+        requiredItemIds: ["item-0"],
+        forcedItemIds: [],
       });
 
-      expect(response.status).toBe("warning");
+      expect(response.status).toBe("partial");
       expect(response.meta?.requestedCount).toBe(1);
-      expect(response.meta?.missingItemIndexes).toEqual([0]);
-      expect(response.meta?.unresolvedForcedItemIndexes).toEqual([]);
+      expect(response.meta?.missingItemIds).toEqual(["item-0"]);
+      expect(response.meta?.unresolvedForcedItemIds).toEqual([]);
     } finally {
       if (previousKey) {
         process.env.ANTHROPIC_API_KEY = previousKey;

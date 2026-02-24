@@ -27,10 +27,7 @@ const makeItem = (
 
 describe("sortByPriority", () => {
   it("يرتب forced أولاً", () => {
-    const items = [
-      makeItem("a", false, 90),
-      makeItem("b", true, 80),
-    ];
+    const items = [makeItem("a", false, 90), makeItem("b", true, 80)];
     const sorted = sortByPriority(items);
     expect(sorted[0].itemId).toBe("b");
   });
@@ -48,8 +45,15 @@ describe("sortByPriority", () => {
 
 describe("buildPacketWithBudget", () => {
   it("يحترم حد العناصر في الحزمة", () => {
-    const config = { ...DEFAULT_PACKET_BUDGET, maxSuspiciousLinesPerRequest: 2 };
-    const items = [makeItem("a", false, 90), makeItem("b", false, 80), makeItem("c", false, 70)];
+    const config = {
+      ...DEFAULT_PACKET_BUDGET,
+      maxSuspiciousLinesPerRequest: 2,
+    };
+    const items = [
+      makeItem("a", false, 90),
+      makeItem("b", false, 80),
+      makeItem("c", false, 70),
+    ];
     const result = buildPacketWithBudget(items, config);
     expect(result.included).toHaveLength(2);
     expect(result.overflow).toHaveLength(1);
@@ -58,7 +62,10 @@ describe("buildPacketWithBudget", () => {
 
   it("يحترم حد الأحرف", () => {
     const config = { ...DEFAULT_PACKET_BUDGET, maxPacketChars: 300 };
-    const items = [makeItem("a", false, 90, 200), makeItem("b", false, 80, 200)];
+    const items = [
+      makeItem("a", false, 90, 200),
+      makeItem("b", false, 80, 200),
+    ];
     const result = buildPacketWithBudget(items, config);
     expect(result.included).toHaveLength(1);
     expect(result.overflow).toHaveLength(1);
@@ -74,7 +81,10 @@ describe("buildPacketWithBudget", () => {
 
 describe("planChunks", () => {
   it("يقسم إلى chunks عند تجاوز الحدود", () => {
-    const config = { ...DEFAULT_PACKET_BUDGET, maxSuspiciousLinesPerRequest: 2 };
+    const config = {
+      ...DEFAULT_PACKET_BUDGET,
+      maxSuspiciousLinesPerRequest: 2,
+    };
     const items = [
       makeItem("a", false, 90),
       makeItem("b", false, 80),

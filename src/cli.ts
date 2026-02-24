@@ -7,6 +7,20 @@ import {
 } from "./pipeline/index.js";
 import { MistralOcrProvider } from "./pipeline/ocr/mistral-ocr-provider.js";
 
+type OcrProviderName = "mistral" | "azure" | "none";
+
+const resolveOcrProvider = (): OcrProviderName => {
+  const rawProvider = process.env.OCR_PROVIDER;
+  if (
+    rawProvider === "mistral" ||
+    rawProvider === "azure" ||
+    rawProvider === "none"
+  ) {
+    return rawProvider;
+  }
+  return "mistral";
+};
+
 async function main() {
   const pdfPath = process.argv[2];
   if (!pdfPath) {
@@ -23,8 +37,9 @@ async function main() {
 
   const pdfBuffer = await readBinary(pdfPath);
 
+  const ocrProviderName = resolveOcrProvider();
   const ocrProvider =
-    process.env.OCR_PROVIDER === "none" ? null : new MistralOcrProvider();
+    ocrProviderName === "none" ? null : new MistralOcrProvider();
 
   const result = await runPdfTextLayerFirstPipeline({
     pdfBuffer,
@@ -32,8 +47,8 @@ async function main() {
     ocrProvider,
     config: {
       ocr: {
-        enabled: process.env.OCR_PROVIDER !== "none",
-        provider: (process.env.OCR_PROVIDER as any) || "mistral",
+        enabled: ocrProviderName !== "none",
+        provider: ocrProviderName,
         maxPagesPerBatch: 6,
       },
       quality: {
@@ -47,8 +62,8 @@ async function main() {
   const text = renderDocumentText(result);
   await writeText(outPath, text);
 
-  console.log(
-    JSON.stringify(
+  process.stdout.write(
+    `${JSON.stringify(
       {
         output: outPath,
         stats: result.stats,
@@ -56,7 +71,7 @@ async function main() {
       },
       null,
       2
-    )
+    )}\n`
   );
 }
 

@@ -69,9 +69,16 @@ export interface StructuredInput {
 // ─── تحديد مستوى الثقة ─────────────────────────────────────────
 
 const VALID_TYPES = new Set([
-  "action", "dialogue", "character",
-  "scene-header-top-line", "scene-header-1", "scene-header-2", "scene-header-3",
-  "transition", "parenthetical", "basmala",
+  "action",
+  "dialogue",
+  "character",
+  "scene-header-top-line",
+  "scene-header-1",
+  "scene-header-2",
+  "scene-header-3",
+  "transition",
+  "parenthetical",
+  "basmala",
 ]);
 
 /**
@@ -100,15 +107,19 @@ const validateSchema = (blocks: readonly StructuredBlock[]): boolean => {
  * - غير ذلك
  *   ⇒ raw_text
  */
-export const assessTrustLevel = (
-  input: StructuredInput
-): TrustAssessment => {
+export const assessTrustLevel = (input: StructuredInput): TrustAssessment => {
   const isSchemaValid = validateSchema(input.blocks);
   const isSystemGenerated = input.systemGenerated === true;
-  const isSourceTagged = typeof input.source === "string" && input.source.length > 0;
+  const isSourceTagged =
+    typeof input.source === "string" && input.source.length > 0;
   const isIntegrityChecked = input.integrityChecked === true;
 
-  if (isSystemGenerated && isSchemaValid && isSourceTagged && isIntegrityChecked) {
+  if (
+    isSystemGenerated &&
+    isSchemaValid &&
+    isSourceTagged &&
+    isIntegrityChecked
+  ) {
     return {
       level: "trusted_structured",
       isSystemGenerated,
@@ -149,16 +160,14 @@ export const assessTrustLevel = (
 // ─── مسار المعالجة ─────────────────────────────────────────────
 
 export type ImportAction =
-  | "direct_import"           // استيراد مباشر كعقد
+  | "direct_import" // استيراد مباشر كعقد
   | "direct_import_with_bg_check" // استيراد مباشر + فحص خلفي
   | "fallback_to_classifier"; // المصنف النصي الكامل
 
 /**
  * تحديد مسار المعالجة بناءً على مستوى الثقة.
  */
-export const resolveImportAction = (
-  level: InputTrustLevel
-): ImportAction => {
+export const resolveImportAction = (level: InputTrustLevel): ImportAction => {
   switch (level) {
     case "trusted_structured":
       return "direct_import_with_bg_check";

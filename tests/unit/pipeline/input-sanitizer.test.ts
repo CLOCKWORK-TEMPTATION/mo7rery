@@ -76,7 +76,7 @@ describe("pstyle-bracket-prefix", () => {
 
     const result = sanitizeInput(input);
     const rule = result.report.rulesApplied.find(
-      (r) => r.ruleId === "pstyle-bracket-prefix",
+      (r) => r.ruleId === "pstyle-bracket-prefix"
     );
 
     expect(rule?.applied).toBe(true);
@@ -93,7 +93,7 @@ describe("pstyle-bracket-prefix", () => {
 
     const result = sanitizeInput(input);
     const rule = result.report.rulesApplied.find(
-      (r) => r.ruleId === "pstyle-bracket-prefix",
+      (r) => r.ruleId === "pstyle-bracket-prefix"
     );
 
     expect(rule?.sampleMatches).toHaveLength(3);
@@ -121,7 +121,7 @@ describe("xml-artifact-tags", () => {
     expect(result.report.wasModified).toBe(true);
   });
 
-  it("strips tags with attributes: <w:t xml:space=\"preserve\">", () => {
+  it('strips tags with attributes: <w:t xml:space="preserve">', () => {
     const input = '<w:t xml:space="preserve">نص محفوظ</w:t>';
     const result = sanitizeInput(input);
 
@@ -156,7 +156,7 @@ describe("xml-artifact-tags", () => {
     const input = "<w:r><w:t>نص</w:t></w:r>";
     const result = sanitizeInput(input);
     const rule = result.report.rulesApplied.find(
-      (r) => r.ruleId === "xml-artifact-tags",
+      (r) => r.ruleId === "xml-artifact-tags"
     );
 
     expect(rule?.applied).toBe(true);
@@ -167,7 +167,7 @@ describe("xml-artifact-tags", () => {
 // ─── Suite 3: word-field-codes ───────────────────────────────────────
 
 describe("word-field-codes", () => {
-  it("strips {HYPERLINK \"https://example.com\"}", () => {
+  it('strips {HYPERLINK "https://example.com"}', () => {
     const input = 'زيارة {HYPERLINK "https://example.com"} للمزيد';
     const result = sanitizeInput(input);
 
@@ -175,7 +175,7 @@ describe("word-field-codes", () => {
     expect(result.report.wasModified).toBe(true);
   });
 
-  it("strips {PAGE }, {TOC \\o \"1-3\"}", () => {
+  it('strips {PAGE }, {TOC \\o "1-3"}', () => {
     const input1 = "صفحة {PAGE } من التقرير";
     const result1 = sanitizeInput(input1);
 
@@ -211,11 +211,10 @@ describe("word-field-codes", () => {
   });
 
   it("reports sampleMatches for field codes", () => {
-    const input =
-      '{HYPERLINK "url1"} {PAGE } {TOC \\o "1-3"} {REF bookmark}';
+    const input = '{HYPERLINK "url1"} {PAGE } {TOC \\o "1-3"} {REF bookmark}';
     const result = sanitizeInput(input);
     const rule = result.report.rulesApplied.find(
-      (r) => r.ruleId === "word-field-codes",
+      (r) => r.ruleId === "word-field-codes"
     );
 
     expect(rule?.applied).toBe(true);
@@ -275,7 +274,7 @@ describe("double-bracket-metadata", () => {
 
     const result = sanitizeInput(input);
     const rule = result.report.rulesApplied.find(
-      (r) => r.ruleId === "double-bracket-metadata",
+      (r) => r.ruleId === "double-bracket-metadata"
     );
 
     expect(rule?.applied).toBe(true);
@@ -329,7 +328,7 @@ describe("zero-width-clusters", () => {
     const input = `نص${cluster}عربي`;
     const result = sanitizeInput(input);
     const rule = result.report.rulesApplied.find(
-      (r) => r.ruleId === "zero-width-clusters",
+      (r) => r.ruleId === "zero-width-clusters"
     );
 
     expect(rule?.applied).toBe(true);
@@ -338,8 +337,7 @@ describe("zero-width-clusters", () => {
   });
 
   it("handles all zero-width char types: ZWSP, ZWNJ, ZWJ, LRM, RLM, ALM, BOM", () => {
-    const mixed =
-      "\u200B\u200C\u200D"; // ZWSP + ZWNJ + ZWJ = 3 chars
+    const mixed = "\u200B\u200C\u200D"; // ZWSP + ZWNJ + ZWJ = 3 chars
     const input = `نص${mixed}عربي`;
     const result = sanitizeInput(input);
 
@@ -401,10 +399,10 @@ describe("composability", () => {
     expect(result.report.wasModified).toBe(true);
 
     const pstyleRule = result.report.rulesApplied.find(
-      (r) => r.ruleId === "pstyle-bracket-prefix",
+      (r) => r.ruleId === "pstyle-bracket-prefix"
     );
     const xmlRule = result.report.rulesApplied.find(
-      (r) => r.ruleId === "xml-artifact-tags",
+      (r) => r.ruleId === "xml-artifact-tags"
     );
 
     expect(pstyleRule?.applied).toBe(true);
@@ -419,7 +417,7 @@ describe("composability", () => {
     expect(appliedRules).toHaveLength(3); // pstyle, xml, field-codes
 
     expect(appliedRules.map((r) => r.ruleId)).toContain(
-      "pstyle-bracket-prefix",
+      "pstyle-bracket-prefix"
     );
     expect(appliedRules.map((r) => r.ruleId)).toContain("xml-artifact-tags");
     expect(appliedRules.map((r) => r.ruleId)).toContain("word-field-codes");
@@ -573,7 +571,7 @@ describe("real-world regression test", () => {
     expect(result.report.totalMatchCount).toBe(6); // 6 lines with prefixes
 
     const pstyleRule = result.report.rulesApplied.find(
-      (r) => r.ruleId === "pstyle-bracket-prefix",
+      (r) => r.ruleId === "pstyle-bracket-prefix"
     );
     expect(pstyleRule?.applied).toBe(true);
     expect(pstyleRule?.matchCount).toBe(6);

@@ -1,20 +1,20 @@
 #!/usr/bin/env tsx
 /**
  * DOCX to DOC Converter (TypeScript + Word COM)
- * 
+ *
  * تحويل ملفات DOCX إلى DOC باستخدام Microsoft Word COM Automation
- * 
+ *
  * Usage:
  *   npx tsx docx-to-doc.final.ts input.docx [output.doc] [--overwrite]
- * 
+ *
  * Requirements:
  *   - Microsoft Word installed
  *   - npm install winax
  */
 
-import * as path from 'path';
-import * as fs from 'fs';
-import { fileURLToPath } from 'node:url';
+import * as path from "path";
+import * as fs from "fs";
+import { fileURLToPath } from "node:url";
 
 // Type definitions for winax
 interface WordApplication {
@@ -33,6 +33,17 @@ interface WordDocument {
 // Word format constants
 const WdFormatDocument97 = 0; // DOC format
 
+const writeInfo = (message: string): void => {
+  process.stdout.write(`${message}\n`);
+};
+
+const writeError = (message: string): void => {
+  process.stderr.write(`${message}\n`);
+};
+
+const toErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
 async function convertDocxToDoc(
   inputPath: string,
   outputPath?: string,
@@ -40,7 +51,7 @@ async function convertDocxToDoc(
 ): Promise<void> {
   // Resolve absolute paths
   const absInputPath = path.resolve(inputPath);
-  
+
   if (!fs.existsSync(absInputPath)) {
     throw new Error(`Input file not found: ${absInputPath}`);
   }
@@ -48,7 +59,7 @@ async function convertDocxToDoc(
   // Determine output path
   const absOutputPath = outputPath
     ? path.resolve(outputPath)
-    : absInputPath.replace(/\.docx$/i, '.doc');
+    : absInputPath.replace(/\.docx$/i, ".doc");
 
   // Check if output exists
   if (fs.existsSync(absOutputPath) && !overwrite) {
@@ -57,24 +68,24 @@ async function convertDocxToDoc(
     );
   }
 
-  console.log(`📄 Input:  ${absInputPath}`);
-  console.log(`💾 Output: ${absOutputPath}`);
-  console.log(`🔄 Converting...`);
+  writeInfo(`📄 Input:  ${absInputPath}`);
+  writeInfo(`💾 Output: ${absOutputPath}`);
+  writeInfo("🔄 Converting...");
 
   let wordApp: WordApplication | null = null;
   let doc: WordDocument | null = null;
 
   try {
     // Import winax dynamically (ESM-safe)
-    const winaxModule = await import('winax');
+    const winaxModule = await import("winax");
     const winax =
       (winaxModule as unknown as { default?: { Object: unknown } }).default ??
       (winaxModule as unknown as { Object: unknown });
-    
+
     // Create Word Application COM object
-    wordApp = new winax.Object('Word.Application', {
+    wordApp = new winax.Object("Word.Application", {
       activate: false,
-      type: true
+      type: true,
     });
 
     // Hide Word window
@@ -89,24 +100,24 @@ async function convertDocxToDoc(
     // Close document
     doc.Close(false);
 
-    console.log(`✅ Conversion successful!`);
-    
+    writeInfo("✅ Conversion successful!");
+
     // Get file size
     const stats = fs.statSync(absOutputPath);
     const sizeKB = (stats.size / 1024).toFixed(2);
-    console.log(`📊 Output size: ${sizeKB} KB`);
+    writeInfo(`📊 Output size: ${sizeKB} KB`);
+  } catch (error: unknown) {
+    const message = toErrorMessage(error);
+    writeError(`❌ Error: ${message}`);
 
-  } catch (error: any) {
-    console.error(`❌ Error: ${error.message}`);
-    
-    if (error.message.includes('winax')) {
-      console.error('\n💡 Install winax: npm install winax');
+    if (message.includes("winax")) {
+      writeError("\n💡 Install winax: npm install winax");
     }
-    
-    if (error.message.includes('Word.Application')) {
-      console.error('\n💡 Make sure Microsoft Word is installed.');
+
+    if (message.includes("Word.Application")) {
+      writeError("\n💡 Make sure Microsoft Word is installed.");
     }
-    
+
     throw error;
   } finally {
     // Cleanup
@@ -117,7 +128,7 @@ async function convertDocxToDoc(
       if (wordApp) {
         wordApp.Quit();
       }
-    } catch (e) {
+    } catch {
       // Ignore cleanup errors
     }
   }
@@ -127,8 +138,8 @@ async function convertDocxToDoc(
 async function main() {
   const args = process.argv.slice(2);
 
-  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
-    console.log(`
+  if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
+    writeInfo(`
 DOCX to DOC Converter (TypeScript + Word COM)
 
 Usage:
@@ -153,25 +164,25 @@ Requirements:
   }
 
   const inputPath = args[0];
-  const hasOverwrite = args.includes('--overwrite');
-  
+  const hasOverwrite = args.includes("--overwrite");
+
   // Find output path (if provided and not --overwrite)
   const outputPath = args.find(
-    (arg, idx) => idx > 0 && arg !== '--overwrite' && !arg.startsWith('-')
+    (arg, idx) => idx > 0 && arg !== "--overwrite" && !arg.startsWith("-")
   );
 
   try {
     await convertDocxToDoc(inputPath, outputPath, hasOverwrite);
     process.exit(0);
-  } catch (error: any) {
-    console.error(`\n❌ Conversion failed: ${error.message}`);
+  } catch (error: unknown) {
+    writeError(`\n❌ Conversion failed: ${toErrorMessage(error)}`);
     process.exit(1);
   }
 }
 
 const isMainModule = (): boolean => {
   const currentFile = fileURLToPath(import.meta.url);
-  const entryFile = process.argv[1] ? path.resolve(process.argv[1]) : '';
+  const entryFile = process.argv[1] ? path.resolve(process.argv[1]) : "";
   return entryFile === path.resolve(currentFile);
 };
 

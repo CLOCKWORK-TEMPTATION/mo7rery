@@ -63,12 +63,10 @@ const writeLog = (
     return;
   }
   if (level === "warn") {
-    // eslint-disable-next-line no-console
     console.warn(formatted, payload ?? "");
     return;
   }
   if (level === "error") {
-    // eslint-disable-next-line no-console
     console.error(formatted, payload ?? "");
     return;
   }

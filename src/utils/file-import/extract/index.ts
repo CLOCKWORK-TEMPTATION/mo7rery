@@ -59,7 +59,9 @@ const normalizeExtractedText = (text: string): string =>
   normalizeTextForStructure(text);
 
 const normalizeNewlinesOnly = (text: string): string =>
-  String(text ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  String(text ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
 
 const withStructuredBlocks = (
   result: FileExtractionResult
@@ -168,6 +170,12 @@ const finalizeExtraction = (
 
 const toErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : "خطأ غير معروف";
+
+const createErrorWithCause = (message: string, cause: unknown): Error => {
+  const error = new Error(message) as Error & { cause?: unknown };
+  error.cause = cause;
+  return error;
+};
 
 const isLikelyBackendConnectivityIssue = (error: unknown): boolean => {
   const message = toErrorMessage(error).toLowerCase();
@@ -279,8 +287,9 @@ export const extractImportedFile = async (
       });
       return finalizeExtraction(backendResult);
     } catch (backendError) {
-      throw new Error(
-        `فشل استخراج DOCX عبر Backend: ${toErrorMessage(backendError)}.`
+      throw createErrorWithCause(
+        `فشل استخراج DOCX عبر Backend: ${toErrorMessage(backendError)}.`,
+        backendError
       );
     }
   }
@@ -338,12 +347,14 @@ export const extractImportedFile = async (
           const backendReason = toErrorMessage(backendError);
           const browserReason = toErrorMessage(browserError);
           if (isLikelyBackendConnectivityIssue(backendError)) {
-            throw new Error(
-              `تعذر استخراج PDF عبر Backend: ${backendReason}. وفشل text-layer fallback: ${browserReason}.`
+            throw createErrorWithCause(
+              `تعذر استخراج PDF عبر Backend: ${backendReason}. وفشل text-layer fallback: ${browserReason}.`,
+              browserError
             );
           }
-          throw new Error(
-            `فشل Backend OCR لـ PDF: ${backendReason}. وفشل text-layer fallback: ${browserReason}.`
+          throw createErrorWithCause(
+            `فشل Backend OCR لـ PDF: ${backendReason}. وفشل text-layer fallback: ${browserReason}.`,
+            browserError
           );
         }
       }
@@ -369,8 +380,9 @@ export const extractImportedFile = async (
       });
       return browserResult;
     } catch (browserError) {
-      throw new Error(
-        `فشل استخراج PDF في المتصفح: ${toErrorMessage(browserError)}. ولا يوجد Backend fallback.`
+      throw createErrorWithCause(
+        `فشل استخراج PDF في المتصفح: ${toErrorMessage(browserError)}. ولا يوجد Backend fallback.`,
+        browserError
       );
     }
   }
@@ -386,7 +398,10 @@ export const extractImportedFile = async (
       return finalizeExtraction(browserResult);
     } catch (browserError) {
       if (!backendAvailable) {
-        throw new Error(`فشل استخراج الملف: ${toErrorMessage(browserError)}`);
+        throw createErrorWithCause(
+          `فشل استخراج الملف: ${toErrorMessage(browserError)}`,
+          browserError
+        );
       }
 
       try {
@@ -411,8 +426,9 @@ export const extractImportedFile = async (
           ],
         });
       } catch (backendError) {
-        throw new Error(
-          `فشل مسار المتصفح: ${toErrorMessage(browserError)}. وفشل مسار Backend: ${toErrorMessage(backendError)}.`
+        throw createErrorWithCause(
+          `فشل مسار المتصفح: ${toErrorMessage(browserError)}. وفشل مسار Backend: ${toErrorMessage(backendError)}.`,
+          backendError
         );
       }
     }
@@ -434,8 +450,14 @@ export const extractImportedFile = async (
     return finalizeExtraction(backendResult);
   } catch (backendError) {
     if (!backendAvailable) {
-      throw new Error(`فشل استخراج الملف: ${toErrorMessage(backendError)}`);
+      throw createErrorWithCause(
+        `فشل استخراج الملف: ${toErrorMessage(backendError)}`,
+        backendError
+      );
     }
-    throw new Error(`فشل مسار Backend: ${toErrorMessage(backendError)}.`);
+    throw createErrorWithCause(
+      `فشل مسار Backend: ${toErrorMessage(backendError)}.`,
+      backendError
+    );
   }
 };

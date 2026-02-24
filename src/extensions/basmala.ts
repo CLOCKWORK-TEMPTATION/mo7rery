@@ -27,7 +27,7 @@ import { normalizeLine } from "./text-utils";
  */
 export const isBasmalaLine = (text: string): boolean => {
   const cleaned = (text ?? "")
-    .replace(/[{}()\[\]﴾﴿]/g, "")
+    .replace(/[{}()\x5B\x5D﴾﴿]/g, "")
     .replace(/[\u200f\u200e\ufeff]/g, "")
     .trim();
 
