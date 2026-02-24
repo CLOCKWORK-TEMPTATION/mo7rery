@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "D:\\nvm4w\\nodejs\\node_modules\\pnpm\\bin\\pnpm.cjs",
+        "dev"
+      ],
+      "port": 3000
+    }
+  ]
+}

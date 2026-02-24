@@ -1,0 +1,362 @@
+# 📁 هيكل مشروع محرر السيناريو
+
+> ملف توثيق شامل لبنية مجلد `src` وشرح المكونات والملفات
+
+---
+
+## 🌳 نظرة عامة على الهيكل
+
+```
+src/
+├── components/
+│   ├── editor/
+│   │   ├── ConfirmationDialog.ts
+│   │   ├── editor-area.types.ts
+│   │   ├── EditorArea.ts
+│   │   ├── EditorFooter.ts
+│   │   ├── EditorHeader.ts
+│   │   ├── EditorSidebar.ts
+│   │   ├── EditorToolbar.ts
+│   │   ├── index.ts
+│   │   └── ScreenplayEditor.ts
+│   └── ui/
+├── constants/
+│   ├── colors.ts
+│   ├── editor-format-styles.ts
+│   ├── fonts.ts
+│   ├── formats.ts
+│   ├── index.ts
+│   ├── insert-menu.ts
+│   └── page.ts
+├── extensions/
+│   ├── action.ts
+│   ├── arabic-patterns.ts
+│   ├── basmala.ts
+│   ├── character.ts
+│   ├── classification-core.ts
+│   ├── classification-decision.ts
+│   ├── classification-sequence-rules.ts
+│   ├── classification-types.ts
+│   ├── context-memory-manager.ts
+│   ├── dialogue.ts
+│   ├── hybrid-classifier.ts
+│   ├── line-repair.ts
+│   ├── parenthetical.ts
+│   ├── paste-classifier.ts
+│   ├── scene-header-1.ts
+│   ├── scene-header-2.ts
+│   ├── scene-header-3.ts
+│   ├── scene-header-top-line.ts
+│   ├── screenplay-commands.ts
+│   ├── text-utils.ts
+│   └── transition.ts
+├── hooks/
+│   ├── index.ts
+│   ├── use-history.ts
+│   ├── use-local-storage.ts
+│   ├── use-mobile.ts
+│   └── use-toast.ts
+├── lib/
+│   └── utils.ts
+├── providers/
+│   ├── index.ts
+│   └── ThemeProvider.ts
+├── styles/
+│   ├── globals.css
+│   ├── main.css
+│   ├── page.css
+│   ├── shell.css
+│   ├── toolbar.css
+│   └── ui-kit.css
+├── types/
+│   ├── agent-review.ts
+│   ├── editor-clipboard.ts
+│   ├── editor-engine.ts
+│   ├── external-modules.d.ts
+│   ├── file-import.ts
+│   ├── index.ts
+│   ├── screenplay.ts
+│   ├── structure-pipeline.ts
+│   └── typing-system.ts
+├── utils/
+│   ├── file-import/
+│   │   ├── extract/
+│   │   │   ├── backend-extract.ts
+│   │   │   ├── browser-extract.ts
+│   │   │   └── index.ts
+│   │   ├── document-model.ts
+│   │   ├── file-picker.ts
+│   │   ├── index.ts
+│   │   ├── open-pipeline.ts
+│   │   ├── plain-text-to-blocks.ts
+│   │   ├── preprocessor.ts
+│   │   └── structure-pipeline.ts
+│   ├── cn.ts
+│   ├── index.ts
+│   └── logger.ts
+├── App.tsx
+├── editor.ts
+├── main.tsx
+├── toolbar.ts
+└── vite-env.d.ts
+```
+
+---
+
+## 📂 تفصيل المجلدات والملفات
+
+### 1. `components/` - مكونات واجهة المستخدم
+
+#### `components/editor/` - مكونات المحرر الأساسية
+
+| الملف                   | الوصف                                                |
+| ----------------------- | ---------------------------------------------------- |
+| `EditorArea.ts`         | المنطقة الرئيسية للمحرر، تدير حالة المحرر والتفاعلات |
+| `EditorHeader.ts`       | رأس المحرر مع القوائم والتنقل                        |
+| `EditorFooter.ts`       | تذييل المحرر مع إحصائيات (الكلمات، الصفحات، المشاهد) |
+| `EditorSidebar.ts`      | الشريط الجانبي للملاحة والمشاريع                     |
+| `EditorToolbar.ts`      | شريط أدوات التنسيق                                   |
+| `ScreenplayEditor.ts`   | المكون الرئيسي لمحرر السيناريو                       |
+| `ConfirmationDialog.ts` | مربع حوار التأكيد                                    |
+| `editor-area.types.ts`  | أنواع TypeScript الخاصة بمنطقة المحرر                |
+| `index.ts`              | نقطة تصدير المكونات                                  |
+
+#### `components/ui/` - مكونات واجهة المستخدم (Shadcn UI)
+
+> مكونات UI قابلة لإعادة الاستخدام مبنية على Radix UI
+
+---
+
+### 2. `constants/` - الثوابت والإعدادات
+
+| الملف                     | الوصف                                   |
+| ------------------------- | --------------------------------------- |
+| `colors.ts`               | ألوان التطبيق والثيم                    |
+| `fonts.ts`                | إعدادات الخطوط (Cairo، والخطوط المخصصة) |
+| `formats.ts`              | تنسيقات عناصر السيناريو                 |
+| `page.ts`                 | أبعاد الصفحة والهوامش (A4)              |
+| `insert-menu.ts`          | عناصر قائمة الإدراج                     |
+| `editor-format-styles.ts` | أنماط التنسيق للمحرر                    |
+| `index.ts`                | نقطة تصدير الثوابت                      |
+
+---
+
+### 3. `extensions/` - إضافات Tiptap المخصصة
+
+هذا المجلد يحتوي على إضافات Tiptap التي تُضيف عناصر السيناريو الخاصة:
+
+#### عناصر السيناريو الأساسية
+
+| الملف                      | الوصف                                   |
+| -------------------------- | --------------------------------------- |
+| `basmala.ts`               | عنصر البسملة (بسم الله الرحمن الرحيم)   |
+| `scene-header-top-line.ts` | السطر العلوي لرأس المشهد                |
+| `scene-header-1.ts`        | رأس المشهد - الجزء الأول (رقم المشهد)   |
+| `scene-header-2.ts`        | رأس المشهد - الجزء الثاني (زمان/مكان)   |
+| `scene-header-3.ts`        | رأس المشهد - الجزء الثالث (وصف الموقع)  |
+| `action.ts`                | عنصر الحدث/الوصف (Action)               |
+| `character.ts`             | عنصر اسم الشخصية                        |
+| `dialogue.ts`              | عنصر الحوار                             |
+| `parenthetical.ts`         | عنصر التعليمات الحوارية                 |
+| `transition.ts`            | عنصر الانتقال (قطع إلى، انتقال سريع...) |
+
+#### أنظمة التصنيف والمعالجة
+
+| الملف                              | الوصف                                  |
+| ---------------------------------- | -------------------------------------- |
+| `classification-core.ts`           | النواة الأساسية لتصنيف عناصر السيناريو |
+| `classification-types.ts`          | أنواع عناصر التصنيف                    |
+| `classification-decision.ts`       | منطق اتخاذ قرارات التصنيف              |
+| `classification-sequence-rules.ts` | قواعد تسلسل العناصر                    |
+| `hybrid-classifier.ts`             | المصنف الهجين (Regex + AI)             |
+| `paste-classifier.ts`              | مصنف النص الملصق                       |
+| `context-memory-manager.ts`        | مدير ذاكرة السياق                      |
+| `line-repair.ts`                   | إصلاح الأسطر                           |
+| `arabic-patterns.ts`               | أنماط اللغة العربية                    |
+| `text-utils.ts`                    | أدوات معالجة النصوص                    |
+
+#### أوامر واختصارات
+
+| الملف                    | الوصف                                   |
+| ------------------------ | --------------------------------------- |
+| `screenplay-commands.ts` | أوامر واختصارات لوحة المفاتيح للسيناريو |
+
+---
+
+### 4. `hooks/` - Hooks مخصصة
+
+| الملف                  | الوصف                             |
+| ---------------------- | --------------------------------- |
+| `use-history.ts`       | إدارة تاريخ التغييرات (Undo/Redo) |
+| `use-local-storage.ts` | الحفظ والاسترجاع من LocalStorage  |
+| `use-mobile.ts`        | اكتشاف الأجهزة المحمولة           |
+| `use-toast.ts`         | نظام الإشعارات (Toast)            |
+| `index.ts`             | نقطة تصدير الـ Hooks              |
+
+---
+
+### 5. `lib/` - المكتبات المساعدة
+
+| الملف      | الوصف                                |
+| ---------- | ------------------------------------ |
+| `utils.ts` | دوال مساعدة عامة (cn, formatDate...) |
+
+---
+
+### 6. `providers/` - موفري السياق
+
+| الملف              | الوصف                          |
+| ------------------ | ------------------------------ |
+| `ThemeProvider.ts` | موفر الثيم والمظهر (فاتح/داكن) |
+| `index.ts`         | نقطة تصدير المProviders        |
+
+---
+
+### 7. `styles/` - ملفات CSS
+
+| الملف         | الوصف                         |
+| ------------- | ----------------------------- |
+| `globals.css` | الأنماط العامة والمتغيرات CSS |
+| `main.css`    | الأنماط الرئيسية للتطبيق      |
+| `page.css`    | أنماط الصفحة والهوامش         |
+| `shell.css`   | أنماط الغلاف والإطار          |
+| `toolbar.css` | أنماط شريط الأدوات            |
+| `ui-kit.css`  | أدوات واجهة المستخدم          |
+
+---
+
+### 8. `types/` - تعريفات TypeScript
+
+| الملف                   | الوصف                    |
+| ----------------------- | ------------------------ |
+| `screenplay.ts`         | أنواع عناصر السيناريو    |
+| `editor-engine.ts`      | أنواع محرك التحرير       |
+| `editor-clipboard.ts`   | أنواع الحافظة            |
+| `file-import.ts`        | أنواع استيراد الملفات    |
+| `structure-pipeline.ts` | أنواع خط أنابيب البنية   |
+| `typing-system.ts`      | أنواع نظام الكتابة       |
+| `agent-review.ts`       | أنواع مراجعة AI          |
+| `external-modules.d.ts` | تعريفات الوحدات الخارجية |
+| `index.ts`              | نقطة تصدير الأنواع       |
+
+---
+
+### 9. `utils/` - الأدوات المساعدة
+
+#### `utils/file-import/` - نظام استيراد الملفات
+
+| الملف                     | الوصف                     |
+| ------------------------- | ------------------------- |
+| `file-picker.ts`          | اختيار الملفات من الجهاز  |
+| `preprocessor.ts`         | المعالجة المسبقة للنص     |
+| `document-model.ts`       | نموذج المستند             |
+| `structure-pipeline.ts`   | خط أنابيب بنية المستند    |
+| `open-pipeline.ts`        | خط أنابيب فتح الملفات     |
+| `plain-text-to-blocks.ts` | تحويل النص العادي إلى كتل |
+
+#### `utils/file-import/extract/` - استخراج النصوص
+
+| الملف                | الوصف                                |
+| -------------------- | ------------------------------------ |
+| `browser-extract.ts` | استخراج في المتصفح (Mammoth, PDF.js) |
+| `backend-extract.ts` | استخراج في الخلفية (Antiword)        |
+| `index.ts`           | نقطة تصدير الدوال                    |
+
+#### أدوات عامة
+
+| الملف       | الوصف                           |
+| ----------- | ------------------------------- |
+| `cn.ts`     | دمج Classes (من tailwind-merge) |
+| `logger.ts` | نظام التسجيل والتسجيل           |
+| `index.ts`  | نقطة تصدير الأدوات              |
+
+---
+
+### 10. ملفات الجذر `src/`
+
+| الملف           | الوصف                                                |
+| --------------- | ---------------------------------------------------- |
+| `App.tsx`       | المكون الرئيسي للتطبيق - يدير الحالة العامة والتخطيط |
+| `editor.ts`     | إعداد وتهيئة محرر Tiptap مع إضافات السيناريو         |
+| `main.tsx`      | نقطة دخول التطبيق - تُنشئ React root                 |
+| `toolbar.ts`    | إعداد شريط الأدوات والأيقونات                        |
+| `vite-env.d.ts` | تعريفات بيئة Vite                                    |
+
+---
+
+## 🔗 تدفق البيانات (Data Flow)
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   المستخدم   │────▶│   App.tsx   │────▶│ EditorArea  │
+└─────────────┘     └─────────────┘     └──────┬──────┘
+                                               │
+                                               ▼
+                                        ┌─────────────┐
+                                        │   editor.ts  │
+                                        │  (Tiptap)   │
+                                        └──────┬──────┘
+                                               │
+                        ┌──────────────────────┼──────────────────────┐
+                        │                      │                      │
+                        ▼                      ▼                      ▼
+                 ┌─────────────┐       ┌─────────────┐       ┌─────────────┐
+                 │ extensions/ │       │   styles/   │       │  constants/ │
+                 └─────────────┘       └─────────────┘       └─────────────┘
+```
+
+---
+
+## 📦 عناصر السيناريو (Screenplay Elements)
+
+| العنصر         | الاختصار | الوصف                    |
+| -------------- | -------- | ------------------------ |
+| بسملة          | `Ctrl+0` | "بسم الله الرحمن الرحيم" |
+| سطر رأس المشهد | `Ctrl+1` | رقم المشهد               |
+| رأس المشهد (3) | `Ctrl+2` | المكان المفصل            |
+| حدث/وصف        | `Ctrl+3` | وصف المشهد والأحداث      |
+| شخصية          | `Ctrl+4` | اسم المتحدث              |
+| حوار           | `Ctrl+5` | كلام الشخصية             |
+| تعليمات حوار   | `Ctrl+6` | إرشادات الأداء           |
+| انتقال         | `Ctrl+7` | الانتقال بين المشاهد     |
+
+---
+
+## 🛠️ التقنيات المستخدمة
+
+| التقنية        | الاستخدام           |
+| -------------- | ------------------- |
+| React 19       | بناء واجهة المستخدم |
+| TypeScript 5.7 | الكتابة الآمنة      |
+| Vite 6         | البناء والتطوير     |
+| Tiptap v3      | محرك التحرير        |
+| TailwindCSS    | التنسيق             |
+| Framer Motion  | الحركات             |
+| Mammoth        | استيراد Word        |
+| PDF.js         | استيراد PDF         |
+
+---
+
+## 📄 ملفات الإعداد في الجذر
+
+| الملف                | الوصف               |
+| -------------------- | ------------------- |
+| `vite.config.ts`     | إعداد Vite          |
+| `tsconfig.json`      | إعداد TypeScript    |
+| `tailwind.config.ts` | إعداد TailwindCSS   |
+| `postcss.config.mjs` | إعداد PostCSS       |
+| `package.json`       | التبعيات والسكربتات |
+| `.env`               | متغيرات البيئة      |
+
+---
+
+## 🎯 ملاحظات هامة
+
+1. **التصنيف الذكي**: يستخدم النظام قواعد Regex و AI Mistral لتصنيف النصوص تلقائياً
+2. **الاستيراد**: يدعم Word (.doc)، PDF، Fountain، و FDX
+3. **الأوضاع**: ثلاثة أوضاع للكتابة (Plain, Auto-deferred, Auto-live)
+4. **الصفحة**: محاكاة حقيقية لورقة A4 مع هوامش قياسية
+
+---
+
+_آخر تحديث: فبراير 2026_
