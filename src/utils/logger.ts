@@ -27,7 +27,7 @@ export interface LogContext {
 }
 
 /** يسمح بتسجيل debug فقط في بيئة التطوير */
-const canDebug = import.meta.env.DEV;
+const canDebug = (): boolean => Boolean(import.meta.env?.DEV);
 
 /** يُضيف النطاق كبادئة `[scope]` للرسالة */
 const withScope = (message: string, scope?: string): string => {
@@ -70,7 +70,7 @@ const writeLog = (
     console.error(formatted, payload ?? "");
     return;
   }
-  if (canDebug) {
+  if (canDebug()) {
     // eslint-disable-next-line no-console
     console.debug(formatted, payload ?? "");
   }

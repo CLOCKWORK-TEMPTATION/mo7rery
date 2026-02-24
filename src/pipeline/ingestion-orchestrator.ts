@@ -33,7 +33,6 @@ import {
   buildPacketWithBudget,
   type PacketBudgetConfig,
   type PacketBuildResult,
-  type SuspiciousItemForPacket,
 } from "./packet-budget";
 import { telemetry } from "./telemetry";
 import { requestAgentReview } from "../extensions/Arabic-Screenplay-Classifier-Agent";
@@ -91,17 +90,13 @@ const DEFAULT_PACKET_CONFIG: PacketBudgetConfig = {
   retryCount: 1,
 };
 
-const toStructuredBlocks = (
-  blocks: ScreenplayBlock[]
-): StructuredBlock[] =>
+const toStructuredBlocks = (blocks: ScreenplayBlock[]): StructuredBlock[] =>
   blocks.map((block) => ({
     type: block.formatId,
     text: block.text,
   }));
 
-const toOperationSource = (
-  source: string
-): "open" | "paste" | "import" => {
+const toOperationSource = (source: string): "open" | "paste" | "import" => {
   if (source === "open" || source === "paste" || source === "import") {
     return source;
   }

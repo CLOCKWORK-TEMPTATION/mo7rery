@@ -4,7 +4,7 @@ import { readBinary, writeText } from "./pipeline/io.js";
 import {
   runPdfTextLayerFirstPipeline,
   renderDocumentText,
-} from "./pipeline/index.js";
+} from "./pipeline/pdf-extractor.js";
 import { MistralOcrProvider } from "./pipeline/ocr/mistral-ocr-provider.js";
 
 type OcrProviderName = "mistral" | "azure" | "none";

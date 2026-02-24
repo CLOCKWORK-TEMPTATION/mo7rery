@@ -97,8 +97,7 @@ export {
   logAgentSkipped,
 } from "./telemetry";
 
-// ─── PDF Text-Layer-First Pipeline ───────────────────────────────
-export {
-  runPdfTextLayerFirstPipeline,
-  renderDocumentText,
-} from "./pdf-extractor";
+// ملاحظة معمارية:
+// لا نُصدّر PDF pipeline من هذا الـbarrel لأنه يُستخدم داخل تطبيق المتصفح
+// (مثل paste-classifier)، بينما pdf-extractor يعتمد على pdfjs Node-oriented
+// ويؤدي لزيادة حجم bundle في build الواجهة.

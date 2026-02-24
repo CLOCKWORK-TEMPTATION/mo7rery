@@ -163,14 +163,27 @@ function isObject(x: unknown): x is Record<string, unknown> {
 }
 
 function deepMerge<T>(base: T, patch: Partial<T>): T {
-  const out: any = Array.isArray(base) ? [...base] : { ...base };
-  for (const [k, v] of Object.entries(patch || {})) {
-    if (v === undefined) continue;
-    if (isObject(v) && isObject((out as any)[k])) {
-      (out as any)[k] = deepMerge((out as any)[k], v as any);
-    } else {
-      (out as any)[k] = v;
-    }
+  if (Array.isArray(base)) {
+    return [...base] as T;
   }
-  return out;
+
+  if (!isObject(base) || !isObject(patch)) {
+    return (patch ?? base) as T;
+  }
+
+  const out: Record<string, unknown> = { ...base };
+
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) continue;
+
+    const currentValue = out[key];
+    if (isObject(value) && isObject(currentValue)) {
+      out[key] = deepMerge(currentValue, value);
+      continue;
+    }
+
+    out[key] = value;
+  }
+
+  return out as T;
 }

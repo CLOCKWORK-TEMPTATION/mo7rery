@@ -286,7 +286,7 @@ export class ContextMemoryManager {
 
   getUserCorrections(sessionId: string): Correction[] {
     const memory = this.storage.get(sessionId);
-    return memory?.data.userCorrections || [];
+    return memory ? [...memory.data.userCorrections] : [];
   }
 
   updateConfidence(sessionId: string, line: string, confidence: number): void {

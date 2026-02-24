@@ -12,6 +12,14 @@ type PdfJsTextItem = {
   dir?: "ltr" | "rtl" | "ttb";
 };
 
+type PdfJsPage = {
+  getViewport(params: { scale: number }): { width: number; height: number };
+  getTextContent(params: {
+    includeMarkedContent: boolean;
+    disableNormalization: boolean;
+  }): Promise<{ items: unknown[] }>;
+};
+
 export async function extractPdfTextItems(pdfBuffer: Uint8Array): Promise<{
   pageCount: number;
   pages: { page: number; width: number; height: number; items: TextItem[] }[];
@@ -27,7 +35,7 @@ export async function extractPdfTextItems(pdfBuffer: Uint8Array): Promise<{
   }[] = [];
 
   for (let p = 1; p <= pdf.numPages; p++) {
-    const page = (await pdf.getPage(p)) as any;
+    const page = (await pdf.getPage(p)) as unknown as PdfJsPage;
     const viewport = page.getViewport({ scale: 1.0 });
 
     // getTextContent() يعيد TextContent، مع توحيد الفراغات لمسافة قياسية حسب الوثائق :contentReference[oaicite:3]{index=3}

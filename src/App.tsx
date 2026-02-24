@@ -1186,9 +1186,7 @@ export function App(): React.JSX.Element {
     }
   };
 
-  useEffect(() => {
-    handleMenuActionRef.current = handleMenuAction;
-  }, [handleMenuAction]);
+  handleMenuActionRef.current = handleMenuAction;
 
   const handleSidebarItemAction = async (
     sectionId: string,

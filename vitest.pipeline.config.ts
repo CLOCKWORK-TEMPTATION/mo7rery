@@ -17,6 +17,7 @@ export default defineConfig({
     include: [
       "tests/unit/pipeline/**/*.test.ts",
       "tests/unit/extensions/line-repair.test.ts",
+      "tests/unit/extensions/classification-decision.test.ts",
     ],
   },
 });
