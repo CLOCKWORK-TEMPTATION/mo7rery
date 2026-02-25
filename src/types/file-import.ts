@@ -2,7 +2,7 @@
  * @module types/file-import
  * @description أنماط استيراد الملفات — تُعرّف الأنواع المدعومة وطرق الاستخراج ونتائج العملية
  *
- * يدعم التطبيق 6 صيغ ملفات: doc, docx, txt, pdf, fountain, fdx
+ * يدعم التطبيق 5 صيغ ملفات من واجهة الفتح: doc, docx, txt, fountain, fdx
  * ويستخدم عدة طرق استخراج مختلفة حسب نوع الملف وبيئة التشغيل.
  *
  * @see utils/file-import/ — خط أنابيب الاستيراد الكامل
@@ -18,11 +18,10 @@ import type { ScreenplayBlock } from "../utils/file-import/document-model";
 export type FileImportMode = "replace" | "insert";
 
 /**
- * نوع الملف المستورد — الصيغ المدعومة
+ * نوع الملف المستورد — الصيغ المدعومة داخل طبقة الاستخراج
  * - `doc` — Microsoft Word القديم (.doc)
  * - `docx` — Microsoft Word الحديث (.docx)
  * - `txt` — نص عادي (.txt)
- * - `pdf` — مستند PDF (.pdf)
  * - `fountain` — صيغة سيناريو Fountain (.fountain)
  * - `fdx` — Final Draft XML (.fdx)
  */
@@ -30,7 +29,6 @@ export type ImportedFileType =
   | "doc"
   | "docx"
   | "txt"
-  | "pdf"
   | "fountain"
   | "fdx";
 
@@ -38,7 +36,6 @@ export type ImportedFileType =
  * طريقة الاستخراج — الأسلوب المُستخدم لاستخراج النص من الملف
  * - `native-text` — قراءة مباشرة كنص عادي (txt, fountain)
  * - `mammoth` — استخراج نص DOCX عبر Mammoth
- * - `pdfjs-text-layer` — طبقة النص في PDF.js
  * - `doc-converter-flow` — تحويل doc عبر خدمة خارجية
  * - `ocr-mistral` — التعرف البصري على الحروف عبر Mistral
  * - `backend-api` — استخراج عبر واجهة برمجية خلفية
@@ -47,7 +44,6 @@ export type ImportedFileType =
 export type ExtractionMethod =
   | "native-text"
   | "mammoth"
-  | "pdfjs-text-layer"
   | "doc-converter-flow"
   | "ocr-mistral"
   | "backend-api"
@@ -115,7 +111,7 @@ export interface FileExtractionResponse {
  * ```
  */
 export const ACCEPTED_FILE_EXTENSIONS =
-  ".doc,.docx,.txt,.pdf,.fountain,.fdx" as const;
+  ".doc,.docx,.txt,.fountain,.fdx" as const;
 
 /**
  * استخراج نوع الملف من اسمه — يُعيد `null` إذا كان الامتداد غير مدعوم
@@ -138,8 +134,6 @@ export function getFileType(filename: string): ImportedFileType | null {
       return "docx";
     case "txt":
       return "txt";
-    case "pdf":
-      return "pdf";
     case "fountain":
       return "fountain";
     case "fdx":

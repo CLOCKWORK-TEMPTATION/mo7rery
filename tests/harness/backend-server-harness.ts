@@ -82,12 +82,9 @@ export const readFixtureAsFile = async (
 
 export interface BackendHealthPayload {
   ok: boolean;
-  ocrConfigured: boolean;
   antiwordBinaryAvailable: boolean;
   antiwordHomeExists: boolean;
-  pdfTextLayerScriptAvailable?: boolean;
-  pdfSinglePipelineEnabled?: boolean;
-  pdfSelectiveOcrEnabled?: boolean;
+  agentReviewConfigured: boolean;
 }
 
 export const readBackendHealth = async (

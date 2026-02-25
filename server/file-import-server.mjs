@@ -9,10 +9,6 @@ import { fileURLToPath } from "node:url";
 import { randomUUID } from "crypto";
 import { config as loadEnv } from "dotenv";
 import {
-  isPdfTextLayerScriptAvailable,
-  runPdfTextLayerFlow,
-} from "./pdf-textlayer-runner.mjs";
-import {
   AgentReviewValidationError,
   getAnthropicReviewModel,
   requestAnthropicReview,
@@ -38,13 +34,11 @@ const SUPPORTED_EXTENSIONS = new Set([
   "txt",
   "fountain",
   "fdx",
-  "pdf",
   "doc",
   "docx",
 ]);
 const SUPPORTED_EXTRACTION_METHODS = new Set([
   "native-text",
-  "pdfjs-text-layer",
   "doc-converter-flow",
   "backend-api",
   "app-payload",
@@ -112,21 +106,6 @@ const normalizeText = (value) =>
   )
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-
-const normalizeNewlinesOnly = (value) =>
-  stripAsciiControlChars(
-    String(value ?? "")
-      .replace(/\r\n/g, "\n")
-      .replace(/\r/g, "\n")
-      .replace(/\u2028|\u2029/g, "\n")
-      .replaceAll("\u000B", "\n")
-      .replaceAll("\f", "\n")
-      .replace(/^\uFEFF/, ""),
-    {
-      preserveNewlines: true,
-      preserveTabs: true,
-    }
-  );
 
 const sendJson = (res, statusCode, payload) => {
   res.writeHead(statusCode, {
@@ -699,51 +678,6 @@ const decodeUtf8Fallback = (buffer) => {
   return buffer.toString("latin1");
 };
 
-const extractPdfTextWithTextLayerPipeline = async (buffer, filename) => {
-  const attempts = [];
-  const warnings = [];
-
-  if (!isPdfTextLayerScriptAvailable()) {
-    throw new Error("Text-layer PDF pipeline script is not available.");
-  }
-
-  try {
-    const textLayerResult = await runPdfTextLayerFlow(buffer, filename);
-    attempts.push(...textLayerResult.attempts);
-    warnings.push(...textLayerResult.warnings);
-    const text = normalizeNewlinesOnly(textLayerResult.text);
-
-    if (!text.trim()) {
-      throw new Error("pdf-textlayer-first أعاد نصًا فارغًا.");
-    }
-
-    const usedOcr =
-      textLayerResult.stats?.patchedLines > 0 ||
-      textLayerResult.stats?.pagesSentToOcr > 0;
-
-    return {
-      text,
-      method: "pdfjs-text-layer",
-      usedOcr,
-      attempts,
-      warnings,
-      normalizationApplied: ["pdf-text-layer-first-fidelity"],
-    };
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    attempts.push("pdf-textlayer-failed");
-    warnings.push(`فشل مسار PDF text-layer-first: ${reason}`);
-    throw new Error(
-      `فشل استخراج PDF عبر المسار الموحد text-layer-first${
-        warnings.length > 0 ? ` | ${warnings.join(" | ")}` : ""
-      }`,
-      {
-        cause: error,
-      }
-    );
-  }
-};
-
 const extractByType = async (buffer, extension, filename) => {
   if (extension === "txt" || extension === "fountain" || extension === "fdx") {
     return {
@@ -753,10 +687,6 @@ const extractByType = async (buffer, extension, filename) => {
       attempts: ["native-text"],
       warnings: [],
     };
-  }
-
-  if (extension === "pdf") {
-    return extractPdfTextWithTextLayerPipeline(buffer, filename);
   }
 
   if (extension === "doc") {
@@ -862,27 +792,15 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/health") {
-    const ocrProvider = (process.env.OCR_PROVIDER || "mistral")
-      .trim()
-      .toLowerCase();
-    const selectiveOcrEnabled = ocrProvider !== "none";
-    const selectiveOcrConfigured =
-      !selectiveOcrEnabled || Boolean(process.env.MISTRAL_API_KEY);
-
     sendJson(res, 200, {
       ok: true,
       service: "file-import-backend",
-      ocrConfigured: selectiveOcrConfigured,
-      pdfTextLayerScriptAvailable: isPdfTextLayerScriptAvailable(),
-      pdfSinglePipelineEnabled: true,
-      pdfSelectiveOcrEnabled: selectiveOcrEnabled,
       antiwordPath: process.env.ANTIWORD_PATH || DEFAULT_ANTIWORD_PATH,
       antiwordHome: process.env.ANTIWORDHOME || DEFAULT_ANTIWORD_HOME,
       antiwordBinaryAvailable: ANTIWORD_PREFLIGHT.binaryAvailable,
       antiwordHomeExists: ANTIWORD_PREFLIGHT.antiwordHomeExists,
       antiwordWarnings: ANTIWORD_PREFLIGHT.warnings,
       agentReviewConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
-      model: selectiveOcrEnabled ? "mistral-ocr-latest" : "none",
       reviewModel: getAnthropicReviewModel(),
     });
     return;

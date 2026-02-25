@@ -3,8 +3,6 @@
  * @description منسّق الاستخراج المركزي. يختار الاستراتيجية المناسبة لكل نوع ملف:
  *
  * - `doc` → Backend أولاً + best-effort داخل المتصفح عند التعذر
- * - `pdf` → متصفح أولاً + فحص جودة (عتبة {@link LOW_PDF_QUALITY_THRESHOLD})
- *   مع بديل Backend احتياطي عند الجودة المنخفضة
  * - أخرى → متصفح أولاً + بديل Backend احتياطي عند الفشل
  *
  * بعد الاستخراج يمرّ كل نتيجة عبر {@link finalizeExtraction} الذي يُطبّق
@@ -34,20 +32,13 @@ import {
 
 const importExtractLogger = logger.createScope("file-import.extract");
 
-/** عتبة الجودة التي تُحفّز التحويل إلى Backend لملفات PDF */
-const LOW_PDF_QUALITY_THRESHOLD = 0.42;
 const STRICT_PASTE_PARITY_TYPES = new Set<FileExtractionResult["fileType"]>([
   "doc",
   "docx",
 ]);
 
-/**
- * خيارات الاستخراج الموحّدة.
- * @property pdfLowQualityThreshold - عتبة الجودة لملفات PDF (الافتراضي: 0.42)
- */
-export interface ExtractImportedFileOptions extends BackendExtractOptions {
-  pdfLowQualityThreshold?: number;
-}
+/** خيارات الاستخراج الموحّدة. */
+export type ExtractImportedFileOptions = BackendExtractOptions;
 
 /**
  * يُنهي نتيجة الاستخراج بتطبيق:
@@ -57,11 +48,6 @@ export interface ExtractImportedFileOptions extends BackendExtractOptions {
  */
 const normalizeExtractedText = (text: string): string =>
   normalizeTextForStructure(text);
-
-const normalizeNewlinesOnly = (text: string): string =>
-  String(text ?? "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n");
 
 const withStructuredBlocks = (
   result: FileExtractionResult
@@ -99,18 +85,6 @@ const finalizeExtraction = (
       text: sourceText,
       normalizationApplied: result.normalizationApplied ?? [],
       qualityScore: computeImportedTextQualityScore(sourceText),
-    };
-  }
-
-  if (result.fileType === "pdf") {
-    const pdfRawText = normalizeNewlinesOnly(sourceText);
-    return {
-      ...result,
-      text: pdfRawText,
-      normalizationApplied: result.normalizationApplied ?? [],
-      qualityScore:
-        result.qualityScore ?? computeImportedTextQualityScore(pdfRawText),
-      structuredBlocks: result.structuredBlocks,
     };
   }
 
@@ -177,24 +151,13 @@ const createErrorWithCause = (message: string, cause: unknown): Error => {
   return error;
 };
 
-const isLikelyBackendConnectivityIssue = (error: unknown): boolean => {
-  const message = toErrorMessage(error).toLowerCase();
-  return (
-    message.includes("failed to fetch") ||
-    message.includes("networkerror") ||
-    message.includes("err_connection_refused") ||
-    message.includes("timed out") ||
-    message.includes("تعذر الاتصال")
-  );
-};
-
 /**
  * نقطة الدخول الرئيسية لاستخراج الملفات المستوردة.
  *
  * يختار الاستراتيجية حسب نوع الملف ويُطبّق المعالجة المسبقة تلقائياً.
  *
  * @param file - كائن الملف من مربع حوار الاختيار
- * @param options - خيارات اختيارية (endpoint، مهلة، عتبة PDF)
+ * @param options - خيارات اختيارية (endpoint، مهلة)
  * @returns نتيجة الاستخراج النهائية
  * @throws {Error} إذا كان نوع الملف غير مدعوم أو فشل كل المسارات
  */
@@ -290,99 +253,6 @@ export const extractImportedFile = async (
       throw createErrorWithCause(
         `فشل استخراج DOCX عبر Backend: ${toErrorMessage(backendError)}.`,
         backendError
-      );
-    }
-  }
-
-  if (fileType === "pdf") {
-    if (backendAvailable) {
-      try {
-        const backendResult = finalizeExtraction(
-          await extractFileWithBackend(file, fileType, options)
-        );
-        importExtractLogger.telemetry("extract-completed", {
-          fileType,
-          strategy: "pdf-backend-first",
-          method: backendResult.method,
-        });
-        return backendResult;
-      } catch (backendError) {
-        importExtractLogger.warn(
-          "PDF backend extraction failed, trying browser text-layer fallback",
-          {
-            backendError: toErrorMessage(backendError),
-          }
-        );
-
-        try {
-          const browserResult = finalizeExtraction(
-            await extractFileInBrowser(file, fileType)
-          );
-          const threshold =
-            options?.pdfLowQualityThreshold ?? LOW_PDF_QUALITY_THRESHOLD;
-          const quality = browserResult.qualityScore ?? 0;
-
-          const warnings = [
-            `تعذر مسار Backend لـ PDF: ${toErrorMessage(backendError)}`,
-            ...browserResult.warnings,
-          ];
-
-          if (quality > 0 && quality < threshold) {
-            warnings.push(
-              "جودة استخراج PDF عبر text-layer منخفضة؛ يُفضّل إصلاح Backend OCR."
-            );
-          }
-
-          importExtractLogger.telemetry("extract-completed", {
-            fileType,
-            strategy: "pdf-browser-fallback",
-            method: browserResult.method,
-          });
-          return {
-            ...browserResult,
-            warnings,
-            attempts: [...browserResult.attempts, "backend-pdf-failed"],
-          };
-        } catch (browserError) {
-          const backendReason = toErrorMessage(backendError);
-          const browserReason = toErrorMessage(browserError);
-          if (isLikelyBackendConnectivityIssue(backendError)) {
-            throw createErrorWithCause(
-              `تعذر استخراج PDF عبر Backend: ${backendReason}. وفشل text-layer fallback: ${browserReason}.`,
-              browserError
-            );
-          }
-          throw createErrorWithCause(
-            `فشل Backend OCR لـ PDF: ${backendReason}. وفشل text-layer fallback: ${browserReason}.`,
-            browserError
-          );
-        }
-      }
-    }
-
-    try {
-      const browserResult = finalizeExtraction(
-        await extractFileInBrowser(file, fileType)
-      );
-      const threshold =
-        options?.pdfLowQualityThreshold ?? LOW_PDF_QUALITY_THRESHOLD;
-      const quality = browserResult.qualityScore ?? 0;
-      if (quality > 0 && quality < threshold) {
-        browserResult.warnings = [
-          ...browserResult.warnings,
-          "جودة استخراج PDF منخفضة ولا يوجد Backend OCR fallback مفعّل.",
-        ];
-      }
-      importExtractLogger.telemetry("extract-completed", {
-        fileType,
-        strategy: "pdf-browser",
-        method: browserResult.method,
-      });
-      return browserResult;
-    } catch (browserError) {
-      throw createErrorWithCause(
-        `فشل استخراج PDF في المتصفح: ${toErrorMessage(browserError)}. ولا يوجد Backend fallback.`,
-        browserError
       );
     }
   }

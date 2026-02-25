@@ -7,7 +7,7 @@
  * عبر {@link AbortController}.
  *
  * يُستخدم كبديل احتياطي (fallback) عندما يفشل الاستخراج في المتصفح
- * أو عندما تكون جودة النص المستخرج منخفضة (خاصةً لملفات PDF و DOC).
+ * أو عندما يكون النوع غير مدعوم داخل المتصفح.
  */
 import type {
   FileExtractionResponse,
@@ -26,7 +26,6 @@ const ENV_BACKEND_ENDPOINT =
 const EXTRACTION_METHODS = new Set<ExtractionMethod>([
   "native-text",
   "mammoth",
-  "pdfjs-text-layer",
   "doc-converter-flow",
   "ocr-mistral",
   "backend-api",
@@ -94,7 +93,6 @@ const normalizeEndpoint = (endpoint: string): string =>
 export interface BackendExtractOptions {
   endpoint?: string;
   timeoutMs?: number;
-  pdfPreferFormData?: boolean;
 }
 
 /**
@@ -119,13 +117,6 @@ const resolveBackendExtractionEndpoint = (endpoint?: string): string => {
   }
 
   return normalizeEndpoint(resolved);
-};
-
-const resolvePdfFormDataEndpoint = (endpoint: string): string => {
-  if (endpoint.endsWith("/api/file-extract")) {
-    return `${endpoint.slice(0, -"/api/file-extract".length)}/api/files/extract`;
-  }
-  return endpoint;
 };
 
 const parseBackendExtractionResult = (
@@ -272,7 +263,6 @@ export const extractFileWithBackend = async (
   const endpoint = resolveBackendExtractionEndpoint(options?.endpoint);
 
   const timeoutMs = options?.timeoutMs ?? 45_000;
-  const pdfPreferFormData = options?.pdfPreferFormData ?? true;
   const controller = new AbortController();
   const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
 
@@ -294,51 +284,6 @@ export const extractFileWithBackend = async (
         signal: controller.signal,
       });
     };
-
-    if (fileType === "pdf" && pdfPreferFormData) {
-      const formDataEndpoint = resolvePdfFormDataEndpoint(endpoint);
-      try {
-        const formData = new FormData();
-        formData.append("file", file, file.name);
-
-        return await executeBackendExtractionRequest(
-          formDataEndpoint,
-          fileType,
-          {
-            method: "POST",
-            body: formData,
-            signal: controller.signal,
-          }
-        );
-      } catch (formDataError) {
-        try {
-          const jsonResult = await sendJsonRequest();
-          return {
-            ...jsonResult,
-            warnings: [
-              `فشل نقل PDF عبر FormData: ${
-                formDataError instanceof Error
-                  ? formDataError.message
-                  : String(formDataError)
-              }`,
-              ...jsonResult.warnings,
-            ],
-            attempts: [...jsonResult.attempts, "backend-formdata-failed"],
-          };
-        } catch (jsonError) {
-          throw createErrorWithCause(
-            `فشل استخراج PDF عبر Backend (FormData + JSON). form-data: ${
-              formDataError instanceof Error
-                ? formDataError.message
-                : String(formDataError)
-            } | json: ${
-              jsonError instanceof Error ? jsonError.message : String(jsonError)
-            }`,
-            jsonError
-          );
-        }
-      }
-    }
 
     return await sendJsonRequest();
   } catch (error) {

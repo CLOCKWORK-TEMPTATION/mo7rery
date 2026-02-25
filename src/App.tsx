@@ -903,17 +903,11 @@ export function App(): React.JSX.Element {
       if (action.kind === "import-structured-blocks") {
         await area.importStructuredBlocks(action.blocks, mode);
       } else {
-        const classificationProfile =
-          extraction.fileType === "pdf" ? "pdf-open" : "generic-open";
         // open/import for raw text mirrors paste-classifier in a single pass.
         await area.importClassifiedText(action.text, mode, {
           sourceFileType: extraction.fileType,
           sourceMethod: extraction.method,
-          classificationProfile,
-          structuredHints:
-            extraction.fileType === "pdf"
-              ? extraction.structuredBlocks
-              : undefined,
+          classificationProfile: "generic-open",
         });
         appliedPipeline = "paste-classifier";
       }
@@ -939,9 +933,7 @@ export function App(): React.JSX.Element {
         /failed to fetch|backend|connection|timed out|err_connection_refused/i.test(
           rawMessage
         ) &&
-        (fileExtension === "doc" ||
-          fileExtension === "docx" ||
-          fileExtension === "pdf");
+        (fileExtension === "doc" || fileExtension === "docx");
       const message = backendRelatedFailure
         ? `${rawMessage}\nفي التطوير المحلي: استخدم pnpm dev (يشغّل backend تلقائيًا).`
         : rawMessage;

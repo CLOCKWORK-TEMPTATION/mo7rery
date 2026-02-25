@@ -163,7 +163,7 @@ export interface ApplyPasteClassifierFlowOptions {
   from?: number;
   /** موضع النهاية في العرض (اختياري) */
   to?: number;
-  /** بروفايل مصدر التصنيف (paste | generic-open | pdf-open) */
+  /** بروفايل مصدر التصنيف (paste | generic-open) */
   classificationProfile?: string; // ClassificationSourceProfile in classification-types
   /** نوع الملف المصدر (اختياري) */
   sourceFileType?: string;
@@ -214,7 +214,7 @@ const normalizeHintLookupText = (value: string): string => {
 const toSourceProfile = (
   value: string | undefined
 ): ClassificationSourceProfile | undefined => {
-  if (value === "paste" || value === "generic-open" || value === "pdf-open") {
+  if (value === "paste" || value === "generic-open") {
     return value;
   }
   return undefined;
@@ -288,7 +288,6 @@ export const classifyLines = (
   const hybridClassifier = new HybridClassifier();
 
   // استخراج الخيارات من السياق
-  const isPdfOpenProfile = context?.classificationProfile === "pdf-open";
   const sourceProfile = toSourceProfile(context?.classificationProfile);
   const hintQueues = buildStructuredHintQueues(context?.structuredHints);
   let activeSourceHintType: ElementType | undefined;
@@ -328,11 +327,7 @@ export const classifyLines = (
         continue;
       }
 
-      // تخطي دمج الأسطر الملفوفة في وضع pdf-open
-      if (
-        !isPdfOpenProfile &&
-        shouldMergeWrappedLines(previous.text, trimmed, previous.type)
-      ) {
+      if (shouldMergeWrappedLines(previous.text, trimmed, previous.type)) {
         const merged: ClassifiedDraft = {
           ...previous,
           text: `${previous.text} ${trimmed}`.replace(/\s+/g, " ").trim(),

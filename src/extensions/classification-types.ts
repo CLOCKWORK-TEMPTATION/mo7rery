@@ -65,10 +65,9 @@ export type ClassificationMethod = "regex" | "context" | "fallback" | "ml";
  * مصدر/بروفايل تدفق التصنيف الذي أنشأ السطر.
  *
  * - `paste` — لصق مباشر من المستخدم
- * - `generic-open` — فتح/إدراج ملف عام (غير PDF)
- * - `pdf-open` — فتح PDF عبر OCR ثم التصنيف
+ * - `generic-open` — فتح/إدراج ملف عام
  */
-export type ClassificationSourceProfile = "paste" | "generic-open" | "pdf-open";
+export type ClassificationSourceProfile = "paste" | "generic-open";
 
 /**
  * سطر مُصنّف — نتيجة نهائية لتصنيف سطر واحد.

@@ -69,16 +69,16 @@ describe("backend /api/file-extract contract", () => {
     expect(body.data?.method).toBe("native-text");
   });
 
-  it("health exposes pdf flow readiness fields", async () => {
+  it("health exposes backend readiness fields", async () => {
     if (!harness) throw new Error("Harness not started");
     const health = (await readBackendHealth(harness.baseUrl)) as {
-      pdfTextLayerScriptAvailable?: unknown;
-      pdfSinglePipelineEnabled?: unknown;
-      pdfSelectiveOcrEnabled?: unknown;
+      antiwordBinaryAvailable?: unknown;
+      antiwordHomeExists?: unknown;
+      agentReviewConfigured?: unknown;
     };
 
-    expect(typeof health.pdfTextLayerScriptAvailable).toBe("boolean");
-    expect(health.pdfSinglePipelineEnabled).toBe(true);
-    expect(typeof health.pdfSelectiveOcrEnabled).toBe("boolean");
+    expect(typeof health.antiwordBinaryAvailable).toBe("boolean");
+    expect(typeof health.antiwordHomeExists).toBe("boolean");
+    expect(typeof health.agentReviewConfigured).toBe("boolean");
   });
 });

@@ -39,7 +39,7 @@ export type FileImportMode = "replace" | "insert";
 export interface ImportClassificationContext {
   sourceFileType?: ImportedFileType;
   sourceMethod?: ExtractionMethod;
-  classificationProfile?: "paste" | "generic-open" | "pdf-open";
+  classificationProfile?: "paste" | "generic-open";
   structuredHints?: ScreenplayBlock[];
 }
 

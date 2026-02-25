@@ -372,14 +372,13 @@ const createSourceHintMismatchDetector = (): SuspicionDetector => ({
   id: "source-hint-mismatch",
 
   detect(line: ClassifiedLine): DetectorFinding | null {
-    if (line.sourceProfile !== "pdf-open") return null;
     if (!line.sourceHintType) return null;
     if (line.assignedType === line.sourceHintType) return null;
 
     return {
       detectorId: "source-hint-mismatch",
       suspicionScore: 93,
-      reason: `تصنيف "${line.assignedType}" لا يطابق تلميح المصدر "${line.sourceHintType}" في مسار pdf-open`,
+      reason: `تصنيف "${line.assignedType}" لا يطابق تلميح المصدر "${line.sourceHintType}"`,
       suggestedType: line.sourceHintType,
     };
   },

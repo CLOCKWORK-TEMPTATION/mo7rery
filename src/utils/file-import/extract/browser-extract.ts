@@ -5,7 +5,6 @@
  * الأنواع المدعومة:
  * - `txt` / `fountain` / `fdx` — قراءة نصية مباشرة مع كشف ترميز ذكي
  *   (UTF-8 → windows-1256 → ISO-8859-1) للنصوص العربية
- * - `pdf` — عبر pdfjs-dist (text layer فقط، بدون OCR)
  * - `doc` — استخراج best-effort من النصوص المرئية (Fallback)
  * - `docx` — غير مدعوم في المتصفح، ويُعالج عبر Backend
  *
@@ -117,81 +116,8 @@ const toPayloadResult = (
 });
 
 /**
- * يستخرج طبقة النصوص من ملف PDF عبر pdfjs-dist (بدون OCR).
- * يعمل بوضع `disableWorker: true` لتجنب الحاجة لـ Web Worker.
- * @throws {Error} إذا تعذّر تحميل `getDocument` من المكتبة
- */
-async function extractPdfTextLayer(
-  file: File
-): Promise<{ text: string; attempts: string[] }> {
-  const pdfjs = (await import("pdfjs-dist/legacy/build/pdf.mjs")) as {
-    getDocument?: (options: { data: Uint8Array; disableWorker?: boolean }) => {
-      promise: Promise<{
-        numPages: number;
-        getPage: (pageNumber: number) => Promise<{
-          getTextContent: () => Promise<{ items: Array<{ str?: string }> }>;
-        }>;
-        destroy?: () => Promise<void>;
-      }>;
-      destroy: () => Promise<void>;
-    };
-  };
-
-  if (!pdfjs.getDocument) {
-    throw new Error("تعذر تحميل getDocument من pdfjs-dist.");
-  }
-
-  const arrayBuffer = await file.arrayBuffer();
-  const task = pdfjs.getDocument({
-    data: new Uint8Array(arrayBuffer),
-    disableWorker: true,
-  });
-  const documentRef = await task.promise;
-
-  try {
-    const pages: string[] = [];
-
-    for (
-      let pageNumber = 1;
-      pageNumber <= documentRef.numPages;
-      pageNumber += 1
-    ) {
-      const page = await documentRef.getPage(pageNumber);
-      const content = await page.getTextContent();
-      const text = content.items
-        .map((item) => item.str ?? "")
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
-      if (text) {
-        pages.push(text);
-      }
-    }
-
-    return {
-      text: normalizeNewlines(pages.join("\n")),
-      attempts: ["pdfjs-text-layer"],
-    };
-  } finally {
-    // أخطاء cleanup لا ينبغي أن تُفشل الاستخراج الناجح.
-    if (typeof documentRef.destroy === "function") {
-      try {
-        await documentRef.destroy();
-      } catch {
-        // noop
-      }
-    }
-    try {
-      await task.destroy();
-    } catch {
-      // noop
-    }
-  }
-}
-
-/**
  * يتحقق ممّا إذا كان نوع الملف مدعوماً للاستخراج في المتصفح.
- * جميع الأنواع المعروفة مدعومة، وملف DOC يعمل بوضع best-effort.
+ * جميع الأنواع المعروفة مدعومة ما عدا DOCX، وملف DOC يعمل بوضع best-effort.
  */
 export const isBrowserExtractionSupported = (
   fileType: ImportedFileType
@@ -200,7 +126,6 @@ export const isBrowserExtractionSupported = (
 /**
  * يستخرج نص الملف داخل المتصفح حسب نوعه:
  * - `txt`/`fountain`/`fdx` → قراءة نصية مع كشف ترميز
- * - `pdf` → pdfjs-dist text layer
  * - `doc` → best-effort text extraction
  *
  * يفحص وجود Filmlane Payload Marker قبل إرجاع النص الخام.
@@ -236,18 +161,6 @@ export const extractFileInBrowser = async (
       usedOcr: false,
       warnings: [],
       attempts: ["native-text"],
-    };
-  }
-
-  if (fileType === "pdf") {
-    const extracted = await extractPdfTextLayer(file);
-    return {
-      text: extracted.text,
-      fileType,
-      method: "pdfjs-text-layer",
-      usedOcr: false,
-      warnings: [],
-      attempts: extracted.attempts,
     };
   }
 

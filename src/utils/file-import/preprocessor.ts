@@ -16,7 +16,7 @@ import type { ImportedFileType } from "../../types/file-import";
 /**
  * نتيجة المعالجة المسبقة للنص المستورد.
  * @property text - النص بعد المعالجة
- * @property applied - أسماء خطوات المعالجة المُطبَّقة (مثل `'pdf-bullet-line-split'`)
+ * @property applied - أسماء خطوات المعالجة المُطبَّقة
  */
 export interface ImportPreprocessResult {
   text: string;
@@ -293,28 +293,6 @@ const mergeWrappedLines = (rawText: string): string => {
 };
 
 /**
- * معالجة مسبقة خاصة بنصوص PDF: تحويل رموز التعداد إلى أسطر جديدة
- * ثم دمج الأسطر المكسورة.
- */
-const preprocessPdfText = (text: string): ImportPreprocessResult => {
-  let result = normalizeNewlines(text);
-  const applied: string[] = [];
-
-  if (/[▪●•·∙⋅◦○]/u.test(result)) {
-    result = result.replace(/[▪●•·∙⋅◦○]\s*/gu, "\n");
-    applied.push("pdf-bullet-line-split");
-  }
-
-  const merged = mergeWrappedLines(result);
-  if (merged !== result) {
-    result = merged;
-    applied.push("pdf-wrapped-lines-normalized");
-  }
-
-  return { text: result.trim(), applied };
-};
-
-/**
  * يُطبّع نص DOC المستخرج عبر أداة Antiword في Backend.
  * يُطبّق دمج الأسطر المكسورة وتطبيع مسافات ترويسات المشاهد.
  *
@@ -343,7 +321,6 @@ export const normalizeDocTextFromAntiword = (
  * نقطة الدخول الرئيسية للمعالجة المسبقة. يختار استراتيجية التطبيع
  * حسب نوع الملف:
  * - `doc` → {@link normalizeDocTextFromAntiword}
- * - `pdf` → {@link preprocessPdfText}
  * - أخرى → تطبيع فواصل الأسطر فقط
  *
  * @param text - النص المستخرج من الملف
@@ -365,8 +342,6 @@ export const preprocessImportedTextForClassifier = (
           : ["docx-tab-spacing-normalization"];
       return { text: merged.trim(), applied };
     }
-    case "pdf":
-      return preprocessPdfText(text);
     default:
       return { text: normalizeNewlines(text).trim(), applied: [] };
   }

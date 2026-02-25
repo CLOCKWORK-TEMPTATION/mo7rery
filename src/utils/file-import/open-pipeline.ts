@@ -68,7 +68,7 @@ export type FileOpenPipelineAction =
 
 const FORCE_PASTE_CLASSIFIER_FILE_TYPES = new Set<
   FileExtractionResult["fileType"]
->(["doc", "docx", "pdf"]);
+>(["doc", "docx"]);
 
 /** يُرجع تسمية الوضع بالعربية: "تم فتح" أو "تم إدراج" */
 const buildModeLabel = (mode: FileImportMode): string =>

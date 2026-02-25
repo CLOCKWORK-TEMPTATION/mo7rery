@@ -12,11 +12,11 @@ const buildLine = (overrides: Partial<ClassifiedLine>): ClassifiedLine => ({
 });
 
 describe("classification-core source hints", () => {
-  it("raises strong suspicion when pdf-open type mismatches source hint", () => {
+  it("raises strong suspicion when source type mismatches source hint", () => {
     const reviewer = new PostClassificationReviewer();
     const packet = reviewer.review([
       buildLine({
-        sourceProfile: "pdf-open",
+        sourceProfile: "generic-open",
         sourceHintType: "action",
       }),
     ]);
@@ -34,12 +34,12 @@ describe("classification-core source hints", () => {
     );
   });
 
-  it("does not trigger source-hint detector outside pdf-open profile", () => {
+  it("does not trigger source-hint detector when hint is absent", () => {
     const reviewer = new PostClassificationReviewer();
     const packet = reviewer.review([
       buildLine({
         sourceProfile: "generic-open",
-        sourceHintType: "action",
+        sourceHintType: undefined,
       }),
     ]);
 

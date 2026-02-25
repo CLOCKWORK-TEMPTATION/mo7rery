@@ -98,6 +98,4 @@ export {
 } from "./telemetry";
 
 // ملاحظة معمارية:
-// لا نُصدّر PDF pipeline من هذا الـbarrel لأنه يُستخدم داخل تطبيق المتصفح
-// (مثل paste-classifier)، بينما pdf-extractor يعتمد على pdfjs Node-oriented
-// ويؤدي لزيادة حجم bundle في build الواجهة.
+// هذا الـbarrel يصدّر وحدات المسار التشغيلي الفعّال فقط لتجنب تضخيم bundle.
