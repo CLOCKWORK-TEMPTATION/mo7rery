@@ -1,73 +1,8 @@
-/**
- * @module types/index
- * @description ملف البرميل (barrel) لمجلد الأنماط — يُعيد تصدير جميع الأنماط والقيم من الوحدات الفرعية
- *
- * يُتيح الاستيراد الموحد من `@/types` بدلاً من تحديد المسار الكامل لكل ملف:
- * ```typescript
- * import type { LineType, DocumentStats, EditorEngineAdapter } from '@/types'
- * ```
- */
-
-export type { DocumentStats, LineType, FileType } from "./screenplay";
-export type {
-  FileImportMode,
-  ImportedFileType,
-  ExtractionMethod,
-  FileExtractionResult,
-  FileExtractionRequest,
-  FileExtractionResponse,
-} from "./file-import";
-export { ACCEPTED_FILE_EXTENSIONS, getFileType } from "./file-import";
-export type {
-  StructurePipelineMergePolicy,
-  StructurePipelineClassifierRole,
-  StructurePipelineProfile,
-  StructurePipelinePolicy,
-  StructurePipelineResult,
-  ProjectionGuardReport,
-} from "./structure-pipeline";
-export { DEFAULT_STRUCTURE_PIPELINE_POLICY } from "./structure-pipeline";
-export { FILMLANE_CLIPBOARD_MIME } from "./editor-clipboard";
-export type {
-  ClipboardSourceKind,
-  ClipboardOrigin,
-  EditorClipboardPayload,
-} from "./editor-clipboard";
-export type {
-  RunEditorCommandOptions,
-  EditorEngineAdapter,
-} from "./editor-engine";
-export type {
-  TypingSystemMode,
-  TypingWorkflowScope,
-  PasteWorkflowRunSource,
-  PasteWorkflowReviewProfile,
-  PasteWorkflowPolicyProfile,
-  RunDocumentThroughPasteWorkflowOptions,
-  TypingSystemSettings,
-} from "./typing-system";
-export {
-  DEFAULT_TYPING_SYSTEM_SETTINGS,
-  sanitizeTypingSystemSettings,
-  minutesToMilliseconds,
-} from "./typing-system";
-
-// ─── Command API v2 ──────────────────────────────────────────────
-export type {
-  CommandOp,
-  RelabelCommand,
-  SplitCommand,
-  AgentCommand,
-  AgentResponseStatus,
-  AgentReviewContextLine,
-  AgentSuspiciousLinePayload,
-  AgentReviewRequestPayload,
-  AgentReviewResponseMeta,
-  AgentReviewResponsePayload,
-} from "./agent-review";
-export {
-  AGENT_API_VERSION,
-  AGENT_API_MODE,
-  VALID_COMMAND_OPS,
-  VALID_AGENT_LINE_TYPES,
-} from "./agent-review";
+export * from './agent-review';
+export * from './editor-clipboard';
+export * from './editor-engine';
+export * from './external-modules.d';
+export * from './file-import';
+export * from './screenplay';
+export * from './structure-pipeline';
+export * from './typing-system';

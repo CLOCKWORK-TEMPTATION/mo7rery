@@ -891,6 +891,16 @@ export function App(): React.JSX.Element {
     if (!file) return;
 
     try {
+      logger.info("File import pipeline started", {
+        scope: "file-import",
+        data: {
+          filename: file.name,
+          mode,
+          strategy: "backend-only-strict",
+          pipeline: "frontend-open->backend-extract->backend-agent-review->editor-apply",
+        },
+      });
+
       const extraction = await extractImportedFile(file);
       const action = buildFileOpenPipelineAction(extraction, mode);
       let appliedPipeline = "paste-classifier" as const;
@@ -928,12 +938,10 @@ export function App(): React.JSX.Element {
         error instanceof Error
           ? error.message
           : "حدث خطأ غير معروف أثناء فتح الملف.";
-      const fileExtension = file.name.split(".").pop()?.toLowerCase() ?? "";
       const backendRelatedFailure =
-        /failed to fetch|backend|connection|timed out|err_connection_refused/i.test(
+        /failed to fetch|backend|connection|timed out|err_connection_refused|vite_file_import_backend_url/i.test(
           rawMessage
-        ) &&
-        (fileExtension === "doc" || fileExtension === "docx");
+        );
       const message = backendRelatedFailure
         ? `${rawMessage}\nفي التطوير المحلي: استخدم pnpm dev (يشغّل backend تلقائيًا).`
         : rawMessage;

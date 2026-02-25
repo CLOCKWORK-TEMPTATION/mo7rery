@@ -78,7 +78,7 @@ import {
 /** رقم نسخة Command API — v2 */
 const COMMAND_API_VERSION = "2.0" as const;
 
-/** نمط التصنيف: Render-First / Review-Later */
+/** نمط التصنيف: Backend review required قبل تطبيق الإدراج */
 const CLASSIFICATION_MODE = "auto-apply" as const;
 
 const AGENT_REVIEW_MODEL = AGENT_MODEL_ID;
@@ -712,9 +712,6 @@ export const selectSuspiciousLinesForAgent = (
 
 const shouldSkipAgentReviewInRuntime = (): boolean => {
   if (typeof window === "undefined") return true;
-  if (import.meta.env.MODE === "test") {
-    return true;
-  }
   return false;
 };
 
@@ -999,27 +996,12 @@ const requestAgentReview = async (
   request: AgentReviewRequestPayload
 ): Promise<AgentReviewResponsePayload> => {
   if (shouldSkipAgentReviewInRuntime()) {
-    agentReviewLogger.telemetry("request-skipped-runtime", {
+    agentReviewLogger.error("request-runtime-not-supported", {
       sessionId: request.sessionId,
     });
-    return {
-      status: "skipped",
-      model: AGENT_REVIEW_MODEL,
-      commands: [],
-      message: "تم تجاوز مراجعة الوكيل في بيئة الاختبار.",
-      latencyMs: 0,
-      importOpId: crypto.randomUUID(),
-      requestId: request.sessionId,
-      apiVersion: COMMAND_API_VERSION,
-      mode: CLASSIFICATION_MODE,
-      meta: {
-        requestedCount: request.requiredItemIds.length,
-        commandCount: 0,
-        missingItemIds: [...request.requiredItemIds],
-        forcedItemIds: [...request.forcedItemIds],
-        unresolvedForcedItemIds: [...request.forcedItemIds],
-      },
-    };
+    throw new Error(
+      "Agent review backend path is mandatory and requires a browser runtime."
+    );
   }
 
   if (!AGENT_REVIEW_ENDPOINT) {
@@ -1274,19 +1256,10 @@ const applyRemoteAgentReviewV2 = async (
     });
   }
   if (selectedForAgent.length === 0) {
-    agentReviewLogger.info("packet-skipped-after-routing", {
+    agentReviewLogger.info("packet-empty-forwarded", {
       ...routingStats,
       countSentToAgent: 0,
     });
-    return classified;
-  }
-
-  if (shouldSkipAgentReviewInRuntime()) {
-    agentReviewLogger.info("agent-review-bypassed-runtime", {
-      reason: "test-or-non-browser-runtime",
-      countSentToAgent: selectedForAgent.length,
-    });
-    return classified;
   }
 
   const reviewPacketText = reviewer.formatForLLM(reviewPacket);
@@ -1343,12 +1316,11 @@ const applyRemoteAgentReviewV2 = async (
     .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
   if (suspiciousPayload.length === 0) {
-    agentReviewLogger.info("packet-skipped-filtered-out", {
+    agentReviewLogger.info("packet-empty-after-filtering-forwarded", {
       totalSuspicious: reviewPacket.totalSuspicious,
       ...routingStats,
       countSentToAgent: 0,
     });
-    return classified;
   }
 
   // ─── ميزانية الحزمة: اقتطاع إذا تجاوزت الحدود (packet-budget) ───
@@ -1454,6 +1426,16 @@ const applyRemoteAgentReviewV2 = async (
       `Agent review failed: status=${response.status} | message=${response.message}`
     );
   }
+  if (response.status === "partial") {
+    throw new Error(
+      `Agent review failed strict mode (partial): ${response.message ?? "missing coverage"}`
+    );
+  }
+  if (response.status === "skipped" && sentItemIds.length > 0) {
+    throw new Error(
+      `Agent review failed strict mode (unexpected skipped): ${response.message ?? "no commands"}`
+    );
+  }
 
   // ─── تسجيل استجابة الوكيل (telemetry) ───
   logAgentResponse({
@@ -1469,12 +1451,16 @@ const applyRemoteAgentReviewV2 = async (
   if (discardReason === "stale_discarded") {
     pipelineTelemetry.recordStaleDiscard(importOpId);
     agentReviewLogger.warn("response-stale-discarded", { importOpId });
-    return classified;
+    throw new Error(
+      "Agent review failed strict mode: stale response discarded."
+    );
   }
   if (discardReason === "idempotent_discarded") {
     pipelineTelemetry.recordIdempotentDiscard(importOpId, response.requestId);
     agentReviewLogger.info("response-idempotent-discarded", { importOpId });
-    return classified;
+    throw new Error(
+      "Agent review failed strict mode: idempotent response discarded."
+    );
   }
 
   // ─── تطبيع الأوامر وحل التضاربات عبر command-engine ───
@@ -1662,14 +1648,6 @@ const applyRemoteAgentReviewV2 = async (
     );
   }
 
-  if (response.status === "partial") {
-    agentReviewLogger.warn("response-partial-coverage", {
-      message: response.message,
-      missingRequiredItemIds,
-      unresolvedForcedItemIds,
-    });
-  }
-
   // ─── تسجيل تطبيق الأوامر (telemetry) ───
   logCommandApply({
     importOpId,
@@ -1841,7 +1819,7 @@ export const classifyText = (
 
 /**
  * تصنيف النص ثم مراجعة الوكيل عن بُعد.
- * (لم يعد مستخدماً في نمط Render-First / Review-Later)
+ * هذا المسار صارم: لا fallback محلي عند فشل مراجعة الباك اند.
  */
 export const classifyTextWithAgentReview = async (
   text: string,
@@ -1850,25 +1828,16 @@ export const classifyTextWithAgentReview = async (
   ) => ClassifiedDraftWithId[]
 ): Promise<ClassifiedDraftWithId[]> => {
   const initiallyClassified = classifyLines(text);
-  const remotelyReviewed = await applyRemoteAgentReviewV2(
-    initiallyClassified
-  ).catch((error) => {
-    agentReviewLogger.error("remote-review-failed-fallback", { error });
-    return initiallyClassified;
-  });
+  const remotelyReviewed = await applyRemoteAgentReviewV2(initiallyClassified);
   return applyAgentReview(remotelyReviewed, agentReview);
 };
 
 /**
- * تطبيق تصنيف اللصق على العرض بنمط Render-First / Review-Later.
+ * تطبيق تصنيف اللصق على العرض بنمط Backend-only (Fail-fast).
  *
- * المرحلة 1 (Render-First):
- * - تصنيف النص محلياً فوراً
- * - عرض النتائج في المحرر فوراً (بدون انتظار الوكيل)
- *
- * المرحلة 2 (Review-Later):
- * - إطلاق مراجعة الوكيل في الخلفية (async)
- * - تحديث المحرر لاحقاً إذا تغيّر شيء
+ * 1) تصنيف محلي
+ * 2) مراجعة Backend إلزامية (blocking)
+ * 3) إدراج النتيجة النهائية في المحرر مرة واحدة
  */
 export const applyPasteClassifierFlowToView = async (
   view: EditorView,
@@ -1881,21 +1850,37 @@ export const applyPasteClassifierFlowToView = async (
   const sourceMethod = options?.sourceMethod;
   const structuredHints = options?.structuredHints;
 
-  // --- المرحلة 1: Render-First — تصنيف محلي فوري ---
+  // 1) التصنيف المحلي
   const initiallyClassified = classifyLines(text, {
     classificationProfile,
     sourceFileType,
     sourceMethod,
     structuredHints,
   });
-  const classified = applyAgentReview(initiallyClassified, customReview);
+  const locallyReviewed = applyAgentReview(initiallyClassified, customReview);
 
-  if (classified.length === 0 || view.isDestroyed) return false;
+  if (locallyReviewed.length === 0 || view.isDestroyed) return false;
 
-  const nodes = classifiedToNodes(classified, view.state.schema);
+  agentReviewLogger.telemetry("paste-pipeline-stage", {
+    stage: "frontend-classify-complete",
+    totalLines: locallyReviewed.length,
+    sourceFileType,
+    sourceMethod,
+  });
+
+  // 2) مراجعة الباك اند الإلزامية — أي فشل هنا يوقف العملية بالكامل
+  const backendReviewed = await applyRemoteAgentReviewV2(locallyReviewed);
+  if (backendReviewed.length === 0 || view.isDestroyed) return false;
+
+  agentReviewLogger.telemetry("paste-pipeline-stage", {
+    stage: "backend-review-complete",
+    totalLines: backendReviewed.length,
+  });
+
+  // 3) الإدراج النهائي داخل المحرر
+  const nodes = classifiedToNodes(backendReviewed, view.state.schema);
   if (nodes.length === 0) return false;
 
-  // عرض فوري في المحرر
   const fragment = Fragment.from(nodes);
   const slice = new Slice(fragment, 0, 0);
   const from = options?.from ?? view.state.selection.from;
@@ -1904,44 +1889,10 @@ export const applyPasteClassifierFlowToView = async (
   tr.replaceRange(from, to, slice);
   view.dispatch(tr);
 
-  // --- المرحلة 2: Review-Later — مراجعة في الخلفية ---
-  // لا ننتظر هذا — يعمل بشكل غير متزامن في الخلفية
-  const insertedEnd = from + fragment.size;
-  void (async () => {
-    try {
-      if (view.isDestroyed) return;
-
-      const corrected = await applyRemoteAgentReviewV2(classified).catch(
-        (error) => {
-          agentReviewLogger.error("background-review-failed", { error });
-          return null;
-        }
-      );
-
-      if (!corrected || corrected.length === 0 || view.isDestroyed) return;
-
-      // تخطّي إذا لم يتغير شيء (المرجع نفسه = لا أوامر من الوكيل)
-      if (corrected === classified) return;
-
-      // تحديث المحرر بالنتائج المُصححة
-      const correctedNodes = classifiedToNodes(corrected, view.state.schema);
-      if (correctedNodes.length === 0) return;
-
-      const correctedFragment = Fragment.from(correctedNodes);
-      const correctedSlice = new Slice(correctedFragment, 0, 0);
-      const correctedTr = view.state.tr;
-      // استخدام النطاق الفعلي للمحتوى المُدرج في المرحلة 1 بدل المواضع القديمة
-      correctedTr.replaceRange(from, insertedEnd, correctedSlice);
-      view.dispatch(correctedTr);
-
-      agentReviewLogger.telemetry("background-review-applied", {
-        initialCount: classified.length,
-        correctedCount: corrected.length,
-      });
-    } catch (error) {
-      agentReviewLogger.error("background-review-fatal", { error });
-    }
-  })();
+  agentReviewLogger.telemetry("paste-pipeline-stage", {
+    stage: "frontend-render-applied",
+    nodesApplied: nodes.length,
+  });
 
   return true;
 };

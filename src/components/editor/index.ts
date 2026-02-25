@@ -1,12 +1,2 @@
-/**
- * @description نقطة التجميع (Barrel file) لمكونات المحرر المفعلة في runtime الحالي.
- */
-export { EditorArea } from "./EditorArea";
-export type {
-  EditorAreaProps,
-  EditorHandle,
-  DocumentStats,
-  EditorCommand,
-  FileImportMode,
-  ImportClassificationContext,
-} from "./editor-area.types";
+export * from './EditorArea';
+export * from './editor-area.types';
