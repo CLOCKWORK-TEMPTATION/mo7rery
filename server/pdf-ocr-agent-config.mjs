@@ -11,12 +11,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PROJECT_ROOT = resolve(__dirname, "..");
 
-const DEFAULT_AGENT_ROOT = resolve(PROJECT_ROOT, "ocr-arabic-pdf-to-txt");
+const DEFAULT_AGENT_ROOT = resolve(
+  PROJECT_ROOT,
+  "src",
+  "ocr-arabic-pdf-to-txt-pipeline"
+);
 
 const baseConfigSchema = z.object({
   enabled: z.boolean(),
   agentRoot: z.string().min(1),
+  openPdfAgentScriptPath: z.string().min(1),
   ocrScriptPath: z.string().min(1),
+  classifyScriptPath: z.string().min(1),
+  enhanceScriptPath: z.string().min(1),
+  writeOutputScriptPath: z.string().min(1),
   timeoutMs: z
     .number()
     .int()
@@ -24,6 +32,8 @@ const baseConfigSchema = z.object({
     .max(30 * 60 * 1_000),
   pages: z.string().min(1),
   mistralApiKey: z.string(),
+  enableClassification: z.boolean(),
+  enableEnhancement: z.boolean(),
 });
 
 const isFalseLike = (value) => /^(0|false|no|off)$/iu.test(value.trim());
@@ -50,17 +60,42 @@ const resolveRawConfig = () => {
   const agentRoot =
     process.env.PDF_OCR_AGENT_ROOT?.trim() || resolve(DEFAULT_AGENT_ROOT);
 
+  const skillScriptsDir = resolve(agentRoot, "skill-scripts");
+  const openPdfAgentScriptPath =
+    process.env.PDF_OCR_AGENT_OPEN_SCRIPT_PATH?.trim() ||
+    resolve(agentRoot, "open-pdf-agent.ts");
+
   const ocrScriptPath =
     process.env.PDF_OCR_AGENT_OCR_SCRIPT_PATH?.trim() ||
-    resolve(agentRoot, "src", "skill-scripts", "ocr-mistral.ts");
+    resolve(skillScriptsDir, "ocr-mistral.ts");
+
+  const classifyScriptPath =
+    process.env.PDF_OCR_AGENT_CLASSIFY_SCRIPT_PATH?.trim() ||
+    resolve(skillScriptsDir, "classify-pdf.ts");
+
+  const enhanceScriptPath =
+    process.env.PDF_OCR_AGENT_ENHANCE_SCRIPT_PATH?.trim() ||
+    resolve(skillScriptsDir, "enhance-image.ts");
+
+  const writeOutputScriptPath =
+    process.env.PDF_OCR_AGENT_WRITE_OUTPUT_SCRIPT_PATH?.trim() ||
+    resolve(skillScriptsDir, "write-output.ts");
 
   return {
     enabled: toEnabledFlag(process.env.PDF_OCR_AGENT_ENABLED),
     agentRoot,
+    openPdfAgentScriptPath,
     ocrScriptPath,
+    classifyScriptPath,
+    enhanceScriptPath,
+    writeOutputScriptPath,
     timeoutMs: toTimeoutMs(process.env.PDF_OCR_AGENT_TIMEOUT_MS),
     pages: process.env.PDF_OCR_AGENT_PAGES?.trim() || "all",
     mistralApiKey: process.env.MISTRAL_API_KEY?.trim() || "",
+    enableClassification: toEnabledFlag(
+      process.env.PDF_OCR_AGENT_CLASSIFY_ENABLED
+    ),
+    enableEnhancement: toEnabledFlag(process.env.PDF_OCR_AGENT_ENHANCE_ENABLED),
   };
 };
 
@@ -82,10 +117,19 @@ export const getPdfOcrAgentConfig = () => {
     );
   }
 
-  if (!existsSync(parsed.ocrScriptPath)) {
-    throw new Error(
-      `PDF OCR agent misconfigured: OCR script does not exist (${parsed.ocrScriptPath}).`
-    );
+  const requiredScripts = [
+    ["openPdfAgentScriptPath", parsed.openPdfAgentScriptPath],
+    ["ocrScriptPath", parsed.ocrScriptPath],
+    ["classifyScriptPath", parsed.classifyScriptPath],
+    ["writeOutputScriptPath", parsed.writeOutputScriptPath],
+  ];
+
+  for (const [label, scriptPath] of requiredScripts) {
+    if (!existsSync(scriptPath)) {
+      throw new Error(
+        `PDF OCR agent misconfigured: ${label} does not exist (${scriptPath}).`
+      );
+    }
   }
 
   return parsed;
@@ -94,10 +138,20 @@ export const getPdfOcrAgentConfig = () => {
 export const getPdfOcrAgentHealth = () => {
   const config = baseConfigSchema.parse(resolveRawConfig());
   const agentRootExists = existsSync(config.agentRoot);
+  const openPdfAgentScriptExists = existsSync(config.openPdfAgentScriptPath);
   const ocrScriptExists = existsSync(config.ocrScriptPath);
+  const classifyScriptExists = existsSync(config.classifyScriptPath);
+  const enhanceScriptExists = existsSync(config.enhanceScriptPath);
+  const writeOutputScriptExists = existsSync(config.writeOutputScriptPath);
   const hasMistralApiKey = config.mistralApiKey.length > 0;
   const configured =
-    config.enabled && agentRootExists && ocrScriptExists && hasMistralApiKey;
+    config.enabled &&
+    agentRootExists &&
+    openPdfAgentScriptExists &&
+    ocrScriptExists &&
+    classifyScriptExists &&
+    writeOutputScriptExists &&
+    hasMistralApiKey;
 
   return {
     enabled: config.enabled,
@@ -105,8 +159,18 @@ export const getPdfOcrAgentHealth = () => {
     hasMistralApiKey,
     agentRoot: config.agentRoot,
     agentRootExists,
+    openPdfAgentScriptPath: config.openPdfAgentScriptPath,
+    openPdfAgentScriptExists,
     ocrScriptPath: config.ocrScriptPath,
     ocrScriptExists,
+    classifyScriptPath: config.classifyScriptPath,
+    classifyScriptExists,
+    enhanceScriptPath: config.enhanceScriptPath,
+    enhanceScriptExists,
+    writeOutputScriptPath: config.writeOutputScriptPath,
+    writeOutputScriptExists,
+    enableClassification: config.enableClassification,
+    enableEnhancement: config.enableEnhancement,
     timeoutMs: config.timeoutMs,
     pages: config.pages,
   };

@@ -167,7 +167,84 @@ src/
 
 ---
 
-## 11. تخطيط الصفحة
+## 11. بايبلاين استخراج النص من PDF (OCR Pipeline)
+
+### بنية المجلد
+
+```
+src/ocr-arabic-pdf-to-txt-pipeline/
+├── skill-scripts/              ← سكريبتات التنفيذ الفعلية
+│   ├── classify-pdf.ts         ← تصنيف نوع PDF (نصي/ممسوح/مختلط/محمي)
+│   ├── ocr-mistral.ts          ← استخراج النص عبر Mistral OCR API
+│   ├── write-output.ts         ← تنسيق المخرجات (Markdown/TXT)
+│   ├── enhance-image.ts        ← تحسين جودة الصور الممسوحة
+│   ├── extraction-rules.md     ← قواعد استخراج النص العربي
+│   └── troubleshooting.md      ← حلول المشاكل الشائعة
+├── mcp-server/                 ← سيرفر MCP مستقل
+│   ├── index.ts                ← نقطة دخول السيرفر
+│   ├── ncio_mistral_all_in_one.ts ← المحرك الشامل (OCR + تطبيع + LLM)
+│   ├── annotation_schema.json  ← مخطط JSON للتوصيفات
+│   ├── package.json            ← dependencies مستقلة
+│   └── tsconfig.json           ← إعدادات TypeScript مستقلة
+├── agent.ts                    ← وكيل AI (Vercel AI SDK)
+├── batch.ts                    ← معالجة دفعية لمجلد PDFs
+├── config.ts                   ← إعدادات مشتركة
+├── tools.ts                    ← أدوات محلية للوكيل
+├── skill-tools.ts              ← تغليف السكريبتات كأدوات AI SDK
+└── types.ts                    ← أنواع TypeScript المشتركة
+```
+
+### لماذا `mcp-server` له ملفات `package.json` و `tsconfig.json` منفصلة؟
+
+الـ **MCP (Model Context Protocol)** server يشتغل كـ **process مستقل** (child process) — مش كجزء من الكود الرئيسي. ده معناه:
+
+| الجانب               | التوضيح                                                         |
+| -------------------- | --------------------------------------------------------------- |
+| **العملية**          | يُشغّل عبر `npx tsx mcp-server/index.ts` — process منفصل تماماً |
+| **الـ dependencies** | `@modelcontextprotocol/sdk` و `dotenv` — مكتبات خاصة بالـ MCP   |
+| **الـ build**        | محتاج `outDir` عشان ينتج ملفات JS قابلة للتشغيل                 |
+| **العزل**            | لو حصل خطأ في MCP server، مبيأثرش على السيرفر الرئيسي           |
+
+**الفرق الرئيسي:**
+
+- المشروع الرئيسي: `"noEmit": true` (TypeScript للفحص فقط)
+- MCP server: `"outDir": "./dist"` (ينتج ملفات قابلة للتشغيل)
+
+### مسارات التشغيل
+
+#### 1. مسار السيرفر الرئيسي (Backend)
+
+```
+file-import-server.mjs
+    → pdf-ocr-agent-runner.mjs
+        → classify-pdf.ts (تصنيف)
+        → ocr-mistral.ts (استخراج OCR)
+        → write-output.ts (تنسيق)
+```
+
+#### 2. مسار CLI المستقل
+
+```
+pnpm ocr:start
+    → agent.ts
+        → mcp-server/index.ts (MCP server)
+        → أو skill-tools.ts (للـ skill scripts)
+```
+
+### متغيرات البيئة الإضافية
+
+| المتغير                                  | الوصف                             | الافتراضي       |
+| ---------------------------------------- | --------------------------------- | --------------- |
+| `PDF_OCR_AGENT_CLASSIFY_ENABLED`         | تفعيل خطوة تصنيف PDF              | `true`          |
+| `PDF_OCR_AGENT_ENHANCE_ENABLED`          | تفعيل تحسين الصور                 | `true`          |
+| `PDF_OCR_AGENT_CLASSIFY_SCRIPT_PATH`     | مسار `classify-pdf.ts`            | داخل البايبلاين |
+| `PDF_OCR_AGENT_WRITE_OUTPUT_SCRIPT_PATH` | مسار `write-output.ts`            | داخل البايبلاين |
+| `PDF_OCR_AGENT_ENHANCE_SCRIPT_PATH`      | مسار `enhance-image.ts`           | داخل البايبلاين |
+| `OPENAI_API_KEY`                         | مفتاح OpenAI (للـ LLM refinement) | —               |
+
+---
+
+## 12. تخطيط الصفحة
 
 | المعامل            | القيمة                                         |
 | ------------------ | ---------------------------------------------- |

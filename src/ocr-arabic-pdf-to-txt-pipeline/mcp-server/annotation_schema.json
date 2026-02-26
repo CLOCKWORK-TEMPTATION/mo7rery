@@ -1,9 +1,9 @@
 {
   "type": "object",
   "properties": {
-    "title": {"type": "string"},
-    "scenes_count": {"type": "integer"},
-    "has_dialogue": {"type": "boolean"}
+    "title": { "type": "string" },
+    "scenes_count": { "type": "integer" },
+    "has_dialogue": { "type": "boolean" }
   },
   "required": ["title", "scenes_count", "has_dialogue"],
   "additionalProperties": false

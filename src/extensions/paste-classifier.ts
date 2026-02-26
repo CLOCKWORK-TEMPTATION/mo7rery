@@ -82,16 +82,141 @@ const COMMAND_API_VERSION = "2.0" as const;
 const CLASSIFICATION_MODE = "auto-apply" as const;
 
 const AGENT_REVIEW_MODEL = AGENT_MODEL_ID;
-const AGENT_REVIEW_DEADLINE_MS = 25_000;
-const AGENT_REVIEW_MAX_ATTEMPTS = 2;
+const AGENT_REVIEW_DEADLINE_MS = 90_000;
+const AGENT_REVIEW_MAX_ATTEMPTS = 4;
 const AGENT_REVIEW_MAX_RATIO = 0.18;
 const AGENT_REVIEW_MIN_TIMEOUT_MS = 1_500;
-const AGENT_REVIEW_MAX_TIMEOUT_MS = 12_000;
+const AGENT_REVIEW_MAX_TIMEOUT_MS = 90_000;
 const AGENT_REVIEW_RETRY_DELAY_MS = 450;
+const FALLBACK_ITEM_ID_PREFIX = "fallback-item";
 
 export const PASTE_CLASSIFIER_ERROR_EVENT = "paste-classifier:error";
 
 const agentReviewLogger = logger.createScope("paste.agent-review");
+
+const resolveAgentReviewFailOpen = (): boolean => {
+  const rawValue = (
+    import.meta.env.VITE_AGENT_REVIEW_FAIL_OPEN as string | undefined
+  )
+    ?.trim()
+    .toLowerCase();
+  if (!rawValue) return false;
+  return !["0", "false", "off", "no"].includes(rawValue);
+};
+
+const AGENT_REVIEW_FAIL_OPEN = resolveAgentReviewFailOpen();
+
+const OCR_ARTIFACT_SEPARATOR_RE = /^\s*={20,}\s*$/u;
+const OCR_ARTIFACT_PAGE_RE = /^\s*الصفحة\s+[0-9٠-٩]+\s*$/u;
+
+const isOcrArtifactLine = (line: string): boolean =>
+  OCR_ARTIFACT_SEPARATOR_RE.test(line) || OCR_ARTIFACT_PAGE_RE.test(line);
+
+const sanitizeOcrArtifactsForClassification = (
+  text: string
+): { sanitizedText: string; removedLines: number } => {
+  const lines = text.split(/\r?\n/u);
+  if (lines.length === 0) {
+    return { sanitizedText: text, removedLines: 0 };
+  }
+
+  let removedLines = 0;
+  const cleaned: string[] = [];
+
+  const hasNeighborArtifact = (index: number): boolean => {
+    const previous = index > 0 ? lines[index - 1] : "";
+    const next = index < lines.length - 1 ? lines[index + 1] : "";
+    return isOcrArtifactLine(previous) || isOcrArtifactLine(next);
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const shouldDrop =
+      isOcrArtifactLine(line) ||
+      (line.trim().length === 0 && hasNeighborArtifact(index));
+    if (shouldDrop) {
+      removedLines += 1;
+      continue;
+    }
+    cleaned.push(line);
+  }
+
+  return {
+    sanitizedText: cleaned.join("\n"),
+    removedLines,
+  };
+};
+
+const bytesToUuidV4 = (bytes: Uint8Array): string => {
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, "0"));
+  return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex
+    .slice(6, 8)
+    .join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10, 16).join("")}`;
+};
+
+const generateItemId = (): string => {
+  const cryptoApi = globalThis.crypto;
+  if (cryptoApi && typeof cryptoApi.randomUUID === "function") {
+    return cryptoApi.randomUUID();
+  }
+  if (cryptoApi && typeof cryptoApi.getRandomValues === "function") {
+    const bytes = new Uint8Array(16);
+    cryptoApi.getRandomValues(bytes);
+    return bytesToUuidV4(bytes);
+  }
+  const fallback = `${FALLBACK_ITEM_ID_PREFIX}-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 12)}`;
+  agentReviewLogger.warn("item-id-fallback-non-crypto", {
+    prefix: FALLBACK_ITEM_ID_PREFIX,
+  });
+  return fallback;
+};
+
+type AbortSignalStatic = {
+  timeout?: (milliseconds: number) => AbortSignal;
+  any?: (signals: AbortSignal[]) => AbortSignal;
+};
+
+const buildFetchSignal = (
+  controller: AbortController,
+  timeoutMs: number
+): { signal: AbortSignal; cleanup: () => void } => {
+  const abortSignalStatic = globalThis.AbortSignal as AbortSignalStatic;
+  if (
+    abortSignalStatic &&
+    typeof abortSignalStatic.timeout === "function" &&
+    typeof abortSignalStatic.any === "function"
+  ) {
+    const timeoutSignal = abortSignalStatic.timeout(timeoutMs);
+    return {
+      signal: abortSignalStatic.any([controller.signal, timeoutSignal]),
+      cleanup: () => {},
+    };
+  }
+
+  const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+  return {
+    signal: controller.signal,
+    cleanup: () => globalThis.clearTimeout(timeoutId),
+  };
+};
+
+const fetchWithTimeout = async (
+  url: string,
+  init: RequestInit,
+  controller: AbortController,
+  timeoutMs: number
+): Promise<Response> => {
+  const { signal, cleanup } = buildFetchSignal(controller, timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal });
+  } finally {
+    cleanup();
+  }
+};
 
 /** واجهة محلية توسع ClassifiedDraft بـ _itemId (معرف فريد لكل عنصر) */
 interface ClassifiedDraftWithId extends ClassifiedDraft {
@@ -281,7 +406,15 @@ export const classifyLines = (
   text: string,
   context?: ClassifyLinesContext
 ): ClassifiedDraftWithId[] => {
-  const lines = text.split(/\r?\n/);
+  const { sanitizedText, removedLines } =
+    sanitizeOcrArtifactsForClassification(text);
+  if (removedLines > 0) {
+    agentReviewLogger.telemetry("artifact-lines-stripped", {
+      layer: "frontend-classifier",
+      artifactLinesRemoved: removedLines,
+    });
+  }
+  const lines = sanitizedText.split(/\r?\n/);
   const classified: ClassifiedDraftWithId[] = [];
 
   const memoryManager = new ContextMemoryManager();
@@ -295,7 +428,7 @@ export const classifyLines = (
   const push = (entry: ClassifiedDraft): void => {
     const withId: ClassifiedDraftWithId = {
       ...entry,
-      _itemId: crypto.randomUUID(),
+      _itemId: generateItemId(),
       // إضافة بيانات المصدر إذا كانت متوفرة
       sourceProfile,
       sourceHintType: activeSourceHintType,
@@ -587,8 +720,16 @@ const elementTypeToLineType = (type: ElementType): LineType => {
   }
 };
 
+const normalizeAgentDecisionType = (type: LineType): LineType => {
+  if (type === "scene-header-1" || type === "scene-header-2") {
+    return "scene-header-top-line";
+  }
+  return type;
+};
+
 const lineTypeToElementType = (type: LineType): ElementType | null => {
-  switch (type) {
+  const normalizedType = normalizeAgentDecisionType(type);
+  switch (normalizedType) {
     case "scene-header-top-line":
       return "sceneHeaderTopLine";
     case "scene-header-3":
@@ -599,7 +740,7 @@ const lineTypeToElementType = (type: LineType): ElementType | null => {
     case "transition":
     case "parenthetical":
     case "basmala":
-      return type;
+      return normalizedType;
     default:
       return null;
   }
@@ -717,7 +858,7 @@ const shouldSkipAgentReviewInRuntime = (): boolean => {
 
 const waitBeforeRetry = (ms: number): Promise<void> =>
   new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
+    globalThis.setTimeout(resolve, ms);
   });
 
 const isRetryableHttpStatus = (status: number): boolean =>
@@ -825,11 +966,14 @@ const toValidAgentCommands = (raw: unknown): AgentCommand[] => {
         if (typeof newTypeRaw !== "string") return null;
         if (!VALID_AGENT_DECISION_TYPES.has(newTypeRaw as LineType))
           return null;
+        const normalizedNewType = normalizeAgentDecisionType(
+          newTypeRaw as LineType
+        );
 
         return {
           op: "relabel" as const,
           itemId,
-          newType: newTypeRaw as LineType,
+          newType: normalizedNewType,
           confidence,
           reason,
         };
@@ -854,13 +998,19 @@ const toValidAgentCommands = (raw: unknown): AgentCommand[] => {
           return null;
         if (!VALID_AGENT_DECISION_TYPES.has(rightTypeRaw as LineType))
           return null;
+        const normalizedLeftType = normalizeAgentDecisionType(
+          leftTypeRaw as LineType
+        );
+        const normalizedRightType = normalizeAgentDecisionType(
+          rightTypeRaw as LineType
+        );
 
         return {
           op: "split" as const,
           itemId,
           splitAt: Number(splitAtRaw),
-          leftType: leftTypeRaw as LineType,
-          rightType: rightTypeRaw as LineType,
+          leftType: normalizedLeftType,
+          rightType: normalizedRightType,
           confidence,
           reason,
         };
@@ -896,7 +1046,7 @@ const normalizeAgentReviewPayload = (
           ? "تم التطبيق من تحليل نص الاستجابة (fallback)."
           : "بيانات استجابة فارغة أو غير صالحة.",
       latencyMs: 0,
-      importOpId: crypto.randomUUID(),
+      importOpId: generateItemId(),
       requestId: "",
       apiVersion: COMMAND_API_VERSION,
       mode: CLASSIFICATION_MODE,
@@ -972,7 +1122,7 @@ const normalizeAgentReviewPayload = (
     importOpId:
       typeof record.importOpId === "string" && record.importOpId.trim()
         ? record.importOpId.trim()
-        : crypto.randomUUID(),
+        : generateItemId(),
     requestId:
       typeof record.requestId === "string" ? record.requestId.trim() : "",
     apiVersion:
@@ -1009,7 +1159,7 @@ const requestAgentReview = async (
       sessionId: request.sessionId,
     });
     throw new Error(
-      "VITE_FILE_IMPORT_BACKEND_URL غير مضبوط؛ لا يمكن تشغيل Agent Review."
+      "عنوان خادم المراجعة غير مضبوط — تأكد من ضبط VITE_FILE_IMPORT_BACKEND_URL في ملف .env"
     );
   }
 
@@ -1034,20 +1184,20 @@ const requestAgentReview = async (
       AGENT_REVIEW_MAX_TIMEOUT_MS,
       Math.max(AGENT_REVIEW_MIN_TIMEOUT_MS, remainingBeforeAttempt - 200)
     );
-    const timeoutId = window.setTimeout(
-      () => controller.abort(),
-      timeoutForAttempt
-    );
 
     try {
-      const response = await fetch(AGENT_REVIEW_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetchWithTimeout(
+        AGENT_REVIEW_ENDPOINT,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(request),
         },
-        body: JSON.stringify(request),
-        signal: controller.signal,
-      });
+        controller,
+        timeoutForAttempt
+      );
 
       if (!response.ok) {
         const body = await response.text();
@@ -1090,8 +1240,11 @@ const requestAgentReview = async (
         attempt,
       });
       if (payload.status === "error") {
+        const requestIdSuffix = payload.requestId
+          ? ` [requestId=${payload.requestId}]`
+          : "";
         throw new Error(
-          `Agent review status is ${payload.status}: ${payload.message}`
+          `Agent review status is ${payload.status}${requestIdSuffix}: ${payload.message}`
         );
       }
       return payload;
@@ -1136,7 +1289,6 @@ const requestAgentReview = async (
 
       throw error;
     } finally {
-      window.clearTimeout(timeoutId);
       if (pendingAgentAbortController === controller) {
         pendingAgentAbortController = null;
       }
@@ -1361,8 +1513,24 @@ const applyRemoteAgentReviewV2 = async (
       .filter((entry) => entry.routingBand === "agent-forced")
       .map((entry) => entry.itemId)
   );
+  const emitAgentReviewSummary = (payload: {
+    status: string;
+    requestId: string;
+    commandsReceived: number;
+    commandsApplied: number;
+  }): void => {
+    agentReviewLogger.telemetry("agent-review-summary", {
+      totalReviewed: reviewPacket.totalReviewed,
+      totalSuspicious: reviewPacket.totalSuspicious,
+      itemsSent: suspiciousPayload.length,
+      commandsReceived: payload.commandsReceived,
+      commandsApplied: payload.commandsApplied,
+      status: payload.status,
+      requestId: payload.requestId,
+    });
+  };
 
-  const importOpId = crypto.randomUUID();
+  const importOpId = generateItemId();
 
   // بناء حالة العملية واللقطات (للربط مع command-engine)
   const opState = createImportOperationState(importOpId, "paste");
@@ -1398,7 +1566,54 @@ const applyRemoteAgentReviewV2 = async (
     forcedItems: forcedItemIds.length,
   });
 
-  const response = await requestAgentReview(requestPayload);
+  const fallbackToLocalClassification = (
+    reason: string,
+    details?: Record<string, unknown>
+  ): ClassifiedDraftWithId[] => {
+    emitAgentReviewSummary({
+      status: "fail-open-local",
+      requestId: "",
+      commandsReceived: 0,
+      commandsApplied: 0,
+    });
+    logAgentError(importOpId, reason);
+    pipelineTelemetry.recordAgentReviewError(importOpId, reason);
+    agentReviewLogger.warn("agent-review-fail-open", {
+      importOpId,
+      reason,
+      failOpenEnabled: AGENT_REVIEW_FAIL_OPEN,
+      ...details,
+    });
+    pipelineTelemetry.recordIngestionComplete(importOpId, {
+      source: "paste",
+      trustLevel: "raw_text",
+      itemsProcessed: classified.length,
+      commandsApplied: 0,
+      latencyMs: 0,
+      agentReviewInitiated: true,
+    });
+    return classified;
+  };
+
+  let response: AgentReviewResponsePayload;
+  try {
+    response = await requestAgentReview(requestPayload);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Agent review request failed.";
+    emitAgentReviewSummary({
+      status: "request-failed",
+      requestId: "",
+      commandsReceived: 0,
+      commandsApplied: 0,
+    });
+    if (AGENT_REVIEW_FAIL_OPEN) {
+      return fallbackToLocalClassification(message, {
+        stage: "request-failed",
+      });
+    }
+    throw error;
+  }
   const fallbackMeta = buildAgentReviewMetaFallback(
     requestPayload,
     response.commands,
@@ -1417,24 +1632,61 @@ const applyRemoteAgentReviewV2 = async (
   });
 
   if (response.status === "error") {
-    logAgentError(importOpId, response.message);
-    pipelineTelemetry.recordAgentReviewError(
-      importOpId,
-      response.message ?? "unknown"
-    );
-    throw new Error(
-      `Agent review failed: status=${response.status} | message=${response.message}`
-    );
+    emitAgentReviewSummary({
+      status: response.status,
+      requestId: response.requestId,
+      commandsReceived: response.commands.length,
+      commandsApplied: 0,
+    });
+    const requestIdSuffix = response.requestId
+      ? ` | requestId=${response.requestId}`
+      : "";
+    const reason = response.message
+      ? `فشل مراجعة الوكيل: ${response.message}${requestIdSuffix}`
+      : `فشل مراجعة الوكيل: status=${response.status}`;
+    if (AGENT_REVIEW_FAIL_OPEN) {
+      return fallbackToLocalClassification(reason, {
+        stage: "response-error",
+        status: response.status,
+      });
+    }
+    throw new Error(reason);
   }
   if (response.status === "partial") {
-    throw new Error(
-      `Agent review failed strict mode (partial): ${response.message ?? "missing coverage"}`
-    );
+    emitAgentReviewSummary({
+      status: response.status,
+      requestId: response.requestId,
+      commandsReceived: response.commands.length,
+      commandsApplied: 0,
+    });
+    const reason = response.message
+      ? `مراجعة الوكيل غير مكتملة: ${response.message}`
+      : `مراجعة الوكيل غير مكتملة (${response.commands.length} أمر من أصل ${sentItemIds.length} عنصر)`;
+    if (AGENT_REVIEW_FAIL_OPEN) {
+      return fallbackToLocalClassification(reason, {
+        stage: "response-partial",
+        status: response.status,
+      });
+    }
+    throw new Error(reason);
   }
   if (response.status === "skipped" && sentItemIds.length > 0) {
-    throw new Error(
-      `Agent review failed strict mode (unexpected skipped): ${response.message ?? "no commands"}`
-    );
+    emitAgentReviewSummary({
+      status: response.status,
+      requestId: response.requestId,
+      commandsReceived: response.commands.length,
+      commandsApplied: 0,
+    });
+    const reason = response.message
+      ? `الوكيل لم يراجع العناصر المطلوبة: ${response.message}`
+      : "الوكيل لم يُرجع أوامر رغم إرسال عناصر للمراجعة";
+    if (AGENT_REVIEW_FAIL_OPEN) {
+      return fallbackToLocalClassification(reason, {
+        stage: "response-skipped",
+        status: response.status,
+      });
+    }
+    throw new Error(reason);
   }
 
   // ─── تسجيل استجابة الوكيل (telemetry) ───
@@ -1449,15 +1701,43 @@ const applyRemoteAgentReviewV2 = async (
   // ─── فحص stale / idempotency عبر command-engine ───
   const discardReason = checkResponseValidity(response, opState);
   if (discardReason === "stale_discarded") {
+    emitAgentReviewSummary({
+      status: discardReason,
+      requestId: response.requestId,
+      commandsReceived: response.commands.length,
+      commandsApplied: 0,
+    });
     pipelineTelemetry.recordStaleDiscard(importOpId);
     agentReviewLogger.warn("response-stale-discarded", { importOpId });
+    if (AGENT_REVIEW_FAIL_OPEN) {
+      return fallbackToLocalClassification(
+        "Agent review failed strict mode: stale response discarded.",
+        {
+          stage: "stale-discarded",
+        }
+      );
+    }
     throw new Error(
       "Agent review failed strict mode: stale response discarded."
     );
   }
   if (discardReason === "idempotent_discarded") {
+    emitAgentReviewSummary({
+      status: discardReason,
+      requestId: response.requestId,
+      commandsReceived: response.commands.length,
+      commandsApplied: 0,
+    });
     pipelineTelemetry.recordIdempotentDiscard(importOpId, response.requestId);
     agentReviewLogger.info("response-idempotent-discarded", { importOpId });
+    if (AGENT_REVIEW_FAIL_OPEN) {
+      return fallbackToLocalClassification(
+        "Agent review failed strict mode: idempotent response discarded.",
+        {
+          stage: "idempotent-discarded",
+        }
+      );
+    }
     throw new Error(
       "Agent review failed strict mode: idempotent response discarded."
     );
@@ -1580,7 +1860,7 @@ const applyRemoteAgentReviewV2 = async (
         continue;
       }
 
-      const newRightId = crypto.randomUUID();
+      const newRightId = generateItemId();
       const leftConfidence = Math.round(command.confidence * 100);
       const rightConfidence = Math.round(command.confidence * 100);
 
@@ -1629,6 +1909,12 @@ const applyRemoteAgentReviewV2 = async (
   ]);
 
   if (unresolvedForcedItemIds.length > 0) {
+    emitAgentReviewSummary({
+      status: "unresolved-forced",
+      requestId: response.requestId,
+      commandsReceived: response.commands.length,
+      commandsApplied: uniqueEffectiveAppliedItemIds.length,
+    });
     agentReviewLogger.error("response-unresolved-forced-lines", {
       status: response.status,
       message: response.message,
@@ -1641,10 +1927,17 @@ const applyRemoteAgentReviewV2 = async (
       unchangedCommandItemIds: uniqueUnchangedCommandItemIds,
       missingRequiredItemIds,
     });
+    if (AGENT_REVIEW_FAIL_OPEN) {
+      return fallbackToLocalClassification(
+        `الوكيل لم يحسم ${unresolvedForcedItemIds.length} عنصر إلزامي | status=${response.status} | message=${response.message}`,
+        {
+          stage: "unresolved-forced",
+          unresolvedForcedCount: unresolvedForcedItemIds.length,
+        }
+      );
+    }
     throw new Error(
-      `Agent review unresolved for forced lines: ${unresolvedForcedItemIds.join(
-        ", "
-      )} | status=${response.status} | message=${response.message}`
+      `الوكيل لم يحسم ${unresolvedForcedItemIds.length} عنصر إلزامي | status=${response.status} | message=${response.message}`
     );
   }
 
@@ -1678,6 +1971,12 @@ const applyRemoteAgentReviewV2 = async (
     missingRequiredItemIds,
     unresolvedForcedItemIds,
     skippedFingerprintCount,
+  });
+  emitAgentReviewSummary({
+    status: response.status,
+    requestId: response.requestId,
+    commandsReceived: response.commands.length,
+    commandsApplied: uniqueEffectiveAppliedItemIds.length,
   });
 
   // تسجيل اكتمال عملية الاستيعاب (telemetry)
@@ -1819,7 +2118,7 @@ export const classifyText = (
 
 /**
  * تصنيف النص ثم مراجعة الوكيل عن بُعد.
- * هذا المسار صارم: لا fallback محلي عند فشل مراجعة الباك اند.
+ * هذا المسار صارم: لا fallback محلي — إذا فشل الباك اند يُرفض التصنيف.
  */
 export const classifyTextWithAgentReview = async (
   text: string,
@@ -1833,10 +2132,10 @@ export const classifyTextWithAgentReview = async (
 };
 
 /**
- * تطبيق تصنيف اللصق على العرض بنمط Backend-only (Fail-fast).
+ * تطبيق تصنيف اللصق على العرض بنمط Fail-fast (Backend-only).
  *
  * 1) تصنيف محلي
- * 2) مراجعة Backend إلزامية (blocking)
+ * 2) مراجعة Backend (إلزامية — فشل = رفض)
  * 3) إدراج النتيجة النهائية في المحرر مرة واحدة
  */
 export const applyPasteClassifierFlowToView = async (

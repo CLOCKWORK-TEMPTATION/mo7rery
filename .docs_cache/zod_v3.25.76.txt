@@ -1,0 +1,61 @@
+# Zod Documentation
+
+TypeScript-first schema validation with static type inference
+
+## Introduction
+
+Zod is a TypeScript-first validation library. Using Zod, you can define schemas you can use to validate data, from a simple string to a complex nested object.
+
+```typescript
+import * as z from "zod";
+
+const User = z.object({
+  name: z.string(),
+});
+
+const input = { /* stuff */ };
+const data = User.parse(input);
+console.log(data.name);
+```
+
+## Features
+
+- Zero external dependencies
+- Works in Node.js and all modern browsers
+- Tiny: 2kb core bundle (gzipped)
+- Immutable API: methods return a new instance
+- Concise interface
+- Works with TypeScript and plain JS
+- Built-in JSON Schema conversion
+- Extensive ecosystem
+
+## Requirements
+
+Zod is tested against TypeScript v5.5 and later. Older versions may work but are not officially supported.
+
+### "strict"
+
+You must enable strict mode in your tsconfig.json. This is a best practice for all TypeScript projects.
+
+```json
+{
+  "compilerOptions": {
+    "strict": true
+  }
+}
+```
+
+## Best Practices from Documentation:
+1. Enable strict mode in tsconfig.json
+2. Use Zod for runtime validation
+3. Use parse() for strict validation
+4. Use safeParse() for non-throwing validation
+5. Use TypeScript v5.5 or later
+
+## Error Handling
+- parse() throws ZodError on failure
+- safeParse() returns { success: false, error }
+- Always handle validation errors
+
+## Version: Zod 3.25.76
+Source: https://zod.dev

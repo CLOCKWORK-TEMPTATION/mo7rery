@@ -67,6 +67,11 @@ export type ExtractionMethod =
  */
 export interface FileExtractionResult {
   text: string;
+  rawExtractedText?: string;
+  pipelineFootprint?: {
+    checkedDirectories: string[];
+    checkedFiles: string[];
+  };
   fileType: ImportedFileType;
   method: ExtractionMethod;
   usedOcr: boolean;

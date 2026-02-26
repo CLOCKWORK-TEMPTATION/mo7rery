@@ -25,7 +25,7 @@ const DEFAULT_MISTRAL_OCR_MODEL = "mistral-ocr-latest";
 const DEFAULT_PRE_OCR_LANG = "ar";
 
 const DEFAULT_MATCH_THRESHOLD = 0.88;
-const DEFAULT_FULLPAGE_FALLBACK_RATIO = 0.70;
+const DEFAULT_FULLPAGE_FALLBACK_RATIO = 0.7;
 const DEFAULT_REGION_PADDING_PX = 12;
 const DEFAULT_LLM_MAX_ITERATIONS = 3;
 const DEFAULT_LLM_TARGET_MATCH = 100.0;
@@ -33,7 +33,9 @@ const DEFAULT_DIFF_PREVIEW_LINES = 12;
 
 const DEFAULT_INPUT = String.raw`E:\New folder (31)\12.pdf`;
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-const MISTRAL_BASE_URL = (process.env.MISTRAL_BASE_URL ?? "https://api.mistral.ai/v1").replace(/\/+$/u, "");
+const MISTRAL_BASE_URL = (
+  process.env.MISTRAL_BASE_URL ?? "https://api.mistral.ai/v1"
+).replace(/\/+$/u, "");
 
 // ============================================================================
 // Types
@@ -102,7 +104,11 @@ type JsonRecord = Record<string, unknown>;
 // Logging
 // ============================================================================
 
-function log(level: "INFO" | "WARN" | "ERROR" | "CRITICAL", message: string, ...args: unknown[]): void {
+function log(
+  level: "INFO" | "WARN" | "ERROR" | "CRITICAL",
+  message: string,
+  ...args: unknown[]
+): void {
   const ts = new Date().toISOString();
   const line = `${ts} - ${APP_NAME} - ${level} - ${util.format(message, ...args)}`;
   if (level === "ERROR" || level === "CRITICAL") {
@@ -148,7 +154,10 @@ async function loadEnvFile(envPath: string): Promise<void> {
 
       const i = line.indexOf("=");
       const key = line.slice(0, i).trim();
-      const value = line.slice(i + 1).trim().replace(/^['"]|['"]$/g, "");
+      const value = line
+        .slice(i + 1)
+        .trim()
+        .replace(/^['"]|['"]$/g, "");
 
       if (key && !(key in process.env)) {
         process.env[key] = value;
@@ -164,7 +173,9 @@ async function loadEnvFile(envPath: string): Promise<void> {
 function getEnvOrRaise(key: string, message?: string): string {
   const value = (process.env[key] ?? "").trim();
   if (!value) {
-    throw new Error(message ?? `متغير ${key} غير موجود. أضف المفتاح في البيئة أو في ملف .env`);
+    throw new Error(
+      message ?? `متغير ${key} غير موجود. أضف المفتاح في البيئة أو في ملف .env`
+    );
   }
   return value;
 }
@@ -257,7 +268,10 @@ function argString(parsed: ParsedArgs, name: string, fallback: string): string {
   return fallback;
 }
 
-function argOptionalString(parsed: ParsedArgs, name: string): string | undefined {
+function argOptionalString(
+  parsed: ParsedArgs,
+  name: string
+): string | undefined {
   const v = parsed[name];
   if (typeof v === "string" && v.trim()) {
     return v;
@@ -285,23 +299,76 @@ function buildConfig(argv: string[]): ConfigManager {
     referencePath: argOptionalString(args, "llm-reference"),
     strict: argBool(args, "llm-strict"),
     iterative: !argBool(args, "llm-no-iterative"),
-    maxIterations: Math.max(1, toNumberInt(argOptionalString(args, "llm-max-iterations"), DEFAULT_LLM_MAX_ITERATIONS)),
-    targetMatch: clamp(toNumberFloat(argOptionalString(args, "llm-target-match"), DEFAULT_LLM_TARGET_MATCH), 0, 100),
-    diffPreviewLines: Math.max(1, toNumberInt(argOptionalString(args, "llm-diff-preview-lines"), DEFAULT_DIFF_PREVIEW_LINES)),
+    maxIterations: Math.max(
+      1,
+      toNumberInt(
+        argOptionalString(args, "llm-max-iterations"),
+        DEFAULT_LLM_MAX_ITERATIONS
+      )
+    ),
+    targetMatch: clamp(
+      toNumberFloat(
+        argOptionalString(args, "llm-target-match"),
+        DEFAULT_LLM_TARGET_MATCH
+      ),
+      0,
+      100
+    ),
+    diffPreviewLines: Math.max(
+      1,
+      toNumberInt(
+        argOptionalString(args, "llm-diff-preview-lines"),
+        DEFAULT_DIFF_PREVIEW_LINES
+      )
+    ),
   };
 
-  const tableRaw = (argOptionalString(args, "mistral-table-format") ?? process.env.MISTRAL_OCR_TABLE_FORMAT ?? "").trim().toLowerCase();
-  const tableFormat = (tableRaw === "markdown" || tableRaw === "html") ? (tableRaw as "markdown" | "html") : undefined;
+  const tableRaw = (
+    argOptionalString(args, "mistral-table-format") ??
+    process.env.MISTRAL_OCR_TABLE_FORMAT ??
+    ""
+  )
+    .trim()
+    .toLowerCase();
+  const tableFormat =
+    tableRaw === "markdown" || tableRaw === "html"
+      ? (tableRaw as "markdown" | "html")
+      : undefined;
 
   const mistral: MistralOCRConfig = {
-    model: argString(args, "mistral-ocr-model", (process.env.MISTRAL_OCR_MODEL ?? DEFAULT_MISTRAL_OCR_MODEL).trim() || DEFAULT_MISTRAL_OCR_MODEL),
+    model: argString(
+      args,
+      "mistral-ocr-model",
+      (process.env.MISTRAL_OCR_MODEL ?? DEFAULT_MISTRAL_OCR_MODEL).trim() ||
+        DEFAULT_MISTRAL_OCR_MODEL
+    ),
     useDocumentInput: !argBool(args, "mistral-disable-document-input"),
     useBatchOCR: argBool(args, "mistral-use-batch"),
-    batchTimeoutSec: Math.max(5, toNumberInt(argOptionalString(args, "mistral-batch-timeout-sec") ?? process.env.MISTRAL_BATCH_TIMEOUT_SEC, 300)),
-    batchPollIntervalSec: Math.max(0.5, toNumberFloat(argOptionalString(args, "mistral-batch-poll-interval-sec") ?? process.env.MISTRAL_BATCH_POLL_INTERVAL_SEC, 3)),
-    annotationSchemaPath: argOptionalString(args, "mistral-annotation-schema") ?? (process.env.MISTRAL_ANNOTATION_SCHEMA_PATH?.trim() || undefined),
-    annotationPrompt: argOptionalString(args, "mistral-annotation-prompt") ?? (process.env.MISTRAL_ANNOTATION_PROMPT?.trim() || undefined),
-    annotationOutputPath: argOptionalString(args, "mistral-annotation-output") ?? (process.env.MISTRAL_ANNOTATION_OUTPUT_PATH?.trim() || undefined),
+    batchTimeoutSec: Math.max(
+      5,
+      toNumberInt(
+        argOptionalString(args, "mistral-batch-timeout-sec") ??
+          process.env.MISTRAL_BATCH_TIMEOUT_SEC,
+        300
+      )
+    ),
+    batchPollIntervalSec: Math.max(
+      0.5,
+      toNumberFloat(
+        argOptionalString(args, "mistral-batch-poll-interval-sec") ??
+          process.env.MISTRAL_BATCH_POLL_INTERVAL_SEC,
+        3
+      )
+    ),
+    annotationSchemaPath:
+      argOptionalString(args, "mistral-annotation-schema") ??
+      (process.env.MISTRAL_ANNOTATION_SCHEMA_PATH?.trim() || undefined),
+    annotationPrompt:
+      argOptionalString(args, "mistral-annotation-prompt") ??
+      (process.env.MISTRAL_ANNOTATION_PROMPT?.trim() || undefined),
+    annotationOutputPath:
+      argOptionalString(args, "mistral-annotation-output") ??
+      (process.env.MISTRAL_ANNOTATION_OUTPUT_PATH?.trim() || undefined),
     annotationStrict: !argBool(args, "mistral-annotation-non-strict"),
     tableFormat,
     extractHeader: argBool(args, "mistral-extract-header"),
@@ -311,17 +378,43 @@ function buildConfig(argv: string[]): ConfigManager {
 
   const preOcr: PreOCRConfig = {
     enabled: !argBool(args, "disable-pre-ocr-filter"),
-    lang: argString(args, "pre-ocr-lang", (process.env.PRE_OCR_LANG ?? DEFAULT_PRE_OCR_LANG).trim() || DEFAULT_PRE_OCR_LANG),
-    matchThreshold: clamp(toNumberFloat(argOptionalString(args, "pre-ocr-match-threshold"), DEFAULT_MATCH_THRESHOLD), 0, 1),
-    fullpageFallbackRatio: clamp(toNumberFloat(argOptionalString(args, "pre-ocr-fullpage-fallback-ratio"), DEFAULT_FULLPAGE_FALLBACK_RATIO), 0, 1),
-    regionPaddingPx: Math.max(0, toNumberInt(argOptionalString(args, "pre-ocr-region-padding-px"), DEFAULT_REGION_PADDING_PX)),
+    lang: argString(
+      args,
+      "pre-ocr-lang",
+      (process.env.PRE_OCR_LANG ?? DEFAULT_PRE_OCR_LANG).trim() ||
+        DEFAULT_PRE_OCR_LANG
+    ),
+    matchThreshold: clamp(
+      toNumberFloat(
+        argOptionalString(args, "pre-ocr-match-threshold"),
+        DEFAULT_MATCH_THRESHOLD
+      ),
+      0,
+      1
+    ),
+    fullpageFallbackRatio: clamp(
+      toNumberFloat(
+        argOptionalString(args, "pre-ocr-fullpage-fallback-ratio"),
+        DEFAULT_FULLPAGE_FALLBACK_RATIO
+      ),
+      0,
+      1
+    ),
+    regionPaddingPx: Math.max(
+      0,
+      toNumberInt(
+        argOptionalString(args, "pre-ocr-region-padding-px"),
+        DEFAULT_REGION_PADDING_PX
+      )
+    ),
   };
 
   const normalizerOptions: NormalizationOptions = {
     normalizeYa: argBool(args, "normalize-ya", false),
     normalizeTaMarbuta: argBool(args, "normalize-ta-marbuta", false),
     normalizeHamza: !argBool(args, "no-normalize-hamza"),
-    normalizeDigits: (argOptionalString(args, "normalize-digits") ?? "arabic") as "none" | "arabic" | "western",
+    normalizeDigits: (argOptionalString(args, "normalize-digits") ??
+      "arabic") as "none" | "arabic" | "western",
     removeDiacritics: !argBool(args, "no-remove-diacritics"),
     fixConnectedLetters: !argBool(args, "no-fix-connected-letters"),
     fixArabicPunctuation: !argBool(args, "no-fix-arabic-punctuation"),
@@ -346,7 +439,8 @@ function buildConfig(argv: string[]): ConfigManager {
 
 export class MarkdownNormalizer {
   private readonly noiseOnlyLine = /^[\s\-•▪*·.]+$/u;
-  private readonly bulletPrefixPattern = /^[\s\u200E\u200F\u061C\uFEFF]*[•·∙⋅●○◦■□▪▫◆◇–—−‒―‣⁃*+]/u;
+  private readonly bulletPrefixPattern =
+    /^[\s\u200E\u200F\u061C\uFEFF]*[•·∙⋅●○◦■□▪▫◆◇–—−‒―‣⁃*+]/u;
   private readonly invisibleCharsPattern = /[\u200f\u200e\ufeff\u061c]/gu;
   private readonly htmlTagPattern = /<[^>]+>/gu;
   private readonly domArtifactTokenPattern = /@dom-element:[^\s]+/giu;
@@ -361,19 +455,35 @@ export class MarkdownNormalizer {
   private readonly sceneNumberExactRe = /^\s*(?:مشهد|scene)\s*[0-9٠-٩]+/iu;
   private readonly sceneTimeRe = /(نهار|ليل|صباح|مساء|فجر)/iu;
   private readonly sceneLocationRe = /(داخلي|خارجي)/iu;
-  private readonly transitionRe = /^(?:قطع|اختفاء|تحول|انتقال|fade|cut|dissolve|wipe)(?:\s+(?:إلى|to))?[:\s]*$/iu;
-  private readonly characterRe = /^\s*(?:صوت\s+)?[\u0600-\u06FF][\u0600-\u06FF\s0-9٠-٩]{0,30}:?\s*$/u;
+  private readonly transitionRe =
+    /^(?:قطع|اختفاء|تحول|انتقال|fade|cut|dissolve|wipe)(?:\s+(?:إلى|to))?[:\s]*$/iu;
+  private readonly characterRe =
+    /^\s*(?:صوت\s+)?[\u0600-\u06FF][\u0600-\u06FF\s0-9٠-٩]{0,30}:?\s*$/u;
   private readonly parentheticalRe = /^[\(（].*?[\)）]$/u;
-  private readonly inlineDialogueGlueRe = /^([\u0600-\u06FF]+(?:اً))([\u0600-\u06FF][\u0600-\u06FF\s]{0,20}?)\s*[:：]\s*(.+)$/u;
+  private readonly inlineDialogueGlueRe =
+    /^([\u0600-\u06FF]+(?:اً))([\u0600-\u06FF][\u0600-\u06FF\s]{0,20}?)\s*[:：]\s*(.+)$/u;
   private readonly inlineDialogueRe = /^([^:：]{1,60}?)\s*[:：]\s*(.+)$/u;
-  private readonly arabicOnlyWithNumbersRe = /^[\s\u0600-\u06FF\d٠-٩\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+$/u;
+  private readonly arabicOnlyWithNumbersRe =
+    /^[\s\u0600-\u06FF\d٠-٩\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+$/u;
   private readonly basmalaBasmRe = /بسم/iu;
   private readonly basmalaAllahRe = /الله/iu;
   private readonly basmalaRahmanRe = /الرحمن/iu;
   private readonly basmalaRahimRe = /الرحيم/iu;
 
-  private readonly headerKeywords = new Set(["بسم الله", "مشهد", "الصالة", "نهار", "- داخلي"]);
-  private readonly sceneMetadata = new Set(["قطع", "### قطع", "## قطع", "# قطع", "- قطع"]);
+  private readonly headerKeywords = new Set([
+    "بسم الله",
+    "مشهد",
+    "الصالة",
+    "نهار",
+    "- داخلي",
+  ]);
+  private readonly sceneMetadata = new Set([
+    "قطع",
+    "### قطع",
+    "## قطع",
+    "# قطع",
+    "- قطع",
+  ]);
 
   private readonly options: Required<NormalizationOptions>;
 
@@ -420,13 +530,25 @@ export class MarkdownNormalizer {
 
     if (mode === "arabic") {
       for (let i = 0; i < 10; i++) {
-        result = result.replace(new RegExp(westernDigits[i], "g"), arabicDigits[i]);
-        result = result.replace(new RegExp(persianDigits[i], "g"), arabicDigits[i]);
+        result = result.replace(
+          new RegExp(westernDigits[i], "g"),
+          arabicDigits[i]
+        );
+        result = result.replace(
+          new RegExp(persianDigits[i], "g"),
+          arabicDigits[i]
+        );
       }
     } else if (mode === "western") {
       for (let i = 0; i < 10; i++) {
-        result = result.replace(new RegExp(arabicDigits[i], "g"), westernDigits[i]);
-        result = result.replace(new RegExp(persianDigits[i], "g"), westernDigits[i]);
+        result = result.replace(
+          new RegExp(arabicDigits[i], "g"),
+          westernDigits[i]
+        );
+        result = result.replace(
+          new RegExp(persianDigits[i], "g"),
+          westernDigits[i]
+        );
       }
     }
 
@@ -586,7 +708,9 @@ export class MarkdownNormalizer {
 
     const glueMatch = stripped.match(this.inlineDialogueGlueRe);
     if (glueMatch) {
-      const speaker = `${glueMatch[1]} ${glueMatch[2]}`.replace(this.whitespacePattern, " ").trim();
+      const speaker = `${glueMatch[1]} ${glueMatch[2]}`
+        .replace(this.whitespacePattern, " ")
+        .trim();
       const dialogue = glueMatch[3].replace(this.whitespacePattern, " ").trim();
       if (speaker && dialogue && this.characterRe.test(`${speaker}:`)) {
         return `${speaker}: ${dialogue}`;
@@ -597,7 +721,12 @@ export class MarkdownNormalizer {
     if (inline) {
       const speaker = inline[1].replace(this.whitespacePattern, " ").trim();
       const dialogue = inline[2].replace(this.whitespacePattern, " ").trim();
-      if (speaker && dialogue && this.arabicOnlyWithNumbersRe.test(speaker) && this.characterRe.test(`${speaker}:`)) {
+      if (
+        speaker &&
+        dialogue &&
+        this.arabicOnlyWithNumbersRe.test(speaker) &&
+        this.characterRe.test(`${speaker}:`)
+      ) {
         return `${speaker}: ${dialogue}`;
       }
     }
@@ -618,14 +747,19 @@ export class MarkdownNormalizer {
   }
 
   private isSceneHeaderCandidate(line: string): boolean {
-    const normalized = line.replace(/-/g, " ").replace(this.whitespacePattern, " ").trim();
+    const normalized = line
+      .replace(/-/g, " ")
+      .replace(this.whitespacePattern, " ")
+      .trim();
     if (!normalized) {
       return false;
     }
     if (this.sceneNumberExactRe.test(normalized)) {
       return true;
     }
-    return this.sceneTimeRe.test(normalized) && this.sceneLocationRe.test(normalized);
+    return (
+      this.sceneTimeRe.test(normalized) && this.sceneLocationRe.test(normalized)
+    );
   }
 
   private isStructuralBoundary(line: string): boolean {
@@ -692,7 +826,9 @@ export class MarkdownNormalizer {
         out.push(line);
         continue;
       }
-      const stripped = line.replace(/^[\-*•·∙⋅●○◦■□▪▫◆◇–—−‒―‣⁃+\s]+/u, "").trim();
+      const stripped = line
+        .replace(/^[\-*•·∙⋅●○◦■□▪▫◆◇–—−‒―‣⁃+\s]+/u, "")
+        .trim();
       out.push(`- ${stripped}`);
     }
     return out;
@@ -717,24 +853,27 @@ export class MarkdownNormalizer {
         continue;
       }
 
-      const isHeaderLine = [...this.headerKeywords].some((kw) => line.includes(kw));
-      const isPrevHeader = [...this.headerKeywords].some((kw) => prev.includes(kw));
+      const isHeaderLine = [...this.headerKeywords].some((kw) =>
+        line.includes(kw)
+      );
+      const isPrevHeader = [...this.headerKeywords].some((kw) =>
+        prev.includes(kw)
+      );
       const isStructuralLine = this.isStructuralBoundary(line);
       const isPrevStructural = this.isStructuralBoundary(prev);
       const prevEndsSentence = this.sentenceEndPattern.test(prev);
 
-      const shouldMerge = (
-        line
-        && !this.isHeading(line)
-        && !this.isBullet(line)
-        && !isHeaderLine
-        && !isStructuralLine
-        && prev
-        && !this.isHeading(prev)
-        && !isPrevHeader
-        && !isPrevStructural
-        && !prevEndsSentence
-      );
+      const shouldMerge =
+        line &&
+        !this.isHeading(line) &&
+        !this.isBullet(line) &&
+        !isHeaderLine &&
+        !isStructuralLine &&
+        prev &&
+        !this.isHeading(prev) &&
+        !isPrevHeader &&
+        !isPrevStructural &&
+        !prevEndsSentence;
 
       if (shouldMerge) {
         merged[merged.length - 1] = `${prev.trimEnd()} ${line.trimStart()}`;
@@ -812,12 +951,18 @@ export class LLMPostProcessor {
     return this.referenceCache;
   }
 
-  async postprocess(markdownText: string, referenceText?: string, feedback = ""): Promise<string> {
+  async postprocess(
+    markdownText: string,
+    referenceText?: string,
+    feedback = ""
+  ): Promise<string> {
     const apiKey = getEnvOrRaise("OPENAI_API_KEY");
     const effectiveReference = referenceText ?? (await this.getReferenceText());
 
-    const userPrompt = LLMPostProcessor.USER_TEMPLATE
-      .replace("{feedback}", feedback || "N/A")
+    const userPrompt = LLMPostProcessor.USER_TEMPLATE.replace(
+      "{feedback}",
+      feedback || "N/A"
+    )
       .replace("{markdown_text}", markdownText)
       .replace("{reference_text}", effectiveReference || "N/A");
 
@@ -830,7 +975,12 @@ export class LLMPostProcessor {
       body: JSON.stringify({
         model: this.config.model,
         input: [
-          { role: "system", content: [{ type: "input_text", text: LLMPostProcessor.SYSTEM_PROMPT }] },
+          {
+            role: "system",
+            content: [
+              { type: "input_text", text: LLMPostProcessor.SYSTEM_PROMPT },
+            ],
+          },
           { role: "user", content: [{ type: "input_text", text: userPrompt }] },
         ],
       }),
@@ -838,7 +988,9 @@ export class LLMPostProcessor {
 
     const raw = await response.text();
     if (!response.ok) {
-      throw new Error(`فشل استدعاء OpenAI: ${response.status} ${response.statusText} - ${raw}`);
+      throw new Error(
+        `فشل استدعاء OpenAI: ${response.status} ${response.statusText} - ${raw}`
+      );
     }
 
     let data: JsonRecord = {};
@@ -913,7 +1065,10 @@ export class MistralOCRService {
     return this.lastDocumentAnnotation;
   }
 
-  async processDocumentUrl(documentUrl: string, documentName?: string): Promise<string> {
+  async processDocumentUrl(
+    documentUrl: string,
+    documentName?: string
+  ): Promise<string> {
     this.lastDocumentAnnotation = undefined;
 
     const documentPayload: JsonRecord = {
@@ -927,7 +1082,7 @@ export class MistralOCRService {
     const body: JsonRecord = {
       model: this.config.model,
       document: documentPayload,
-      ...await this.buildCommonRequestKwargs(),
+      ...(await this.buildCommonRequestKwargs()),
     };
 
     const response = await this.requestJson("POST", "/ocr", body);
@@ -942,7 +1097,11 @@ export class MistralOCRService {
     const pdfBytes = await readFile(pdfPath);
     const form = new FormData();
     form.append("purpose", "ocr");
-    form.append("file", new Blob([pdfBytes], { type: "application/pdf" }), path.basename(pdfPath));
+    form.append(
+      "file",
+      new Blob([pdfBytes], { type: "application/pdf" }),
+      path.basename(pdfPath)
+    );
 
     let fileId = "";
 
@@ -960,9 +1119,16 @@ export class MistralOCRService {
 
       if (this.config.useBatchOCR) {
         try {
-          return await this.processDocumentViaBatch(signedUrl, path.basename(pdfPath));
+          return await this.processDocumentViaBatch(
+            signedUrl,
+            path.basename(pdfPath)
+          );
         } catch (error) {
-          log("WARN", "تعذر/فشل Batch OCR (%s). fallback إلى OCR المباشر.", String(error));
+          log(
+            "WARN",
+            "تعذر/فشل Batch OCR (%s). fallback إلى OCR المباشر.",
+            String(error)
+          );
         }
       }
 
@@ -970,15 +1136,26 @@ export class MistralOCRService {
     } finally {
       if (fileId) {
         try {
-          await this.requestJson("DELETE", `/files/${encodeURIComponent(fileId)}`);
+          await this.requestJson(
+            "DELETE",
+            `/files/${encodeURIComponent(fileId)}`
+          );
         } catch (cleanupError) {
-          log("WARN", "تعذر حذف ملف OCR المؤقت من Mistral (%s): %s", fileId, String(cleanupError));
+          log(
+            "WARN",
+            "تعذر حذف ملف OCR المؤقت من Mistral (%s): %s",
+            fileId,
+            String(cleanupError)
+          );
         }
       }
     }
   }
 
-  private async processDocumentViaBatch(documentUrl: string, documentName?: string): Promise<string> {
+  private async processDocumentViaBatch(
+    documentUrl: string,
+    documentName?: string
+  ): Promise<string> {
     this.lastDocumentAnnotation = undefined;
 
     const payload: JsonRecord = {
@@ -987,10 +1164,13 @@ export class MistralOCRService {
         document_url: documentUrl,
         ...(documentName ? { document_name: documentName } : {}),
       },
-      ...await this.buildCommonRequestKwargs(),
+      ...(await this.buildCommonRequestKwargs()),
     };
 
-    const timeoutHours = Math.max(1, Math.ceil(this.config.batchTimeoutSec / 3600));
+    const timeoutHours = Math.max(
+      1,
+      Math.ceil(this.config.batchTimeoutSec / 3600)
+    );
     const batch = await this.requestJson("POST", "/batch/jobs", {
       endpoint: "/v1/ocr",
       model: this.config.model,
@@ -1006,10 +1186,16 @@ export class MistralOCRService {
     log("INFO", "تم إنشاء Batch OCR job: %s", jobId);
 
     const deadline = Date.now() + this.config.batchTimeoutSec * 1000;
-    const pollInterval = Math.max(500, Math.round(this.config.batchPollIntervalSec * 1000));
+    const pollInterval = Math.max(
+      500,
+      Math.round(this.config.batchPollIntervalSec * 1000)
+    );
 
     while (true) {
-      const job = await this.requestJson("GET", `/batch/jobs/${encodeURIComponent(jobId)}?inline=true`);
+      const job = await this.requestJson(
+        "GET",
+        `/batch/jobs/${encodeURIComponent(jobId)}?inline=true`
+      );
       const status = str(field(job, "status", "")).toUpperCase();
       const completed = Number(field(job, "completed_requests", 0));
       const total = Number(field(job, "total_requests", 0));
@@ -1026,17 +1212,33 @@ export class MistralOCRService {
 
       if (["FAILED", "TIMEOUT_EXCEEDED", "CANCELLED"].includes(status)) {
         const errors = field(job, "errors", []);
-        throw new Error(`Batch OCR انتهى بالحالة ${status}. errors=${JSON.stringify(errors)}`);
+        throw new Error(
+          `Batch OCR انتهى بالحالة ${status}. errors=${JSON.stringify(errors)}`
+        );
       }
 
       if (Date.now() >= deadline) {
         try {
-          await this.requestJson("POST", `/batch/jobs/${encodeURIComponent(jobId)}/cancel`);
-          log("WARN", "تم إرسال طلب إلغاء لـ Batch OCR job بعد تجاوز المهلة: %s", jobId);
+          await this.requestJson(
+            "POST",
+            `/batch/jobs/${encodeURIComponent(jobId)}/cancel`
+          );
+          log(
+            "WARN",
+            "تم إرسال طلب إلغاء لـ Batch OCR job بعد تجاوز المهلة: %s",
+            jobId
+          );
         } catch (cancelError) {
-          log("WARN", "تعذر إلغاء Batch OCR job %s بعد انتهاء المهلة: %s", jobId, String(cancelError));
+          log(
+            "WARN",
+            "تعذر إلغاء Batch OCR job %s بعد انتهاء المهلة: %s",
+            jobId,
+            String(cancelError)
+          );
         }
-        throw new Error(`انتهت مهلة Batch OCR (${this.config.batchTimeoutSec}s) قبل الاكتمال.`);
+        throw new Error(
+          `انتهت مهلة Batch OCR (${this.config.batchTimeoutSec}s) قبل الاكتمال.`
+        );
       }
 
       await sleep(pollInterval);
@@ -1058,7 +1260,9 @@ export class MistralOCRService {
       }
     }
 
-    const outputFileId = str(field(job, "output_file", "") || field(job, "output_file_id", "")).trim();
+    const outputFileId = str(
+      field(job, "output_file", "") || field(job, "output_file_id", "")
+    ).trim();
     if (outputFileId) {
       const text = await this.downloadFileText(outputFileId);
       for (const rawLine of text.split(/\r?\n/)) {
@@ -1171,7 +1375,9 @@ export class MistralOCRService {
     }
 
     if (!(await fileExists(this.config.annotationSchemaPath))) {
-      throw new Error(`ملف annotation schema غير موجود: ${this.config.annotationSchemaPath}`);
+      throw new Error(
+        `ملف annotation schema غير موجود: ${this.config.annotationSchemaPath}`
+      );
     }
 
     const content = await readFile(this.config.annotationSchemaPath, "utf-8");
@@ -1204,7 +1410,11 @@ export class MistralOCRService {
   }
 
   private captureAnnotation(response: unknown): void {
-    const raw = field<string | object | null>(response, "document_annotation", null);
+    const raw = field<string | object | null>(
+      response,
+      "document_annotation",
+      null
+    );
     if (raw === null || raw === undefined) {
       return;
     }
@@ -1226,11 +1436,29 @@ export class MistralOCRService {
   }
 
   private async getSignedUrl(fileId: string): Promise<string> {
-    const attempts: Array<{ method: "GET" | "POST"; endpoint: string; body?: unknown }> = [
-      { method: "GET", endpoint: `/files/${encodeURIComponent(fileId)}/url?expiry=24` },
-      { method: "GET", endpoint: `/files/${encodeURIComponent(fileId)}/signed-url` },
-      { method: "POST", endpoint: `/files/${encodeURIComponent(fileId)}/url`, body: { expiry: 24 } },
-      { method: "POST", endpoint: `/files/${encodeURIComponent(fileId)}/signed-url`, body: { expiry: 24 } },
+    const attempts: Array<{
+      method: "GET" | "POST";
+      endpoint: string;
+      body?: unknown;
+    }> = [
+      {
+        method: "GET",
+        endpoint: `/files/${encodeURIComponent(fileId)}/url?expiry=24`,
+      },
+      {
+        method: "GET",
+        endpoint: `/files/${encodeURIComponent(fileId)}/signed-url`,
+      },
+      {
+        method: "POST",
+        endpoint: `/files/${encodeURIComponent(fileId)}/url`,
+        body: { expiry: 24 },
+      },
+      {
+        method: "POST",
+        endpoint: `/files/${encodeURIComponent(fileId)}/signed-url`,
+        body: { expiry: 24 },
+      },
     ];
 
     for (const a of attempts) {
@@ -1278,7 +1506,11 @@ export class MistralOCRService {
     return "";
   }
 
-  private async requestJson(method: "GET" | "POST" | "DELETE", endpoint: string, body?: unknown): Promise<JsonRecord> {
+  private async requestJson(
+    method: "GET" | "POST" | "DELETE",
+    endpoint: string,
+    body?: unknown
+  ): Promise<JsonRecord> {
     const response = await this.requestRaw(method, endpoint, body);
     const raw = await response.text();
 
@@ -1292,7 +1524,9 @@ export class MistralOCRService {
     }
 
     if (!response.ok) {
-      throw new Error(`Mistral API error ${response.status} ${response.statusText}: ${raw}`);
+      throw new Error(
+        `Mistral API error ${response.status} ${response.statusText}: ${raw}`
+      );
     }
 
     if (!data || typeof data !== "object" || Array.isArray(data)) {
@@ -1302,7 +1536,11 @@ export class MistralOCRService {
     return data as JsonRecord;
   }
 
-  private async requestRaw(method: "GET" | "POST" | "DELETE", endpoint: string, body?: unknown): Promise<Response> {
+  private async requestRaw(
+    method: "GET" | "POST" | "DELETE",
+    endpoint: string,
+    body?: unknown
+  ): Promise<Response> {
     const apiKey = getEnvOrRaise("MISTRAL_API_KEY");
     const url = `${MISTRAL_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
@@ -1349,7 +1587,9 @@ export class PDFToTextConverter {
 
   async extractMarkdown(): Promise<string> {
     if (!(await fileExists(this.config.inputPath))) {
-      throw new Error(`الملف غير موجود في المسار المحدد: ${this.config.inputPath}`);
+      throw new Error(
+        `الملف غير موجود في المسار المحدد: ${this.config.inputPath}`
+      );
     }
 
     const ext = path.extname(this.config.inputPath).toLowerCase();
@@ -1368,12 +1608,16 @@ export class PDFToTextConverter {
 
   private async processPdf(): Promise<string> {
     if (!this.config.mistral.useDocumentInput) {
-      throw new Error("في نسخة TypeScript يجب استخدام OCR المباشر للـ PDF (أزل --mistral-disable-document-input). ");
+      throw new Error(
+        "في نسخة TypeScript يجب استخدام OCR المباشر للـ PDF (أزل --mistral-disable-document-input). "
+      );
     }
 
     try {
       log("INFO", "محاولة OCR مباشر للـ PDF عبر Mistral (document_url)...");
-      const markdown = (await this.mistralService.processPdfFile(this.config.inputPath)).trim();
+      const markdown = (
+        await this.mistralService.processPdfFile(this.config.inputPath)
+      ).trim();
       if (!markdown) {
         throw new Error("OCR المباشر أعاد ناتجاً فارغاً.");
       }
@@ -1427,7 +1671,12 @@ export class PDFToTextConverter {
     while (true) {
       const candidate = path.join(dir, `${stem}_${c}${ext}`);
       if (!(await fileExists(candidate))) {
-        log("INFO", "الملف %s موجود مسبقاً، سيتم الحفظ باسم: %s", filePath, candidate);
+        log(
+          "INFO",
+          "الملف %s موجود مسبقاً، سيتم الحفظ باسم: %s",
+          filePath,
+          candidate
+        );
         return candidate;
       }
       c += 1;
@@ -1453,7 +1702,11 @@ export class PDFToTextConverter {
     return Math.round((eq / maxLen) * 1000000) / 10000;
   }
 
-  generateDiffPreview(referenceText: string, candidateText: string, maxLines: number): string {
+  generateDiffPreview(
+    referenceText: string,
+    candidateText: string,
+    maxLines: number
+  ): string {
     const refLines = referenceText.split(/\r?\n/);
     const candLines = candidateText.split(/\r?\n/);
     const max = Math.max(refLines.length, candLines.length);
@@ -1500,22 +1753,37 @@ export class PDFToTextConverter {
     log("INFO", "نسبة التطابق قبل LLM: %.2f%%", bestScore);
 
     let current = initialMarkdown;
-    const rounds = this.config.llm.iterative ? this.config.llm.maxIterations : 1;
+    const rounds = this.config.llm.iterative
+      ? this.config.llm.maxIterations
+      : 1;
 
     for (let i = 1; i <= rounds; i += 1) {
       if (bestScore >= this.config.llm.targetMatch) {
-        log("INFO", "تم الوصول للنسبة المستهدفة %.2f%% قبل الجولة %s.", this.config.llm.targetMatch, i);
+        log(
+          "INFO",
+          "تم الوصول للنسبة المستهدفة %.2f%% قبل الجولة %s.",
+          this.config.llm.targetMatch,
+          i
+        );
         break;
       }
 
-      const preview = this.generateDiffPreview(referenceText, current, this.config.llm.diffPreviewLines);
+      const preview = this.generateDiffPreview(
+        referenceText,
+        current,
+        this.config.llm.diffPreviewLines
+      );
       const feedback = [
         `Current best match: ${bestScore.toFixed(2)}%. Target: ${this.config.llm.targetMatch.toFixed(2)}%.`,
         "Focus only on lines that differ from reference and avoid changing already matching lines.",
         `Diff preview:\n${preview}`,
       ].join("\n");
 
-      let candidate = await this.llmPostProcessor.postprocess(current, referenceText, feedback);
+      let candidate = await this.llmPostProcessor.postprocess(
+        current,
+        referenceText,
+        feedback
+      );
       if (this.config.normalizeOutput) {
         candidate = this.normalizer.normalize(candidate);
       }
@@ -1540,7 +1808,12 @@ export class PDFToTextConverter {
 
     if (this.config.normalizeOutput) {
       finalMarkdown = this.normalizer.normalize(rawMarkdown);
-      log("INFO", "اكتمل التطبيع: حجم النص قبل=%s حرف، بعد=%s حرف.", rawMarkdown.length, finalMarkdown.length);
+      log(
+        "INFO",
+        "اكتمل التطبيع: حجم النص قبل=%s حرف، بعد=%s حرف.",
+        rawMarkdown.length,
+        finalMarkdown.length
+      );
     } else {
       log("INFO", "تم الاستخراج بدون تطبيع بناءً على الإعدادات.");
     }
@@ -1554,7 +1827,11 @@ export class PDFToTextConverter {
         if (this.config.llm.strict) {
           throw error;
         }
-        log("WARN", "فشلت طبقة LLM وسيتم المتابعة بالنص الحالي: %s", String(error));
+        log(
+          "WARN",
+          "فشلت طبقة LLM وسيتم المتابعة بالنص الحالي: %s",
+          String(error)
+        );
       }
     }
 
@@ -1579,15 +1856,23 @@ async function main(): Promise<void> {
 
   try {
     const { rawMarkdown, finalMarkdown } = await converter.convert();
-    log("INFO", "العملية مكتملة. تم استخراج نص يحتوي على %s حرف.", finalMarkdown.length);
+    log(
+      "INFO",
+      "العملية مكتملة. تم استخراج نص يحتوي على %s حرف.",
+      finalMarkdown.length
+    );
 
-    const outputPath = await converter.getNonOverwritingPath(converter.resolveOutputPath());
+    const outputPath = await converter.getNonOverwritingPath(
+      converter.resolveOutputPath()
+    );
 
     if (config.saveRawMarkdown && rawMarkdown !== finalMarkdown) {
       const ext = path.extname(outputPath);
       const stem = path.basename(outputPath, ext);
       const dir = path.dirname(outputPath);
-      const rawPath = await converter.getNonOverwritingPath(path.join(dir, `${stem}.raw.md`));
+      const rawPath = await converter.getNonOverwritingPath(
+        path.join(dir, `${stem}.raw.md`)
+      );
       await writeFile(rawPath, rawMarkdown, "utf-8");
       log("INFO", "تم حفظ النسخة الخام في: %s", rawPath);
     }
@@ -1597,14 +1882,24 @@ async function main(): Promise<void> {
 
     const annotation = converter.getDocumentAnnotation();
     if (annotation !== undefined && annotation !== null) {
-      const annotationPath = await converter.getNonOverwritingPath(converter.resolveAnnotationOutputPath(outputPath));
-      await writeFile(annotationPath, `${JSON.stringify(annotation, null, 2)}\n`, "utf-8");
+      const annotationPath = await converter.getNonOverwritingPath(
+        converter.resolveAnnotationOutputPath(outputPath)
+      );
+      await writeFile(
+        annotationPath,
+        `${JSON.stringify(annotation, null, 2)}\n`,
+        "utf-8"
+      );
       log("INFO", "تم حفظ document annotation في: %s", annotationPath);
     }
 
     log("INFO", "تمت المعالجة بنجاح.");
   } catch (error) {
-    log("CRITICAL", "فشل البرنامج في إكمال المهمة المطلوبة بسبب الخطأ: %s", String(error));
+    log(
+      "CRITICAL",
+      "فشل البرنامج في إكمال المهمة المطلوبة بسبب الخطأ: %s",
+      String(error)
+    );
     process.exitCode = 1;
   }
 }

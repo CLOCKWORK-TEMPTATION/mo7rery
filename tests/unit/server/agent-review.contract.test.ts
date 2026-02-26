@@ -117,6 +117,93 @@ describe("agent-review contract", () => {
     }
   });
 
+  it("fails early when ANTHROPIC_API_KEY format is invalid", async () => {
+    const { reviewSuspiciousLinesWithClaude, validateAgentReviewRequestBody } =
+      await import("../../../server/agent-review.mjs");
+
+    const previousKey = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "invalid-key";
+
+    try {
+      const requestPayload = validateAgentReviewRequestBody({
+        sessionId: "s-4-1",
+        importOpId: "op-4-1",
+        totalReviewed: 1,
+        suspiciousLines: [createSuspiciousLine(0, "agent-candidate")],
+        requiredItemIds: ["item-0"],
+        forcedItemIds: [],
+      });
+
+      const response = await reviewSuspiciousLinesWithClaude(requestPayload);
+
+      expect(response.status).toBe("partial");
+      expect(response.message).toMatch(/صيغة ANTHROPIC_API_KEY غير صحيحة/i);
+    } finally {
+      if (previousKey) {
+        process.env.ANTHROPIC_API_KEY = previousKey;
+      } else {
+        delete process.env.ANTHROPIC_API_KEY;
+      }
+    }
+  });
+
+  it("builds Anthropic params with user as the final message (no assistant prefill)", async () => {
+    const { buildAnthropicMessageParams, validateAgentReviewRequestBody } =
+      await import("../../../server/agent-review.mjs");
+
+    const requestPayload = validateAgentReviewRequestBody({
+      sessionId: "s-4-2",
+      importOpId: "op-4-2",
+      totalReviewed: 1,
+      suspiciousLines: [createSuspiciousLine(0, "agent-candidate")],
+      requiredItemIds: ["item-0"],
+      forcedItemIds: [],
+    });
+
+    const params = buildAnthropicMessageParams(requestPayload, 1200);
+    expect(Array.isArray(params.messages)).toBe(true);
+    expect(params.messages).toHaveLength(1);
+    expect(params.messages[0]?.role).toBe("user");
+  });
+
+  it("normalizes scene-header-1/2 commands to scene-header-top-line", async () => {
+    const { parseReviewCommands } =
+      await import("../../../server/agent-review.mjs");
+
+    const commands = parseReviewCommands(
+      JSON.stringify({
+        commands: [
+          {
+            op: "relabel",
+            itemId: "item-1",
+            newType: "scene-header-1",
+            confidence: 0.95,
+            reason: "header test",
+          },
+          {
+            op: "split",
+            itemId: "item-2",
+            splitAt: 4,
+            leftType: "scene-header-2",
+            rightType: "dialogue",
+            confidence: 0.8,
+            reason: "split test",
+          },
+        ],
+      })
+    );
+
+    expect(commands[0]).toMatchObject({
+      op: "relabel",
+      newType: "scene-header-top-line",
+    });
+    expect(commands[1]).toMatchObject({
+      op: "split",
+      leftType: "scene-header-top-line",
+      rightType: "dialogue",
+    });
+  });
+
   it("returns deterministic applied commands when mock mode is enabled", async () => {
     const { reviewSuspiciousLinesWithClaude, validateAgentReviewRequestBody } =
       await import("../../../server/agent-review.mjs");

@@ -215,14 +215,12 @@ export class MistralOcrClient {
       case "document_url":
         return {
           type: "document_url",
-          documentUrl: input.documentUrl,
           document_url: input.documentUrl,
         };
 
       case "image_url":
         return {
           type: "image_url",
-          imageUrl: input.imageUrl,
           image_url: { url: input.imageUrl },
         };
 

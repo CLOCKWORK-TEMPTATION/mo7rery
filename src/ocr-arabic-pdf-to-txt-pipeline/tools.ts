@@ -8,8 +8,8 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { readFile, writeFile, stat, readdir, mkdir } from "node:fs/promises";
-import { basename, extname, dirname, join, resolve } from "node:path";
-import { execSync } from "node:child_process";
+import { basename, extname, dirname, join } from "node:path";
+import { execFileSync } from "node:child_process";
 import type { ClassificationResult } from "./types.js";
 
 // ─── أداة قراءة الملفات ─────────────────────────────────────
@@ -55,7 +55,8 @@ export const readFileTool = tool({
         line_count: lineCount,
         content:
           content.length > 50_000
-            ? content.substring(0, 50_000) + "\n\n... [تم اقتطاع المحتوى — الملف طويل جداً]"
+            ? content.substring(0, 50_000) +
+              "\n\n... [تم اقتطاع المحتوى — الملف طويل جداً]"
             : content,
       });
     } catch (error: unknown) {
@@ -186,8 +187,7 @@ export const classifyPdfTool = tool({
   execute: async ({ pdfPath }) => {
     try {
       const fileStat = await stat(pdfPath);
-      const sizeMb =
-        Math.round((fileStat.size / (1024 * 1024)) * 100) / 100;
+      const sizeMb = Math.round((fileStat.size / (1024 * 1024)) * 100) / 100;
       const filename = basename(pdfPath);
       const notes: string[] = [];
 
@@ -195,9 +195,11 @@ export const classifyPdfTool = tool({
       let pages = 0;
       let isEncrypted = false;
       try {
-        const output = execSync(`pdfinfo "${pdfPath}" 2>/dev/null`, {
+        const output = execFileSync("pdfinfo", [pdfPath], {
           encoding: "utf-8",
           timeout: 10_000,
+          windowsHide: true,
+          stdio: ["ignore", "pipe", "pipe"],
         });
         for (const line of output.split("\n")) {
           if (line.startsWith("Pages:")) {
@@ -226,10 +228,12 @@ export const classifyPdfTool = tool({
       // محاولة استخراج نص خام
       let rawText = "";
       try {
-        rawText = execSync(
-          `pdftotext -l 3 "${pdfPath}" - 2>/dev/null`,
-          { encoding: "utf-8", timeout: 15_000 },
-        );
+        rawText = execFileSync("pdftotext", ["-l", "3", pdfPath, "-"], {
+          encoding: "utf-8",
+          timeout: 15_000,
+          windowsHide: true,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
       } catch {
         notes.push("لم يُعثر على pdftotext — يُفترض أن الملف ممسوح ضوئياً");
       }
@@ -237,9 +241,10 @@ export const classifyPdfTool = tool({
       // تحليل النص المستخرج
       const printableCount = rawText.replace(/\s/g, "").length;
       const arabicChars = [...rawText].filter(
-        (c) => c.charCodeAt(0) >= 0x0600 && c.charCodeAt(0) <= 0x06ff,
+        (c) => c.charCodeAt(0) >= 0x0600 && c.charCodeAt(0) <= 0x06ff
       ).length;
-      const hasArabic = rawText.length > 0 && arabicChars / rawText.length > 0.05;
+      const hasArabic =
+        rawText.length > 0 && arabicChars / rawText.length > 0.05;
 
       // تحديد النوع
       let type: ClassificationResult["type"];
@@ -267,7 +272,9 @@ export const classifyPdfTool = tool({
       }
 
       if (!process.env["MISTRAL_API_KEY"] && engine === "mistral") {
-        notes.push("⚠ مفتاح MISTRAL_API_KEY غير متوفر — ستُستخدم طبقة احتياطية");
+        notes.push(
+          "⚠ مفتاح MISTRAL_API_KEY غير متوفر — ستُستخدم طبقة احتياطية"
+        );
       }
 
       return JSON.stringify({

@@ -40,22 +40,19 @@ export const splitSceneHeaderLine = (
   line: string
 ): SceneHeaderTopLineParts | null => {
   const raw = line ?? "";
-  const normalized = normalizeLine(raw);
+  const normalized = normalizeLine(raw)
+    .replace(/[–—]/g, "-")
+    .replace(/\s*-\s*/g, " - ");
   if (!normalized) return null;
 
-  const sceneMatch = normalized.match(/^((?:مشهد|scene)\s*[0-9٠-٩]+)(.*)$/i);
+  const sceneMatch = normalized.match(/^((?:مشهد|scene)\s*[0-9٠-٩]+)\s*(.*)$/i);
   if (!sceneMatch) return null;
 
-  const header1Base = sceneMatch[1].trim();
+  const header1Base = sceneMatch[1].replace(/\s+/g, " ").trim();
   const afterMatch = sceneMatch[2] ?? "";
 
   if (!afterMatch.trim()) {
     return { header1: header1Base, header2: "" };
-  }
-
-  const tabSplit = afterMatch.match(/^[\t]+(.+)$/);
-  if (tabSplit) {
-    return { header1: header1Base, header2: normalizeLine(tabSplit[1]) };
   }
 
   const cleaned = afterMatch.replace(/^[\s:،,–—-]+/, "").trim();
@@ -75,7 +72,7 @@ export const splitSceneHeaderLine = (
 
   return {
     header1: header1Base,
-    header2: normalizeLine(cleaned),
+    header2: normalizeLine(cleaned).replace(/[–—]/g, "-"),
   };
 };
 

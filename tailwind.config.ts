@@ -1,7 +1,19 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  content: [
+    "./index.html",
+    "./src/App.tsx",
+    "./src/main.tsx",
+    "./src/components/**/*.{ts,tsx}",
+    "./src/controllers/**/*.{ts,tsx}",
+    "./src/hooks/**/*.{ts,tsx}",
+    "./src/providers/**/*.{ts,tsx}",
+    "./src/utils/**/*.{ts,tsx}",
+    "./src/constants/**/*.{ts,tsx}",
+    "./src/styles/**/*.css",
+    "!./src/ocr-arabic-pdf-to-txt-pipeline/mcp-server/**",
+  ],
   theme: {
     extend: {
       borderRadius: {

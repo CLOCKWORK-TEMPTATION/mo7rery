@@ -52,7 +52,11 @@ interface OcrResult {
 
 // ─── تحليل المعاملات ──────────────────────────────────────────
 
-function parseArgs(): { input: string; output: string; pages: number[] | null } {
+function parseArgs(): {
+  input: string;
+  output: string;
+  pages: number[] | null;
+} {
   const args = process.argv.slice(2);
   let input = "";
   let output = "";
@@ -122,9 +126,10 @@ async function runOcr(): Promise<void> {
     model: "mistral-ocr-latest",
     document: {
       type: "document_url",
-      document_url: `data:application/pdf;base64,${base64Pdf}`,
+      documentUrl: `data:application/pdf;base64,${base64Pdf}`,
     },
-    include_image_base64: false,
+    includeImageBase64: false,
+    tableFormat: "markdown",
   };
 
   if (pages !== null) {
@@ -146,7 +151,8 @@ async function runOcr(): Promise<void> {
       source: basename(input),
       model: (response as any).model ?? "mistral-ocr-latest",
       total_pages: (response as any).pages?.length ?? 0,
-      doc_size_bytes: (response as any).usage_info?.doc_size_bytes ?? docSizeBytes,
+      doc_size_bytes:
+        (response as any).usage_info?.doc_size_bytes ?? docSizeBytes,
       processing_time_seconds: Math.round(elapsed * 100) / 100,
       pages: [],
     };
@@ -169,7 +175,9 @@ async function runOcr(): Promise<void> {
 
     // كتابة النتيجة
     writeFileSync(output, JSON.stringify(result, null, 2), "utf-8");
-    console.error(`تمت المعالجة: ${result.total_pages} صفحة في ${elapsed.toFixed(1)} ثانية`);
+    console.error(
+      `تمت المعالجة: ${result.total_pages} صفحة في ${elapsed.toFixed(1)} ثانية`
+    );
     console.error(`المخرج: ${output}`);
 
     // إخراج ملخص على stdout

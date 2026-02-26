@@ -56,12 +56,12 @@ async function enhanceImage(
     // 3. تحسين الحدة — يُبرز حواف الحروف العربية
     .sharpen({
       sigma: 1.5,
-      m1: 1.0,  // flat areas sharpening
-      m2: 2.0,  // jagged areas sharpening
+      m1: 1.0, // flat areas sharpening
+      m2: 2.0, // jagged areas sharpening
     })
     // 4. تعديل التباين والسطوع
     .modulate({
-      brightness: 1.05,  // زيادة طفيفة في السطوع
+      brightness: 1.05, // زيادة طفيفة في السطوع
     })
     // 5. إزالة الضوضاء عبر median filter
     .median(3)
@@ -122,7 +122,9 @@ async function main(): Promise<void> {
       }
     }
 
-    console.error(`تم تحسين ${processed}/${imageFiles.length} صورة → ${output}`);
+    console.error(
+      `تم تحسين ${processed}/${imageFiles.length} صورة → ${output}`
+    );
     console.log(
       JSON.stringify({
         success: true,

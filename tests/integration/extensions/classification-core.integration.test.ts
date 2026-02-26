@@ -61,4 +61,32 @@ describe("classification-core integration", () => {
     expect(packet.totalReviewed).toBeGreaterThan(0);
     expect(packet.totalSuspicious).toBeGreaterThanOrEqual(0);
   });
+
+  it("classifies multi-scene Arabic headers with scene1/scene2 correctly", () => {
+    logTestStep("classify-multi-scene-headers");
+
+    const screenplayText = [
+      "مشهد1\t\t\t\t\t\t\t\t\tنهار -داخلي",
+      "شقة سيد نفيسة  – الصالة",
+      "قطع",
+      "مشهد2\t\t\t\t\t\t\t\t\tنهار -خارجي",
+      "العتبة – فرش  عرنوس",
+    ].join("\n");
+
+    const classified = classifyText(screenplayText);
+    const types = classified.map((line) => line.type);
+
+    expect(types).toEqual([
+      "sceneHeaderTopLine",
+      "sceneHeader3",
+      "transition",
+      "sceneHeaderTopLine",
+      "sceneHeader3",
+    ]);
+
+    expect(classified[0]?.header1).toMatch(/مشهد\s*1|مشهد1/u);
+    expect(classified[0]?.header2).toContain("نهار");
+    expect(classified[3]?.header1).toMatch(/مشهد\s*2|مشهد2/u);
+    expect(classified[3]?.header2).toContain("خارجي");
+  });
 });

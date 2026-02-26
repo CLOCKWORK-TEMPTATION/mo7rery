@@ -37,7 +37,7 @@ const SCRIPTS_DIR = resolve(__dirname, "skill-scripts");
 async function runScript(
   scriptName: string,
   args: string[],
-  timeoutMs = 300_000,
+  timeoutMs = 300_000
 ): Promise<{ stdout: string; stderr: string }> {
   const scriptPath = resolve(SCRIPTS_DIR, scriptName);
 
@@ -49,8 +49,8 @@ async function runScript(
   }
 
   const { stdout, stderr } = await execFileAsync(
-    "npx",
-    ["tsx", scriptPath, ...args],
+    process.execPath,
+    ["--import", "tsx", scriptPath, ...args],
     {
       timeout: timeoutMs,
       maxBuffer: 50 * 1024 * 1024, // 50MB — لملفات OCR الكبيرة
@@ -60,7 +60,7 @@ async function runScript(
         MISTRAL_API_KEY: process.env["MISTRAL_API_KEY"] ?? "",
         OPENAI_API_KEY: process.env["OPENAI_API_KEY"] ?? "",
       },
-    },
+    }
   );
 
   return { stdout: stdout.trim(), stderr: stderr.trim() };
@@ -93,7 +93,10 @@ export const skillClassifyPdf = tool({
       if (stderr) {
         console.error(`[skill/classify] ${stderr}`);
       }
-      return stdout || JSON.stringify({ success: false, error: "لا مخرجات من سكريبت التصنيف" });
+      return (
+        stdout ||
+        JSON.stringify({ success: false, error: "لا مخرجات من سكريبت التصنيف" })
+      );
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       return JSON.stringify({ success: false, error: `فشل التصنيف: ${msg}` });
@@ -145,14 +148,17 @@ export const skillOcrMistral = tool({
       const { stdout, stderr } = await runScript(
         "ocr-mistral.ts",
         args,
-        600_000, // 10 دقائق — ملفات كبيرة قد تستغرق وقتاً
+        600_000 // 10 دقائق — ملفات كبيرة قد تستغرق وقتاً
       );
 
       if (stderr) {
         console.error(`[skill/ocr] ${stderr}`);
       }
 
-      return stdout || JSON.stringify({ success: false, error: "لا مخرجات من سكريبت OCR" });
+      return (
+        stdout ||
+        JSON.stringify({ success: false, error: "لا مخرجات من سكريبت OCR" })
+      );
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       return JSON.stringify({ success: false, error: `فشل OCR: ${msg}` });
@@ -184,16 +190,22 @@ export const skillWriteOutput = tool({
   execute: async ({ input, format, output }) => {
     try {
       const { stdout, stderr } = await runScript("write-output.ts", [
-        "--input", input,
-        "--format", format,
-        "--output", output,
+        "--input",
+        input,
+        "--format",
+        format,
+        "--output",
+        output,
       ]);
 
       if (stderr) {
         console.error(`[skill/write] ${stderr}`);
       }
 
-      return stdout || JSON.stringify({ success: false, error: "لا مخرجات من سكريبت الكتابة" });
+      return (
+        stdout ||
+        JSON.stringify({ success: false, error: "لا مخرجات من سكريبت الكتابة" })
+      );
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       return JSON.stringify({ success: false, error: `فشل الكتابة: ${msg}` });
@@ -224,22 +236,31 @@ export const skillEnhanceImages = tool({
 - نتائج OCR غير مرضية — حسّن الصور ثم أعد OCR`,
 
   inputSchema: z.object({
-    input: z.string().describe("المسار المطلق لصورة واحدة أو مجلد صور (PNG/JPG/TIFF)"),
-    output: z.string().describe("المسار المطلق للصورة المُحسَّنة أو مجلد الإخراج"),
+    input: z
+      .string()
+      .describe("المسار المطلق لصورة واحدة أو مجلد صور (PNG/JPG/TIFF)"),
+    output: z
+      .string()
+      .describe("المسار المطلق للصورة المُحسَّنة أو مجلد الإخراج"),
   }),
 
   execute: async ({ input, output }) => {
     try {
       const { stdout, stderr } = await runScript("enhance-image.ts", [
-        "--input", input,
-        "--output", output,
+        "--input",
+        input,
+        "--output",
+        output,
       ]);
 
       if (stderr) {
         console.error(`[skill/enhance] ${stderr}`);
       }
 
-      return stdout || JSON.stringify({ success: false, error: "لا مخرجات من سكريبت التحسين" });
+      return (
+        stdout ||
+        JSON.stringify({ success: false, error: "لا مخرجات من سكريبت التحسين" })
+      );
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       return JSON.stringify({ success: false, error: `فشل التحسين: ${msg}` });

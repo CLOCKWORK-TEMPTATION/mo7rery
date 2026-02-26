@@ -8,8 +8,8 @@
  * المخرج: JSON على stdout يتضمن نوع الملف والتوصية
  */
 
-import { execSync } from "node:child_process";
-import { statSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { statSync } from "node:fs";
 import { basename } from "node:path";
 
 // ─── أنواع البيانات ───────────────────────────────────────────
@@ -36,9 +36,11 @@ interface ClassificationResult {
 /** استخراج معلومات PDF عبر pdfinfo */
 function getPdfInfo(pdfPath: string): Record<string, string> {
   try {
-    const output = execSync(`pdfinfo "${pdfPath}" 2>/dev/null`, {
+    const output = execFileSync("pdfinfo", [pdfPath], {
       encoding: "utf-8",
       timeout: 10_000,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
     });
     const info: Record<string, string> = {};
     for (const line of output.split("\n")) {
@@ -58,10 +60,12 @@ function getPdfInfo(pdfPath: string): Record<string, string> {
 /** محاولة استخراج نص خام من PDF عبر pdftotext */
 function extractRawText(pdfPath: string, maxPages = 3): string {
   try {
-    return execSync(
-      `pdftotext -l ${maxPages} "${pdfPath}" - 2>/dev/null`,
-      { encoding: "utf-8", timeout: 15_000 }
-    );
+    return execFileSync("pdftotext", ["-l", String(maxPages), pdfPath, "-"], {
+      encoding: "utf-8",
+      timeout: 15_000,
+      windowsHide: true,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
   } catch {
     return "";
   }
@@ -125,7 +129,9 @@ function classifyPdf(pdfPath: string): ClassificationResult {
 
   // تحذير الحجم
   if (sizeMb > 50) {
-    notes.push(`حجم الملف كبير (${sizeMb}MB) — قد يتجاوز حد Mistral API (50MB)`);
+    notes.push(
+      `حجم الملف كبير (${sizeMb}MB) — قد يتجاوز حد Mistral API (50MB)`
+    );
   }
 
   // تحذير الصفحات

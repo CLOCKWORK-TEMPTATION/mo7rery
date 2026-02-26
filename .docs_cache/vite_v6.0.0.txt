@@ -1,0 +1,87 @@
+# Configuring Vite | Vite
+
+## Config Intellisense
+
+Since Vite ships with TypeScript typings, you can leverage your IDE's intellisense with jsdoc type hints:
+
+```typescript
+/** @type {import('vite').UserConfig} */
+export default {
+  // ...
+}
+```
+
+Alternatively, you can use the defineConfig helper:
+
+```typescript
+import { defineConfig } from 'vite'
+export default defineConfig({
+  // ...
+})
+```
+
+## Conditional Config
+
+If the config needs to conditionally determine options based on the command:
+
+```typescript
+export default (({ command, mode, isSsrBuild, isPreview }) => {
+  if (command === 'serve') {
+    return {
+      // dev specific config
+    }
+  } else {
+    // build specific config
+    return {
+      // build specific config
+    }
+  }
+})
+```
+
+Note: command value is 'serve' during dev, and 'build' when building for production.
+
+## Async Config
+
+If the config needs to call async functions:
+
+```typescript
+export default defineConfig(async ({ command, mode }) => {
+  const data = await asyncFunction()
+  return {
+    // vite config
+  }
+})
+```
+
+## Using Environment Variables in Config
+
+Variables defined in .env files are NOT automatically injected into process.env while vite.config.* is running. They are automatically loaded later and exposed to application code via import.meta.env.
+
+If values from .env files must influence the config, use loadEnv helper:
+
+```typescript
+import { defineConfig, loadEnv } from 'vite'
+
+export default defineConfig(({ command, mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  return {
+    // config using env
+  }
+})
+```
+
+## Best Practices from Documentation:
+1. Use defineConfig for TypeScript intellisense
+2. Use satisfies operator with TypeScript configs
+3. Use async config for async operations
+4. Use loadEnv for environment variables in config
+5. Distinguish command types ('serve' vs 'build')
+
+## Error Handling
+- Config loading errors are reported by esbuild
+- Use try-catch in async config functions
+- Validate environment variables before use
+
+## Version: Vite 6.x
+Source: https://vitejs.dev/config

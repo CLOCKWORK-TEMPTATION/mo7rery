@@ -14,9 +14,9 @@ import type { AgentConfig } from "./types.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// بحث عن .env في مجلد المشروع ثم المجلد الأب
-dotenvConfig({ path: resolve(__dirname, "../.env") });
-dotenvConfig({ path: resolve(__dirname, "../../.env") });
+// بحث عن .env في جذر المشروع ثم المجلد الأب
+dotenvConfig({ path: resolve(__dirname, "../../.env"), quiet: true });
+dotenvConfig({ path: resolve(__dirname, "../../../.env"), quiet: true });
 
 // ─── التحقق من المتطلبات ────────────────────────────────────
 
@@ -40,9 +40,7 @@ export function validateEnvironment(): { valid: boolean; missing: string[] } {
   }
 
   if (warnings.length > 0) {
-    console.error(
-      `⚠ مفاتيح موصى بها غير موجودة: ${warnings.join(", ")}`,
-    );
+    console.error(`⚠ مفاتيح موصى بها غير موجودة: ${warnings.join(", ")}`);
   }
 
   return { valid: missing.length === 0, missing };
@@ -52,18 +50,16 @@ export function validateEnvironment(): { valid: boolean; missing: string[] } {
 
 /** بناء إعدادات الوكيل من متغيرات البيئة مع القيم الافتراضية */
 export function buildAgentConfig(): AgentConfig {
-  const projectRoot = resolve(__dirname, "..");
+  const projectRoot = resolve(__dirname, "../..");
 
   return {
     agentModel: process.env["AGENT_MODEL"] ?? "gpt-4o",
     maxSteps: parseInt(process.env["AGENT_MAX_STEPS"] ?? "10", 10),
-    // خادم MCP — داخل المشروع في mcp-server/index.ts
+    // خادم MCP — داخل البايبلاين في mcp-server/index.ts
     mcpServerPath:
       process.env["MCP_SERVER_PATH"] ??
-      resolve(projectRoot, "mcp-server", "index.ts"),
-    defaultInputDir:
-      process.env["DEFAULT_INPUT_DIR"] ?? resolve(projectRoot),
-    defaultOutputDir:
-      process.env["DEFAULT_OUTPUT_DIR"] ?? resolve(projectRoot),
+      resolve(__dirname, "mcp-server", "index.ts"),
+    defaultInputDir: process.env["DEFAULT_INPUT_DIR"] ?? resolve(projectRoot),
+    defaultOutputDir: process.env["DEFAULT_OUTPUT_DIR"] ?? resolve(projectRoot),
   };
 }

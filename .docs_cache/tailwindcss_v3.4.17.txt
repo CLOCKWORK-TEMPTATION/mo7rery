@@ -1,0 +1,45 @@
+# Tailwind CSS Documentation
+
+## Installing Tailwind CSS with Vite
+
+Tailwind CSS works by scanning all of your HTML files, JavaScript components, and any other templates for class names, generating the corresponding styles and then writing them to a static CSS file.
+
+It's fast, flexible, and reliable — with zero-runtime.
+
+## Installation with Vite
+
+### Configure the Vite plugin
+
+```typescript
+import { defineConfig } from 'vite'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [
+    tailwindcss(),
+  ],
+})
+```
+
+### Import Tailwind CSS
+
+Add an @import to your CSS file:
+
+```css
+@import "tailwindcss";
+```
+
+## Best Practices from Documentation:
+1. Use @import "tailwindcss" in CSS
+2. Configure Vite plugin properly
+3. Scan all relevant files for class names
+4. Use utility classes consistently
+5. Leverage zero-runtime approach
+
+## Error Handling
+- Build errors indicate missing class definitions
+- Check configuration for proper file scanning
+- Verify plugin is installed and configured
+
+## Version: TailwindCSS 3.4.x
+Source: https://tailwindcss.com/docs

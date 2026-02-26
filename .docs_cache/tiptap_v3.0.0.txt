@@ -1,0 +1,53 @@
+# Tiptap Concepts | Tiptap Editor Docs
+
+## Core Concepts
+
+Explore the foundational elements of Tiptap's API, designed for intricate rich text editing based on ProseMirror's architecture.
+
+## Structure
+
+ProseMirror works with a strict Schema, which defines the allowed structure of a document. A document is a tree of headings, paragraphs and other elements, called nodes. Marks can be attached to a node, e. g. to emphasize part of it. Commands change that document programmatically.
+
+## State
+
+The document is stored in a state. Changes are applied as transactions to the state. The state has details about the current content, cursor position and selection. You can hook into events, for example to alter transactions before they get applied.
+
+## Content
+
+The document is stored internally as a ProseMirror node, and can be retrieved as a Tiptap JSON object calling editor.getJSON().
+
+Tiptap JSON is the recommended format for storing the document and working with it.
+
+A Tiptap JSON document is a tree of nodes. Some nodes can have children, but only text nodes (those with type: 'text') can contain text. Text nodes and other inline nodes can have marks applied to them. Some nodes and marks can have attributes.
+
+## Extensions
+
+Extensions add nodes, marks and/or functionalities to the editor. A lot of those extensions bound their commands to common keyboard shortcuts.
+
+## Vocabulary
+
+| Word | Description |
+|------|-------------|
+| Schema | Configures the structure your content can have. |
+| Document | The actual content in your editor. |
+| State | Everything to describe the current content and selection of your editor. |
+| Transaction | A change to the state (updated selection, content, ...) |
+| Extension | Registers new functionality. |
+| Node | A type of content, for example a heading or a paragraph. |
+| Mark | Can be applied to nodes, for example for inline formatting. |
+| Command | Execute an action inside the editor, that somehow changes the state. |
+| Decoration | Styling on top of the document, for example to highlight mistakes. |
+
+## Best Practices from Documentation:
+1. Use Tiptap JSON for storing documents
+2. Use transactions for document changes
+3. Extensions should register commands with keyboard shortcuts
+4. Schema defines allowed document structure
+
+## Error Handling
+- Check editor state before operations
+- Use commands for programmatic changes
+- Handle ProseMirror transactions properly
+
+## Version: Tiptap 3.x
+Source: https://tiptap.dev/docs/editor/api

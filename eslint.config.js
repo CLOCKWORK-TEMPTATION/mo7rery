@@ -15,7 +15,8 @@ export default tseslint.config(
       "coverage",
       "scripts",
       ".tools",
-      "ocr-arabic-pdf-to-txt",
+      "src/ocr-arabic-pdf-to-txt-pipeline/mcp-server",
+      "src/ocr-arabic-pdf-to-txt-pipeline/skill-scripts",
     ],
   },
   {

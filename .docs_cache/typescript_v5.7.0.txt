@@ -1,0 +1,37 @@
+# TypeScript Documentation
+
+## TypeScript: The starting point for learning TypeScript
+
+### Handbook
+- The TypeScript Handbook
+- The Basics
+- Everyday Types
+- Narrowing
+- More on Functions
+- Object Types
+- Type Manipulation
+- Generics
+- Keyof Type Operator
+- Typeof Type Operator
+
+### Project Configuration
+- What is a tsconfig.json
+- TSConfig Reference
+- tsc CLI Options
+- Project References
+
+### Best Practices from Documentation:
+1. Enable strict mode in tsconfig.json
+2. Use TypeScript v5.5 or later
+3. Use proper type annotations
+4. Leverage type inference where appropriate
+5. Use generics for reusable code
+6. Narrow types with type guards
+
+### Error Handling
+- TypeScript catches errors at compile time
+- Use strict mode for better type safety
+- Handle union types with narrowing
+
+### Version: TypeScript 5.7.x
+Source: https://www.typescriptlang.org/docs

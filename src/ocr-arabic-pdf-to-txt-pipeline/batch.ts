@@ -10,11 +10,11 @@
  *   npx tsx src/batch.ts /path/to/pdf/folder --output /path/to/output --format txt
  */
 
-import { generateText, tool, stepCountIs } from "ai";
+import { generateText, stepCountIs } from "ai";
 import { createMCPClient } from "@ai-sdk/mcp";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { openai } from "@ai-sdk/openai";
-import { readdir, stat, mkdir } from "node:fs/promises";
+import { readdir, mkdir } from "node:fs/promises";
 import { join, extname, basename, resolve } from "node:path";
 
 import { buildAgentConfig, validateEnvironment } from "./config.js";
@@ -46,11 +46,13 @@ interface BatchArgs {
 function parseBatchArgs(): BatchArgs {
   const args = process.argv.slice(2);
   if (args.length === 0) {
-    console.error("الاستخدام: npx tsx src/batch.ts <مجلد_PDF> [--output <مجلد>] [--format txt|md]");
+    console.error(
+      "الاستخدام: npx tsx src/batch.ts <مجلد_PDF> [--output <مجلد>] [--format txt|md]"
+    );
     process.exit(1);
   }
 
-  let inputDir = resolve(args[0]);
+  const inputDir = resolve(args[0]);
   let outputDir = "";
   let format: "txt" | "md" = "md";
 
@@ -88,9 +90,7 @@ async function main(): Promise<void> {
 
   // اكتشاف ملفات PDF
   const entries = await readdir(inputDir);
-  const pdfFiles = entries.filter(
-    (f) => extname(f).toLowerCase() === ".pdf",
-  );
+  const pdfFiles = entries.filter((f) => extname(f).toLowerCase() === ".pdf");
 
   if (pdfFiles.length === 0) {
     log("خطأ", C.yellow, "لا توجد ملفات PDF في المجلد المحدد");
@@ -140,16 +140,12 @@ async function main(): Promise<void> {
     const outputName = basename(pdfFile, ".pdf") + "." + format;
     const outputPath = join(outputDir, outputName);
 
-    log(
-      "تقدم",
-      C.cyan,
-      `[${i + 1}/${pdfFiles.length}] ${pdfFile}`,
-    );
+    log("تقدم", C.cyan, `[${i + 1}/${pdfFiles.length}] ${pdfFile}`);
 
     const startTime = Date.now();
 
     try {
-      const result = await generateText({
+      await generateText({
         model: openai(config.agentModel),
         tools: mcpTools as any,
         stopWhen: stepCountIs(5),
@@ -176,7 +172,11 @@ outputPath: ${outputPath}
         output: outputPath,
         timeMs: elapsed,
       });
-      log("نجاح", C.green, `${pdfFile} → ${outputName} (${(elapsed / 1000).toFixed(1)}ث)`);
+      log(
+        "نجاح",
+        C.green,
+        `${pdfFile} → ${outputName} (${(elapsed / 1000).toFixed(1)}ث)`
+      );
     } catch (error: unknown) {
       const elapsed = Date.now() - startTime;
       const msg = error instanceof Error ? error.message : String(error);
@@ -195,7 +195,7 @@ outputPath: ${outputPath}
   const failed = results.filter((r) => !r.success).length;
   const totalTimeMs = results.reduce((sum, r) => sum + r.timeMs, 0);
 
-  console.log();
+  console.error();
   log("ملخص", C.green, "═".repeat(50));
   log("ملخص", C.green, `الإجمالي: ${pdfFiles.length} ملف`);
   log("ملخص", C.green, `نجاح: ${succeeded} | فشل: ${failed}`);

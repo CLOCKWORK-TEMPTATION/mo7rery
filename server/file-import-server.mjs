@@ -14,6 +14,10 @@ import {
   requestAnthropicReview,
   validateAgentReviewRequestBody,
 } from "./agent-review.mjs";
+import {
+  ExecFileClassifiedError,
+  classifyExecError,
+} from "./exec-file-error-classifier.mjs";
 import { getPdfOcrAgentHealth } from "./pdf-ocr-agent-config.mjs";
 import { runPdfOcrAgent } from "./pdf-ocr-agent-runner.mjs";
 
@@ -61,6 +65,15 @@ class RequestValidationError extends Error {
     this.statusCode = 400;
   }
 }
+
+const toExecBuffer = (value) =>
+  Buffer.isBuffer(value) ? value : Buffer.from(value ?? "", "utf-8");
+
+const isHttpTypedError = (error) =>
+  typeof error?.statusCode === "number" &&
+  Number.isFinite(error.statusCode) &&
+  error.statusCode >= 400 &&
+  error.statusCode <= 599;
 
 const isObjectRecord = (value) => typeof value === "object" && value !== null;
 const isNonEmptyString = (value) =>
@@ -117,6 +130,49 @@ const sendJson = (res, statusCode, payload) => {
     ...corsHeaders,
   });
   res.end(JSON.stringify(payload));
+};
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const probeExistingBackendHealth = async () => {
+  const healthUrl = `http://${HOST}:${PORT}/health`;
+  try {
+    const response = await fetch(healthUrl, {
+      method: "GET",
+      signal: AbortSignal.timeout(1500),
+    });
+
+    if (!response.ok) {
+      return { ok: false, reason: `status:${response.status}` };
+    }
+
+    const payload = await response.json().catch(() => null);
+    const isSameService =
+      payload?.ok === true && payload?.service === "file-import-backend";
+
+    return isSameService
+      ? { ok: true, reason: "matched-health-signature" }
+      : { ok: false, reason: "health-signature-mismatch" };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: error instanceof Error ? error.message : "health-probe-failed",
+    };
+  }
+};
+
+const probeExistingBackendWithRetries = async () => {
+  const attempts = 4;
+  for (let index = 0; index < attempts; index += 1) {
+    const result = await probeExistingBackendHealth();
+    if (result.ok) {
+      return result;
+    }
+    if (index < attempts - 1) {
+      await wait(300);
+    }
+  }
+  return { ok: false, reason: "health-check-exhausted" };
 };
 
 const readRawBody = async (req) =>
@@ -343,8 +399,28 @@ const normalizeExtractionResponseData = (result, fileType) => {
     throw new Error(`Extraction returned unsupported method: ${method}`);
   }
 
+  const pipelineFootprint =
+    isObjectRecord(result.pipelineFootprint) &&
+    Array.isArray(result.pipelineFootprint.checkedDirectories) &&
+    Array.isArray(result.pipelineFootprint.checkedFiles) &&
+    result.pipelineFootprint.checkedDirectories.every((entry) =>
+      isNonEmptyString(entry)
+    ) &&
+    result.pipelineFootprint.checkedFiles.every((entry) =>
+      isNonEmptyString(entry)
+    )
+      ? {
+          checkedDirectories: result.pipelineFootprint.checkedDirectories,
+          checkedFiles: result.pipelineFootprint.checkedFiles,
+        }
+      : undefined;
+
   return {
     text,
+    rawExtractedText:
+      typeof result.rawExtractedText === "string"
+        ? result.rawExtractedText
+        : undefined,
     fileType,
     method,
     usedOcr,
@@ -354,6 +430,11 @@ const normalizeExtractionResponseData = (result, fileType) => {
       typeof result.qualityScore === "number" &&
       Number.isFinite(result.qualityScore)
         ? result.qualityScore
+        : undefined,
+    artifactLinesRemoved:
+      typeof result.artifactLinesRemoved === "number" &&
+      Number.isFinite(result.artifactLinesRemoved)
+        ? result.artifactLinesRemoved
         : undefined,
     normalizationApplied: Array.isArray(result.normalizationApplied)
       ? result.normalizationApplied
@@ -373,11 +454,36 @@ const normalizeExtractionResponseData = (result, fileType) => {
             text: block.text,
           }))
       : undefined,
+    pipelineFootprint,
     payloadVersion:
       typeof result.payloadVersion === "number" &&
       Number.isInteger(result.payloadVersion)
         ? result.payloadVersion
         : undefined,
+    classification: isObjectRecord(result.classification)
+      ? {
+          type:
+            typeof result.classification.type === "string"
+              ? result.classification.type
+              : undefined,
+          pages:
+            typeof result.classification.pages === "number"
+              ? result.classification.pages
+              : undefined,
+          sizeMb:
+            typeof result.classification.size_mb === "number"
+              ? result.classification.size_mb
+              : undefined,
+          hasArabic:
+            typeof result.classification.has_arabic === "boolean"
+              ? result.classification.has_arabic
+              : undefined,
+          recommendedEngine:
+            typeof result.classification.recommended_engine === "string"
+              ? result.classification.recommended_engine
+              : undefined,
+        }
+      : undefined,
   };
 };
 
@@ -478,18 +584,19 @@ const runAntiword = async (antiwordPath, args, antiwordHome) =>
         },
       },
       (error, stdout, stderr) => {
-        const stdoutBuffer = Buffer.isBuffer(stdout)
-          ? stdout
-          : Buffer.from(stdout ?? "", "utf-8");
-        const stderrBuffer = Buffer.isBuffer(stderr)
-          ? stderr
-          : Buffer.from(stderr ?? "", "utf-8");
+        const stdoutBuffer = toExecBuffer(stdout);
+        const stderrBuffer = toExecBuffer(stderr);
 
         if (error) {
-          const wrappedError = error;
-          wrappedError.stdout = stdoutBuffer;
-          wrappedError.stderr = stderrBuffer;
-          reject(wrappedError);
+          reject(
+            classifyExecError(
+              error,
+              "antiword",
+              DOC_CONVERTER_TIMEOUT_MS,
+              stdoutBuffer,
+              stderrBuffer
+            )
+          );
           return;
         }
 
@@ -542,18 +649,19 @@ const runDocxToDocConverter = async (inputDocxPath, outputDocPath) =>
         windowsHide: true,
       },
       (error, stdout, stderr) => {
-        const stdoutBuffer = Buffer.isBuffer(stdout)
-          ? stdout
-          : Buffer.from(stdout ?? "", "utf-8");
-        const stderrBuffer = Buffer.isBuffer(stderr)
-          ? stderr
-          : Buffer.from(stderr ?? "", "utf-8");
+        const stdoutBuffer = toExecBuffer(stdout);
+        const stderrBuffer = toExecBuffer(stderr);
 
         if (error) {
-          const wrappedError = error;
-          wrappedError.stdout = stdoutBuffer;
-          wrappedError.stderr = stderrBuffer;
-          reject(wrappedError);
+          reject(
+            classifyExecError(
+              error,
+              "docx-to-doc.final.ts",
+              DOCX_TO_DOC_CONVERTER_TIMEOUT_MS,
+              stdoutBuffer,
+              stderrBuffer
+            )
+          );
           return;
         }
 
@@ -597,8 +705,25 @@ const convertDocBufferToText = async (buffer, filename) => {
       antiword: runtime,
     };
   } catch (error) {
-    const stderrText = decodeUtf8Buffer(error?.stderr).trim();
-    if (stderrText) warnings.push(stderrText);
+    if (error instanceof ExecFileClassifiedError) {
+      const stderrText = normalizeIncomingText(
+        error.classifiedError?.stderrPreview,
+        400
+      );
+      if (stderrText) warnings.push(stderrText);
+      throw new ExecFileClassifiedError(
+        `فشل تحويل ملف DOC عبر antiword (${runtime.antiwordPath}): ${error.message}`,
+        {
+          statusCode: error.statusCode,
+          category: error.category,
+          classifiedError: {
+            ...error.classifiedError,
+            antiwordPath: runtime.antiwordPath,
+            antiwordHome: runtime.antiwordHome,
+          },
+        }
+      );
+    }
     throw new Error(
       `فشل تحويل ملف DOC عبر antiword (${runtime.antiwordPath}): ${
         error instanceof Error ? error.message : String(error)
@@ -654,10 +779,31 @@ const convertDocxBufferToDocThenExtract = async (buffer, filename) => {
       warnings: [...warnings, ...extractedDoc.warnings],
     };
   } catch (error) {
-    const stdoutText = decodeUtf8Buffer(error?.stdout).trim();
-    const stderrText = decodeUtf8Buffer(error?.stderr).trim();
-    if (stdoutText) warnings.push(stdoutText);
-    if (stderrText) warnings.push(stderrText);
+    if (error instanceof ExecFileClassifiedError) {
+      const stdoutText = normalizeIncomingText(
+        error.classifiedError?.stdoutPreview,
+        400
+      );
+      const stderrText = normalizeIncomingText(
+        error.classifiedError?.stderrPreview,
+        400
+      );
+      if (stdoutText) warnings.push(stdoutText);
+      if (stderrText) warnings.push(stderrText);
+      throw new ExecFileClassifiedError(
+        `فشل مسار تحويل DOCX→DOC عبر docx-to-doc.final.ts: ${error.message}${
+          warnings.length > 0 ? ` | logs: ${warnings.join(" | ")}` : ""
+        }`,
+        {
+          statusCode: error.statusCode,
+          category: error.category,
+          classifiedError: {
+            ...error.classifiedError,
+            converterScript: DOCX_TO_DOC_SCRIPT_PATH,
+          },
+        }
+      );
+    }
 
     throw new Error(
       `فشل مسار تحويل DOCX→DOC عبر docx-to-doc.final.ts: ${
@@ -699,13 +845,29 @@ const extractByType = async (buffer, extension, filename) => {
 
   if (extension === "doc") {
     if (!ANTIWORD_PREFLIGHT.binaryAvailable) {
-      throw new Error(
-        `تعذر استخراج DOC: antiword غير متاح. راجع health endpoint والتأكد من ANTIWORD_PATH.`
+      throw new ExecFileClassifiedError(
+        "تعذر استخراج DOC: antiword غير متاح. راجع health endpoint والتأكد من ANTIWORD_PATH.",
+        {
+          statusCode: 422,
+          category: "binary-missing",
+          classifiedError: {
+            category: "binary-missing",
+            antiwordPath: ANTIWORD_PREFLIGHT.antiwordPath,
+          },
+        }
       );
     }
     if (!ANTIWORD_PREFLIGHT.antiwordHomeExists) {
-      throw new Error(
-        `تعذر استخراج DOC: مسار ANTIWORDHOME غير صالح (${ANTIWORD_PREFLIGHT.antiwordHome}).`
+      throw new ExecFileClassifiedError(
+        `تعذر استخراج DOC: مسار ANTIWORDHOME غير صالح (${ANTIWORD_PREFLIGHT.antiwordHome}).`,
+        {
+          statusCode: 422,
+          category: "invalid-config",
+          classifiedError: {
+            category: "invalid-config",
+            antiwordHome: ANTIWORD_PREFLIGHT.antiwordHome,
+          },
+        }
       );
     }
     return convertDocBufferToText(buffer, filename);
@@ -713,13 +875,29 @@ const extractByType = async (buffer, extension, filename) => {
 
   if (extension === "docx") {
     if (!ANTIWORD_PREFLIGHT.binaryAvailable) {
-      throw new Error(
-        `تعذر استخراج DOCX: antiword غير متاح. راجع health endpoint والتأكد من ANTIWORD_PATH.`
+      throw new ExecFileClassifiedError(
+        "تعذر استخراج DOCX: antiword غير متاح. راجع health endpoint والتأكد من ANTIWORD_PATH.",
+        {
+          statusCode: 422,
+          category: "binary-missing",
+          classifiedError: {
+            category: "binary-missing",
+            antiwordPath: ANTIWORD_PREFLIGHT.antiwordPath,
+          },
+        }
       );
     }
     if (!ANTIWORD_PREFLIGHT.antiwordHomeExists) {
-      throw new Error(
-        `تعذر استخراج DOCX: مسار ANTIWORDHOME غير صالح (${ANTIWORD_PREFLIGHT.antiwordHome}).`
+      throw new ExecFileClassifiedError(
+        `تعذر استخراج DOCX: مسار ANTIWORDHOME غير صالح (${ANTIWORD_PREFLIGHT.antiwordHome}).`,
+        {
+          statusCode: 422,
+          category: "invalid-config",
+          classifiedError: {
+            category: "invalid-config",
+            antiwordHome: ANTIWORD_PREFLIGHT.antiwordHome,
+          },
+        }
       );
     }
 
@@ -748,12 +926,19 @@ const handleExtract = async (req, res) => {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown server error";
-    const statusCode =
-      error instanceof RequestValidationError ? error.statusCode : 500;
-    sendJson(res, statusCode, {
+    const statusCode = isHttpTypedError(error)
+      ? error.statusCode
+      : error instanceof RequestValidationError
+        ? error.statusCode
+        : 500;
+    const payload = {
       success: false,
       error: message,
-    });
+    };
+    if (error instanceof ExecFileClassifiedError) {
+      payload.classifiedError = error.classifiedError;
+    }
+    sendJson(res, statusCode, payload);
   }
 };
 
@@ -832,6 +1017,31 @@ const server = http.createServer(async (req, res) => {
   }
 
   sendJson(res, 404, { success: false, error: "Route not found." });
+});
+
+server.on("error", (error) => {
+  const code = typeof error?.code === "string" ? error.code : "";
+  if (code !== "EADDRINUSE") {
+    console.error("[file-import-backend] failed to start server:", error);
+    process.exit(1);
+    return;
+  }
+
+  void (async () => {
+    const probe = await probeExistingBackendWithRetries();
+    if (!probe.ok) {
+      console.error(
+        `[file-import-backend] port ${PORT} is already in use and health check did not match this backend (${probe.reason}).`
+      );
+      process.exit(1);
+      return;
+    }
+
+    console.warn(
+      `[file-import-backend] detected running backend on http://${HOST}:${PORT}; reusing existing process.`
+    );
+    process.exit(0);
+  })();
 });
 
 server.listen(PORT, HOST, () => {

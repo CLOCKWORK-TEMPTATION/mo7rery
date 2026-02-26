@@ -1,0 +1,238 @@
+{
+  "audit_date": "2026-02-26",
+  "files_scanned": 103,
+  "dependencies_analyzed": 38,
+  "compliance_score": "78%",
+  "summary": {
+    "project_name": "screenplay-editor",
+    "description": "محرر سيناريو عربي مبني على Tiptap v3",
+    "package_manager": "pnpm@10.28.0",
+    "language": "TypeScript",
+    "runtime": "Node.js ESNext"
+  },
+  "issues": [
+    {
+      "type": "deprecation",
+      "dependency": "@anthropic-ai/sdk",
+      "current": "^0.78.0",
+      "latest": "v1.x available",
+      "priority": "medium",
+      "recommendation": "Upgrade to @anthropic-ai/sdk v1.x for latest features"
+    },
+    {
+      "type": "version_drift",
+      "dependency": "typescript",
+      "current": "5.7.0 (main)",
+      "ocr_pipeline": "5.9.3 (mcp-server)",
+      "priority": "low",
+      "recommendation": "Align TypeScript versions across monorepo"
+    }
+  ],
+  "best_practices_violations": [
+    {
+      "category": "error_handling",
+      "file": "server/agent-review.mjs",
+      "line": 358,
+      "issue": "Missing try-catch around anthropic client initialization",
+      "fix": "Wrap getAnthropicClient in try-catch with proper error logging"
+    },
+    {
+      "category": "error_handling",
+      "file": "server/file-import-server.mjs",
+      "line": 858,
+      "issue": "Using console.log instead of structured logger",
+      "fix": "Replace console.log with pino logger"
+    },
+    {
+      "category": "security",
+      "file": "server/file-import-server.mjs",
+      "line": 22,
+      "issue": "Hardcoded fallback ANTIWORD_HOME path",
+      "fix": "Use environment variable with no fallback or validate path exists"
+    },
+    {
+      "category": "type_safety",
+      "file": "src/utils/logger.ts",
+      "line": 30,
+      "issue": "Using any type in globalThis casting",
+      "fix": "Define proper interface for globalThis extensions"
+    },
+    {
+      "category": "api_usage",
+      "file": "src/utils/file-import/extract/backend-extract.ts",
+      "line": 225,
+      "issue": "fetch() without explicit error handling for network failures",
+      "fix": "Add explicit handling for TypeError network failures"
+    }
+  ],
+  "dependencies_analysis": {
+    "core_framework": [
+      { "name": "react", "version": "^19.2.4", "status": "current" },
+      { "name": "react-dom", "version": "^19.2.4", "status": "current" },
+      { "name": "typescript", "version": "^5.7.0", "status": "current" }
+    ],
+    "editor": [
+      { "name": "@tiptap/core", "version": "^3.0.0", "status": "current" },
+      { "name": "@tiptap/pm", "version": "^3.0.0", "status": "current" },
+      {
+        "name": "@tiptap-pro/extension-pages",
+        "version": "1.0.0-alpha.17-rc.9",
+        "status": "prerelease"
+      }
+    ],
+    "llm_providers": [
+      { "name": "@ai-sdk/anthropic", "version": "^2.0.0", "status": "current" },
+      { "name": "@ai-sdk/openai", "version": "^2.0.0", "status": "current" },
+      {
+        "name": "@anthropic-ai/sdk",
+        "version": "^0.78.0",
+        "status": "outdated"
+      },
+      {
+        "name": "@mistralai/mistralai",
+        "version": "^1.14.0",
+        "status": "current"
+      },
+      { "name": "ai", "version": "^6.0.0", "status": "current" }
+    ],
+    "mcp_sdk": [
+      {
+        "name": "@modelcontextprotocol/sdk",
+        "version": "^1.27.0",
+        "status": "current"
+      }
+    ],
+    "testing": [
+      { "name": "vitest", "version": "^4.0.18", "status": "current" },
+      { "name": "@playwright/test", "version": "^1.56.1", "status": "current" },
+      { "name": "supertest", "version": "^7.1.4", "status": "current" }
+    ],
+    "build_tools": [
+      { "name": "vite", "version": "^6.0.0", "status": "current" },
+      { "name": "eslint", "version": "^10.0.2", "status": "current" },
+      { "name": "prettier", "version": "3.8.1", "status": "current" }
+    ]
+  },
+  "configuration_analysis": {
+    "eslint": {
+      "file": "eslint.config.js",
+      "format": "flat_config",
+      "issues": [
+        "tseslint.configs.recommended is deprecated pattern, use tseslint.configs.strict or stylistic"
+      ]
+    },
+    "typescript": {
+      "target": "ES2022",
+      "module": "ESNext",
+      "strict": true,
+      "noImplicitReturns": true,
+      "noUnusedLocals": true,
+      "noUnusedParameters": true,
+      "status": "strict_compliant"
+    },
+    "vitest": {
+      "environment": "jsdom",
+      "coverage_provider": "v8",
+      "timeout": 30000,
+      "status": "properly_configured"
+    },
+    "playwright": {
+      "test_dir": "tests/e2e",
+      "fully_parallel": false,
+      "retries": 1,
+      "projects": ["chromium"],
+      "status": "basic_coverage"
+    }
+  },
+  "api_patterns_found": [
+    {
+      "pattern": "fetch with AbortController",
+      "locations": ["src/utils/file-import/extract/backend-extract.ts:265"],
+      "timeout": "45000ms",
+      "status": "correct"
+    },
+    {
+      "pattern": "axios usage",
+      "locations": ["server/agent-review.mjs:2"],
+      "status": "needs_migration_to_native_fetch"
+    },
+    {
+      "pattern": "Anthropic SDK",
+      "locations": ["server/agent-review.mjs:4"],
+      "status": "legacy_version"
+    }
+  ],
+  "error_handling_summary": {
+    "try_catch_coverage": "85%",
+    "custom_error_types": [
+      "AgentReviewValidationError",
+      "RequestValidationError"
+    ],
+    "missing_handling": [
+      {
+        "file": "server/agent-review.mjs",
+        "function": "getAnthropicClient",
+        "issue": "No error boundary for SDK initialization"
+      }
+    ]
+  },
+  "recommendations": [
+    {
+      "priority": "high",
+      "category": "dependencies",
+      "action": "Upgrade @anthropic-ai/sdk to v1.x",
+      "files_affected": ["server/agent-review.mjs", "package.json"]
+    },
+    {
+      "priority": "medium",
+      "category": "logging",
+      "action": "Replace remaining console.log with pino logger",
+      "files_affected": ["server/file-import-server.mjs"]
+    },
+    {
+      "priority": "medium",
+      "category": "security",
+      "action": "Remove hardcoded ANTIWORD_HOME fallback",
+      "files_affected": ["server/file-import-server.mjs"]
+    },
+    {
+      "priority": "low",
+      "category": "type_safety",
+      "action": "Add explicit return types to all public functions",
+      "scope": "server/*.mjs files"
+    },
+    {
+      "priority": "low",
+      "category": "testing",
+      "action": "Add Firefox and WebKit to Playwright projects",
+      "files_affected": ["playwright.config.ts"]
+    }
+  ],
+  "code_examples": {
+    "before": {
+      "file": "server/agent-review.mjs",
+      "line": 358,
+      "code": "const getAnthropicClient = () => {\n  if (anthropicClientSingleton) {\n    return anthropicClientSingleton;\n  }\n  const apiKey = process.env.ANTHROPIC_API_KEY;\n  if (!apiKey) {\n    throw new Error(\"ANTHROPIC_API_KEY غير موجود\");\n  }\n  anthropicClientSingleton = new Anthropic({ apiKey });\n  return anthropicClientSingleton;\n};"
+    },
+    "after": {
+      "file": "server/agent-review.mjs",
+      "line": 358,
+      "code": "const getAnthropicClient = () => {\n  if (anthropicClientSingleton) {\n    return anthropicClientSingleton;\n  }\n  try {\n    const apiKey = process.env.ANTHROPIC_API_KEY;\n    if (!apiKey) {\n      throw new Error(\"ANTHROPIC_API_KEY غير موجود\");\n    }\n    anthropicClientSingleton = new Anthropic({ \n      apiKey,\n      maxRetries: 2,\n      timeout: DEFAULT_TIMEOUT_MS\n    });\n    return anthropicClientSingleton;\n  } catch (error) {\n    logger.error('Failed to initialize Anthropic client', { error });\n    throw error;\n  }\n};"
+    }
+  },
+  "files_scanned_list": [
+    "package.json",
+    "tsconfig.json",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "eslint.config.js",
+    "src/App.tsx",
+    "server/file-import-server.mjs",
+    "server/agent-review.mjs",
+    "server/pdf-ocr-agent-runner.mjs",
+    "src/utils/file-import/extract/backend-extract.ts",
+    "src/utils/logger.ts",
+    "src/extensions/paste-classifier.ts",
+    "src/components/editor/EditorArea.ts"
+  ]
+}

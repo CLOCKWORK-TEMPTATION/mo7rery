@@ -165,7 +165,11 @@ async function buildAgent() {
   try {
     mcpClient = await createOcrMcpClient(config.mcpServerPath);
     mcpTools = await mcpClient.tools();
-    log("أدوات", C.cyan, `تم تحميل ${Object.keys(mcpTools).length} أداة من خادم MCP`);
+    log(
+      "أدوات",
+      C.cyan,
+      `تم تحميل ${Object.keys(mcpTools).length} أداة من خادم MCP`
+    );
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error);
     log("تحذير", C.yellow, `فشل الاتصال بخادم MCP: ${msg}`);
@@ -194,7 +198,7 @@ async function buildAgent() {
   log(
     "وكيل",
     C.green,
-    `إجمالي الأدوات: ${Object.keys(allTools).length} (${skillCount} مهارة + ${localCount} محلية + ${mcpCount} MCP)`,
+    `إجمالي الأدوات: ${Object.keys(allTools).length} (${skillCount} مهارة + ${localCount} محلية + ${mcpCount} MCP)`
   );
 
   // بناء الوكيل
@@ -208,8 +212,13 @@ async function buildAgent() {
     onStepFinish: ({ text, toolCalls }) => {
       if (toolCalls && toolCalls.length > 0) {
         for (const call of toolCalls) {
-          const callArgs = "input" in call ? (call as any).input : (call as any).args;
-          log("أداة", C.cyan, `← ${call.toolName}(${JSON.stringify(callArgs ?? {}).substring(0, 100)}...)`);
+          const callArgs =
+            "input" in call ? (call as any).input : (call as any).args;
+          log(
+            "أداة",
+            C.cyan,
+            `← ${call.toolName}(${JSON.stringify(callArgs ?? {}).substring(0, 100)}...)`
+          );
         }
       }
       if (text) {
@@ -244,7 +253,9 @@ async function main(): Promise<void> {
     // مسار ملف PDF مباشر
     const pdfPath = resolve(args[0]);
     const outputFormat = args.includes("--txt") ? "txt" : "md";
-    const outputPath = args.find((a) => a.startsWith("--output="))?.split("=")[1];
+    const outputPath = args
+      .find((a) => a.startsWith("--output="))
+      ?.split("=")[1];
 
     userPrompt = `حوّل ملف PDF التالي إلى ${outputFormat}:
 المسار: ${pdfPath}${outputPath ? `\nمسار الإخراج: ${outputPath}` : ""}
@@ -266,9 +277,9 @@ async function main(): Promise<void> {
     });
 
     // عرض النتيجة النهائية
-    console.log();
+    console.error();
     log("نتيجة", C.green, "─".repeat(50));
-    console.log(result.text);
+    console.error(result.text);
     log("نتيجة", C.green, "─".repeat(50));
 
     // إحصائيات الاستخدام
@@ -277,7 +288,11 @@ async function main(): Promise<void> {
       const input = usage["promptTokens"] ?? usage["inputTokens"] ?? 0;
       const output = usage["completionTokens"] ?? usage["outputTokens"] ?? 0;
       const total = usage["totalTokens"] ?? input + output;
-      log("إحصائيات", C.dim, `الرموز: ${input} إدخال + ${output} إخراج = ${total} إجمالي`);
+      log(
+        "إحصائيات",
+        C.dim,
+        `الرموز: ${input} إدخال + ${output} إخراج = ${total} إجمالي`
+      );
     }
     log("إحصائيات", C.dim, `الخطوات: ${result.steps?.length ?? 0}`);
   } catch (error: unknown) {

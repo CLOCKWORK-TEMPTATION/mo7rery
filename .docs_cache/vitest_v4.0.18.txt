@@ -1,0 +1,52 @@
+# Test API Reference | Vitest
+
+## Test API Reference
+
+### test
+- Alias: it
+
+test defines a set of related expectations. It receives the test name and a function that holds the expectations to test.
+
+```typescript
+import { expect, test } from 'vitest'
+test('should work as expected', () => {
+  expect(Math.sqrt(4)).toBe(2)
+})
+```
+
+### test.extend
+Use test.extend to extend the test context with custom fixtures.
+
+```typescript
+const myTest = test.extend({
+  todos: async ({ task }, use) => {
+    todos.push(1, 2, 3)
+    await use(todos)
+    todos.length = 0
+  },
+})
+```
+
+### test.skip / it.skip
+Skip running certain tests.
+
+### test.skipIf / it.skipIf
+Skip test when condition is truthy.
+
+### test.runIf / it.runIf
+Opposite of skipIf.
+
+## Best Practices from Documentation:
+1. Use test.extend for custom fixtures
+2. Use skipIf for environment-specific tests
+3. Provide timeout in options object (not as last argument)
+4. Use async/await for async tests
+5. Use concurrent for independent tests
+
+## Error Handling
+- Tests fail on promise rejection
+- Use expect().rejects for error assertions
+- Set appropriate timeouts for slow tests
+
+## Version: Vitest 4.x
+Source: https://vitest.dev/api

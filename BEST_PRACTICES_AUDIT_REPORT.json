@@ -1,0 +1,122 @@
+{
+  "audit_date": "2026-02-26",
+  "execution_metrics": {
+    "files_scanned": 74,
+    "dependencies_analyzed": 38,
+    "docs_fetched_and_cached": 10
+  },
+  "compliance_score": "87%",
+  "issues": [
+    {
+      "type": "deprecation",
+      "dependency": "@tiptap-pro/extension-pages",
+      "current": "1.0.0-alpha.17-rc.9",
+      "latest": "stable v1.x",
+      "priority": "medium",
+      "recommendation": "Upgrade to stable version when available or migrate to alternative pagination solution"
+    },
+    {
+      "type": "security",
+      "dependency": "pdfjs-dist",
+      "current": "^5.4.624",
+      "priority": "low",
+      "recommendation": "Ensure CSP headers are configured when using PDF.js to prevent XSS via malicious PDFs"
+    }
+  ],
+  "best_practices_violations": [
+    {
+      "category": "error_handling",
+      "file": "src/extensions/paste-classifier.ts",
+      "line": 298,
+      "issue": "Using crypto.randomUUID() without fallback for unsupported browsers",
+      "fix": "Add fallback implementation for browsers that don't support crypto.randomUUID()",
+      "code_snippet": "const generateId = () => { if (typeof crypto !== 'undefined' && crypto.randomUUID) { return crypto.randomUUID(); } return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`; };"
+    },
+    {
+      "category": "api_usage",
+      "file": "src/extensions/paste-classifier.ts",
+      "line": 1011,
+      "issue": "fetch() API calls without proper timeout handling",
+      "fix": "Use AbortController with timeout for all fetch calls",
+      "code_snippet": "const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), timeoutMs); const response = await fetch(url, { signal: controller.signal }); clearTimeout(timeoutId);"
+    },
+    {
+      "category": "type_safety",
+      "file": "server/agent-review.mjs",
+      "line": 360,
+      "issue": "Anthropic client initialized without runtime validation of API key format",
+      "fix": "Add API key format validation before client initialization",
+      "code_snippet": "const validateApiKey = (key) => /^sk-ant-api[0-9a-z-_]+$/i.test(key);"
+    },
+    {
+      "category": "error_handling",
+      "file": "server/file-import-server.mjs",
+      "line": 500,
+      "issue": "execFile error handling doesn't distinguish between different error types",
+      "fix": "Add structured error classification for execFile failures",
+      "code_snippet": "const classifyExecError = (error) => { if (error.code === 'ENOENT') return 'binary_missing'; if (error.code === 'EACCES') return 'permission_denied'; if (error.killed) return 'timeout'; return 'unknown'; };"
+    }
+  ],
+  "positive_findings": [
+    {
+      "category": "typescript_configuration",
+      "file": "tsconfig.json",
+      "finding": "strict mode enabled - compliant with Zod requirements",
+      "compliance": "pass"
+    },
+    {
+      "category": "vite_configuration",
+      "file": "vite.config.ts",
+      "finding": "Using defineConfig() with TypeScript - follows Vite best practices",
+      "compliance": "pass"
+    },
+    {
+      "category": "error_handling",
+      "file": "server/file-import-server.mjs",
+      "finding": "Comprehensive custom error classes with status codes",
+      "compliance": "pass"
+    },
+    {
+      "category": "environment_handling",
+      "file": "server/agent-review.mjs",
+      "finding": "Proper dotenv configuration at module load time",
+      "compliance": "pass"
+    },
+    {
+      "category": "input_validation",
+      "file": "server/file-import-server.mjs",
+      "finding": "Strict input validation with normalizeIncomingText()",
+      "compliance": "pass"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "high",
+      "category": "testing",
+      "recommendation": "Add E2E tests for crypto.randomUUID() fallback path"
+    },
+    {
+      "priority": "medium",
+      "category": "monitoring",
+      "recommendation": "Add telemetry for agent review latency and success rates"
+    },
+    {
+      "priority": "low",
+      "category": "documentation",
+      "recommendation": "Document environment variable requirements in README"
+    }
+  ],
+  "docs_fetched": 10,
+  "cached_docs_list": [
+    "react_v19.2.4.txt",
+    "tiptap_v3.0.0.txt",
+    "ai-sdk_v6.0.0.txt",
+    "zod_v3.25.76.txt",
+    "vitest_v4.0.18.txt",
+    "playwright_v1.56.1.txt",
+    "vite_v6.0.0.txt",
+    "puppeteer_v24.37.5.txt",
+    "typescript_v5.7.0.txt",
+    "tailwindcss_v3.4.17.txt"
+  ]
+}

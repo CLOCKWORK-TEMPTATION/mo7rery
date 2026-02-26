@@ -15,6 +15,7 @@ const txtFixture = resolve(
   "tests/fixtures/sample-screenplay-full-scene.txt"
 );
 const docxFixture = resolve(process.cwd(), "tests/fixtures/sample.docx");
+const docFixture = resolve(process.cwd(), "tests/fixtures/sample.doc");
 
 describe("file-import-server integration", () => {
   let harness: BackendServerHarness | null = null;
@@ -66,13 +67,56 @@ describe("file-import-server integration", () => {
         .timeout(25_000)
         .attach("file", docxFixture);
 
-      expect([200, 500]).toContain(response.status);
+      expect([200, 422, 500, 504]).toContain(response.status);
       if (response.status === 200) {
         expect(response.body?.success).toBe(true);
         expect((response.body?.data?.text as string).length).toBeGreaterThan(0);
       }
     }
   );
+
+  it("classifies antiword runtime errors with typed category", async () => {
+    logTestStep("server-import-doc-error-classification");
+    if (!existsSync(docFixture)) {
+      return;
+    }
+
+    harness = await startBackendServerHarness(randomPort(), {
+      env: {
+        MISTRAL_API_KEY: "",
+        ANTIWORD_PATH: "__missing_antiword_binary__",
+      },
+    });
+
+    const response = await request(harness.baseUrl)
+      .post("/api/file-extract")
+      .attach("file", docFixture);
+
+    expect(response.status).toBe(422);
+    expect(response.body?.success).toBe(false);
+    expect(typeof response.body?.classifiedError?.category).toBe("string");
+  });
+
+  it("classifies non-zero exit errors from antiword runtime", async () => {
+    logTestStep("server-import-doc-non-zero-exit");
+    if (!existsSync(docFixture)) {
+      return;
+    }
+
+    harness = await startBackendServerHarness(randomPort(), {
+      env: {
+        MISTRAL_API_KEY: "",
+        ANTIWORD_PATH: process.execPath,
+      },
+    });
+
+    const response = await request(harness.baseUrl)
+      .post("/api/file-extract")
+      .attach("file", docFixture);
+
+    expect(response.status).toBe(422);
+    expect(response.body?.classifiedError?.category).toBe("non-zero-exit");
+  });
 
   it("rejects unsupported file extensions", async () => {
     logTestStep("server-import-unsupported");

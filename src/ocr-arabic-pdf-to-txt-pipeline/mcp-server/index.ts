@@ -10,7 +10,11 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-import { PDFToTextConverter, ConfigManager, NormalizationOptions } from "./ncio_mistral_all_in_one.js";
+import {
+  PDFToTextConverter,
+  ConfigManager,
+  NormalizationOptions,
+} from "./ncio_mistral_all_in_one.js";
 
 const server = new Server(
   {
@@ -34,7 +38,8 @@ const convertDocumentInputSchema = {
     },
     outputPath: {
       type: "string",
-      description: "Optional absolute path to save the output markdown. If not provided, it will be saved next to the input file.",
+      description:
+        "Optional absolute path to save the output markdown. If not provided, it will be saved next to the input file.",
     },
     normalizeOutput: {
       type: "boolean",
@@ -103,7 +108,8 @@ const convertDocumentInputSchema = {
         },
         fixConnectedLetters: {
           type: "boolean",
-          description: "Fix Arabic Presentation Forms to standard letters (default: true)",
+          description:
+            "Fix Arabic Presentation Forms to standard letters (default: true)",
           default: true,
         },
         fixArabicPunctuation: {
@@ -127,7 +133,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "convert_document_to_markdown",
-        description: "Converts a PDF document to Markdown using Mistral OCR with optional LLM refinement and normalization.",
+        description:
+          "Converts a PDF document to Markdown using Mistral OCR with optional LLM refinement and normalization.",
         inputSchema: convertDocumentInputSchema,
       },
     ],
@@ -136,7 +143,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (request.params.name !== "convert_document_to_markdown") {
-    throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
+    throw new McpError(
+      ErrorCode.MethodNotFound,
+      `Unknown tool: ${request.params.name}`
+    );
   }
 
   const args = request.params.arguments as {
@@ -199,7 +209,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       enabled: true,
       lang: "ar",
       matchThreshold: 0.88,
-      fullpageFallbackRatio: 0.70,
+      fullpageFallbackRatio: 0.7,
       regionPaddingPx: 12,
     },
   };
@@ -207,21 +217,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     const converter = new PDFToTextConverter(config);
     const { finalMarkdown } = await converter.convert();
-    
+
     // Attempt to save to outputPath if specified, or generate a default one
     let savedPath = "Not saved (in-memory only)";
     let successMsg = "Document converted successfully.";
-    
+
     try {
-        const outPath = converter.resolveOutputPath();
-        const nonOverwritingPath = await converter.getNonOverwritingPath(outPath);
-        const { writeFile } = await import("node:fs/promises");
-        await writeFile(nonOverwritingPath, finalMarkdown, "utf-8");
-        savedPath = nonOverwritingPath;
-        successMsg += ` Saved to ${savedPath}`;
+      const outPath = converter.resolveOutputPath();
+      const nonOverwritingPath = await converter.getNonOverwritingPath(outPath);
+      const { writeFile } = await import("node:fs/promises");
+      await writeFile(nonOverwritingPath, finalMarkdown, "utf-8");
+      savedPath = nonOverwritingPath;
+      successMsg += ` Saved to ${savedPath}`;
     } catch (fsError) {
-        console.error("Failed to write to file:", fsError);
-        successMsg += ` Note: Failed to write to file: ${fsError}`;
+      console.error("Failed to write to file:", fsError);
+      successMsg += ` Note: Failed to write to file: ${fsError}`;
     }
 
     return {

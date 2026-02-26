@@ -1,0 +1,43 @@
+# API Reference | Puppeteer
+
+## Classes
+
+### Browser
+Browser represents a browser instance that is either:
+- connected to via Puppeteer.connect() or
+- launched by PuppeteerNode.launch()
+
+### BrowserContext
+BrowserContext represents individual user contexts within a browser. Each context has isolated storage (cookies/localStorage/etc.)
+
+### Page
+Page provides methods to interact with a single tab or extension background page in the browser.
+
+### ElementHandle
+ElementHandle represents an in-page DOM element.
+
+```typescript
+const browser = await puppeteer.launch();
+const page = await browser.newPage();
+await page.goto('https://example.com');
+const hrefElement = await page.$('a');
+await hrefElement.click();
+```
+
+### CDPSession
+The CDPSession instances are used to talk raw Chrome Devtools Protocol.
+
+## Best Practices from Documentation:
+1. Always close browser instances: `await browser.close()`
+2. ElementHandles are auto-disposed when frame navigates
+3. Use specific locators instead of generic selectors
+4. Handle BrowserContext for isolated sessions
+5. Use CDPSession for advanced Chrome DevTools Protocol features
+
+## Error Handling
+- ConnectionClosedError: Thrown if underlying protocol connection has been closed
+- TimeoutError: For wait operations timing out
+- Always wrap browser operations in try-finally
+
+## Version: Puppeteer 24.37.x
+Source: https://pptr.dev/api

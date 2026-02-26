@@ -1,0 +1,49 @@
+# Playwright Library | Playwright
+
+Playwright module provides a method to launch a browser instance.
+
+## Properties
+
+### chromium
+This object can be used to launch or connect to Chromium, returning instances of Browser.
+
+### firefox
+This object can be used to launch or connect to Firefox.
+
+### webkit
+This object can be used to launch or connect to WebKit.
+
+### devices
+Returns a dictionary of devices to be used with browser.newContext() or browser.newPage().
+
+### errors
+Playwright methods might throw errors if they are unable to fulfill a request.
+
+```typescript
+try {
+  await page.locator('.foo').waitFor();
+} catch (e) {
+  if (e instanceof playwright.errors.TimeoutError) {
+    // Handle timeout
+  }
+}
+```
+
+### request
+Exposes API that can be used for the Web API testing.
+
+## Best Practices from Documentation:
+1. Use specific locators (getByRole, getByText) instead of CSS selectors
+2. Handle TimeoutError for async operations
+3. Use devices for mobile emulation
+4. Close browser instances after tests
+5. Use request for API testing
+
+## Error Handling
+- Playwright methods throw errors on failure
+- Specific error classes available via playwright.errors
+- Always handle TimeoutError for wait operations
+- Use try-catch for error assertions
+
+## Version: Playwright 1.56.x
+Source: https://playwright.dev/docs/api/class-playwright
