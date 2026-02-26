@@ -135,7 +135,7 @@ coverage/
 .svelte-kit
 build/
   
-# Remeber to remove clear and report command
+# Remember to remove clear and report command
 .idea/
 .vscode/
 
@@ -179,6 +179,49 @@ coverage/
 # Development tool directories
 .github/
 .uix/
+.vscode/
+
+# Ignore all files in the .tools directory
+.tools/*
+
+# Ignore all files in the .cache directory
+.cache/
+
+# Ignore all files in the .uix directory
+.uix/*
+
+# Ignore all files in the .vscode directory
+.vscode/*
+
+# Ignore all files in the .agents directory
+.agents/*
+
+# Ignore all files in the .claude directory
+.claude/*
+
+# Ignore all files in the .codex directory
+.codex/*
+
+# Ignore all files in the .windsurf directory
+.windsurf/*
+
+# Ignore all files in the test-results directory
+test-results/*
+
+# Ignore all files in the playwright-report directory
+playwright-report/*
+
+# Ignore all files in the coverage directory
+coverage/*
+
+# Ignore all files in the .nyc_output directory
+.nyc_output/*
 
 # Build outputs
 dist/
+
+# Ignore all files in the .next directory
+.next/
+
+# Ignore all files in the node_modules directory
+node_modules/
