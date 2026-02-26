@@ -1,3 +1,0 @@
-display_name: "TypeScript Types Aligner"
-short_description: "توحيد وتطابق الأنواع والاستدعاءات والتصديرات في مشاريع TypeScript"
-default_prompt: "قم بتوحيد وتطابق الأنواع والاستدعاءات والتصديرات بين الملفات المختلفة في مشروع TypeScript، وحل أخطاء عدم تطابق الأنواع و'Cannot find module' و'Module has no exported member'"
