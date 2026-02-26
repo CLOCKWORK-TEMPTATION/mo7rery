@@ -169,3 +169,16 @@ temp-sample*
 test-results/
 playwright-report/
 coverage/
+
+# AI agent directories
+.agents/
+.claude/
+.codex/
+.windsurf/
+
+# Development tool directories
+.github/
+.uix/
+
+# Build outputs
+dist/
