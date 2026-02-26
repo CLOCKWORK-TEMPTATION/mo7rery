@@ -164,3 +164,8 @@ vitest.pipeline.config.ts.timestamp-*
 
 # Temp sample files
 temp-sample*
+
+# Test artifacts
+test-results/
+playwright-report/
+coverage/

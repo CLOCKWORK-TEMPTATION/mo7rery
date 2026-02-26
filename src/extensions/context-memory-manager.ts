@@ -335,6 +335,39 @@ export class ContextMemoryManager {
     };
   }
 
+  /**
+   * إعادة تعيين ذاكرة السياق — جلسة محددة أو جميع الجلسات.
+   */
+  reset(sessionId?: string): void {
+    if (sessionId) {
+      this.storage.delete(sessionId);
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.removeItem(`screenplay-memory-${sessionId}`);
+        } catch {
+          // ignore storage failures in reset
+        }
+      }
+      return;
+    }
+
+    this.storage.clear();
+    this.runtimeRecords = [];
+
+    if (typeof window !== "undefined") {
+      try {
+        const keys = Object.keys(window.localStorage);
+        for (const key of keys) {
+          if (key.startsWith("screenplay-memory-")) {
+            window.localStorage.removeItem(key);
+          }
+        }
+      } catch {
+        // ignore storage failures in reset
+      }
+    }
+  }
+
   private applyRuntimeRecord(
     entry: ClassifiedDraft,
     memory: EnhancedContextMemory

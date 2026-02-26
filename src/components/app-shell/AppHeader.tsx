@@ -35,8 +35,14 @@ export function AppHeader({
   brandGradient,
   onlineDotColor,
 }: AppHeaderProps): React.JSX.Element {
+  const toTestId = (value: string): string =>
+    value.trim().toLowerCase().replace(/\s+/g, "-");
+
   return (
-    <header className="app-header bg-[var(--card)]/80 relative z-40 flex h-[60px] flex-shrink-0 items-center justify-between px-7 backdrop-blur-2xl">
+    <header
+      className="app-header bg-[var(--card)]/80 relative z-40 flex h-[60px] flex-shrink-0 items-center justify-between px-7 backdrop-blur-2xl"
+      data-testid="app-header"
+    >
       <div className="flex items-center gap-3">
         <HoverBorderGradient
           as="div"
@@ -79,6 +85,7 @@ export function AppHeader({
                     : "bg-transparent text-neutral-400 hover:bg-neutral-900 hover:text-white group-hover:text-white"
                 }`}
                 onClick={() => onToggleMenu(section.label)}
+                data-testid={`menu-section-${toTestId(section.label)}`}
               >
                 {section.label}
               </button>
@@ -90,6 +97,7 @@ export function AppHeader({
                       key={`${section.label}-${item.label}`}
                       disabled={item.disabled}
                       onClick={() => onAction(item.actionId)}
+                      data-testid={`menu-action-${item.actionId}`}
                       className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-right text-[13px] transition-colors ${
                         item.disabled
                           ? "cursor-not-allowed text-neutral-600"

@@ -47,7 +47,10 @@ export function AppSidebar({
     );
 
   return (
-    <aside className="app-sidebar hidden w-72 flex-col p-6 lg:flex">
+    <aside
+      className="app-sidebar hidden w-72 flex-col p-6 lg:flex"
+      data-testid="app-sidebar"
+    >
       <HoverBorderGradient
         as="div"
         duration={1}
@@ -71,6 +74,7 @@ export function AppSidebar({
               placeholder="بحث..."
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
+              data-testid="sidebar-search"
               className="w-full border-none bg-transparent text-[13px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
             />
             <kbd className="hidden rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-400 group-hover:block">

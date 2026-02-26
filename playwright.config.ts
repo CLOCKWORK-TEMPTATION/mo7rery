@@ -2,17 +2,27 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  timeout: 120_000,
-  retries: 0,
+  testMatch: "**/*.e2e.test.ts",
+  fullyParallel: false,
+  retries: 1,
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
+  reporter: [
+    ["html", { outputFolder: "./test-results/playwright-report" }],
+    ["list"],
+  ],
+  outputDir: "./test-results/playwright-artifacts",
   use: {
-    baseURL: "http://127.0.0.1:3000",
-    trace: "retain-on-failure",
+    baseURL: "http://localhost:5174",
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
   },
   webServer: {
     command: "node scripts/run-vite-e2e.mjs",
-    url: "http://127.0.0.1:3000",
-    reuseExistingServer: true,
-    timeout: 120_000,
+    port: 5174,
+    reuseExistingServer: !process.env.CI,
+    timeout: 30_000,
   },
   projects: [
     {

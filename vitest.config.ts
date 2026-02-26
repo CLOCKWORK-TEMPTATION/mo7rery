@@ -4,8 +4,14 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     globals: true,
-    environment: "node",
-    include: ["tests/integration/**/*.integration.test.ts"],
+    environment: "jsdom",
+    environmentMatchGlobs: [
+      ["tests/harness/**", "node"],
+      ["tests/integration/server/**", "node"],
+      ["tests/unit/server/**", "node"],
+      ["tests/integration/pdf-ocr-agent.integration.test.ts", "node"],
+    ],
+    include: ["tests/**/*.test.ts"],
     exclude: ["tests/e2e/**"],
     testTimeout: 30_000,
     hookTimeout: 15_000,
@@ -16,10 +22,9 @@ export default defineConfig({
     },
     coverage: {
       provider: "v8",
-      include: ["src/extensions/**", "src/pipeline/**", "server/**"],
-      exclude: ["**/*.d.ts", "**/*.test.ts", "node_modules/**"],
       reporter: ["text", "html", "json-summary"],
       reportsDirectory: "./test-results/coverage",
+      exclude: ["tests/**", "node_modules/**", "**/*.d.ts"],
     },
   },
   resolve: {

@@ -1378,6 +1378,7 @@ export function App(): React.JSX.Element {
     <div
       className="app-root selection:bg-[var(--brand)]/30 flex h-screen flex-col overflow-hidden bg-[var(--background)] font-['Cairo'] text-[var(--foreground)]"
       dir="rtl"
+      data-testid="app-root"
     >
       <BackgroundGrid />
 
@@ -1424,6 +1425,7 @@ export function App(): React.JSX.Element {
               <div
                 ref={editorMountRef}
                 className="editor-area app-editor-host"
+                data-testid="editor-area"
               />
             </div>
           </div>
