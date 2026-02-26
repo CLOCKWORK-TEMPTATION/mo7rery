@@ -141,17 +141,29 @@ src/
 | ----------- | ----------- | --------------------------------- |
 | PDF         | `.pdf`      | Backend (OCR اختياري عبر Mistral) |
 | Word        | `.doc`      | Backend                           |
-| نص عادي     | `.txt`      | Browser (FileReader)              |
-| Fountain    | `.fountain` | Browser                           |
-| Final Draft | `.fdx`      | Browser (XML)                     |
+| Word حديث   | `.docx`     | Backend                           |
+| نص عادي     | `.txt`      | Backend                           |
+| Fountain    | `.fountain` | Backend                           |
+| Final Draft | `.fdx`      | Backend                           |
 
 ### خط الأنابيب
 
 ```
-اختيار الملف → استخراج النص → معالجة مسبقة → تصنيف → نموذج المستند → إدراج في المحرر
+اختيار الملف → استخراج النص (Backend-only strict) → معالجة مسبقة → تصنيف → نموذج المستند → إدراج في المحرر
 ```
 
 المعالج المسبق يُطبّق تطبيعاً خاصاً بنوع الملف: إزالة أرقام الصفحات من PDF، توحيد أحرف الأسطر.
+
+### متغيرات البيئة لمسار PDF OCR Agent
+
+| المتغير                         | الوصف                                                      | الافتراضي    |
+| ------------------------------- | ---------------------------------------------------------- | ------------ |
+| `PDF_OCR_AGENT_ENABLED`         | تفعيل/تعطيل مسار وكيل PDF OCR                              | `true`       |
+| `PDF_OCR_AGENT_ROOT`            | مسار جذر حزمة الوكيل `ocr-arabic-pdf-to-txt`               | داخل المشروع |
+| `PDF_OCR_AGENT_OCR_SCRIPT_PATH` | مسار سكربت OCR الفعلي (`src/skill-scripts/ocr-mistral.ts`) | داخل الحزمة  |
+| `PDF_OCR_AGENT_TIMEOUT_MS`      | مهلة تنفيذ OCR بالمللي ثانية                               | `600000`     |
+| `PDF_OCR_AGENT_PAGES`           | نطاق الصفحات (`all` أو `0-9` أو `0,2,5`)                   | `all`        |
+| `MISTRAL_API_KEY`               | مفتاح OCR الإلزامي لمسار PDF                               | —            |
 
 ---
 

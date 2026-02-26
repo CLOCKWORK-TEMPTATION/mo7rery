@@ -2,7 +2,7 @@
  * @module types/file-import
  * @description أنماط استيراد الملفات — تُعرّف الأنواع المدعومة وطرق الاستخراج ونتائج العملية
  *
- * يدعم التطبيق 5 صيغ ملفات من واجهة الفتح: doc, docx, txt, fountain, fdx
+ * يدعم التطبيق 6 صيغ ملفات من واجهة الفتح: pdf, doc, docx, txt, fountain, fdx
  * ويستخدم عدة طرق استخراج مختلفة حسب نوع الملف وبيئة التشغيل.
  *
  * @see utils/file-import/ — خط أنابيب الاستيراد الكامل
@@ -19,6 +19,7 @@ export type FileImportMode = "replace" | "insert";
 
 /**
  * نوع الملف المستورد — الصيغ المدعومة داخل طبقة الاستخراج
+ * - `pdf` — Portable Document Format (.pdf)
  * - `doc` — Microsoft Word القديم (.doc)
  * - `docx` — Microsoft Word الحديث (.docx)
  * - `txt` — نص عادي (.txt)
@@ -26,6 +27,7 @@ export type FileImportMode = "replace" | "insert";
  * - `fdx` — Final Draft XML (.fdx)
  */
 export type ImportedFileType =
+  | "pdf"
   | "doc"
   | "docx"
   | "txt"
@@ -111,7 +113,7 @@ export interface FileExtractionResponse {
  * ```
  */
 export const ACCEPTED_FILE_EXTENSIONS =
-  ".doc,.docx,.txt,.fountain,.fdx" as const;
+  ".pdf,.doc,.docx,.txt,.fountain,.fdx" as const;
 
 /**
  * استخراج نوع الملف من اسمه — يُعيد `null` إذا كان الامتداد غير مدعوم
@@ -128,6 +130,8 @@ export const ACCEPTED_FILE_EXTENSIONS =
 export function getFileType(filename: string): ImportedFileType | null {
   const ext = filename.toLowerCase().split(".").pop();
   switch (ext) {
+    case "pdf":
+      return "pdf";
     case "doc":
       return "doc";
     case "docx":

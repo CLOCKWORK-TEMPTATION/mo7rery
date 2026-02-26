@@ -8,6 +8,10 @@ export interface BackendServerHarness {
   stop: () => Promise<void>;
 }
 
+export interface BackendServerHarnessOptions {
+  env?: Record<string, string | undefined>;
+}
+
 const wait = (ms: number): Promise<void> =>
   new Promise((resolveWait) => {
     setTimeout(resolveWait, ms);
@@ -33,7 +37,8 @@ const waitForHealth = async (
 };
 
 export const startBackendServerHarness = async (
-  port: number
+  port: number,
+  options: BackendServerHarnessOptions = {}
 ): Promise<BackendServerHarness> => {
   const processRef = spawn("node", ["server/file-import-server.mjs"], {
     cwd: resolve(process.cwd()),
@@ -41,6 +46,7 @@ export const startBackendServerHarness = async (
       ...process.env,
       FILE_IMPORT_HOST: "127.0.0.1",
       FILE_IMPORT_PORT: String(port),
+      ...options.env,
     },
     stdio: "pipe",
   });
@@ -85,6 +91,7 @@ export interface BackendHealthPayload {
   antiwordBinaryAvailable: boolean;
   antiwordHomeExists: boolean;
   agentReviewConfigured: boolean;
+  ocrConfigured?: boolean;
 }
 
 export const readBackendHealth = async (

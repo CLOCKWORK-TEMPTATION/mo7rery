@@ -14,6 +14,8 @@ import {
   requestAnthropicReview,
   validateAgentReviewRequestBody,
 } from "./agent-review.mjs";
+import { getPdfOcrAgentHealth } from "./pdf-ocr-agent-config.mjs";
+import { runPdfOcrAgent } from "./pdf-ocr-agent-runner.mjs";
 
 loadEnv();
 
@@ -31,6 +33,7 @@ const DOCX_TO_DOC_SCRIPT_PATH = fileURLToPath(
 );
 
 const SUPPORTED_EXTENSIONS = new Set([
+  "pdf",
   "txt",
   "fountain",
   "fdx",
@@ -40,6 +43,7 @@ const SUPPORTED_EXTENSIONS = new Set([
 const SUPPORTED_EXTRACTION_METHODS = new Set([
   "native-text",
   "doc-converter-flow",
+  "ocr-mistral",
   "backend-api",
   "app-payload",
 ]);
@@ -679,6 +683,10 @@ const decodeUtf8Fallback = (buffer) => {
 };
 
 const extractByType = async (buffer, extension, filename) => {
+  if (extension === "pdf") {
+    return runPdfOcrAgent({ buffer, filename });
+  }
+
   if (extension === "txt" || extension === "fountain" || extension === "fdx") {
     return {
       text: normalizeText(decodeUtf8Fallback(buffer)),
@@ -792,6 +800,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/health") {
+    const ocrAgent = getPdfOcrAgentHealth();
     sendJson(res, 200, {
       ok: true,
       service: "file-import-backend",
@@ -801,6 +810,8 @@ const server = http.createServer(async (req, res) => {
       antiwordHomeExists: ANTIWORD_PREFLIGHT.antiwordHomeExists,
       antiwordWarnings: ANTIWORD_PREFLIGHT.warnings,
       agentReviewConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
+      ocrConfigured: ocrAgent.configured,
+      ocrAgent,
       reviewModel: getAnthropicReviewModel(),
     });
     return;

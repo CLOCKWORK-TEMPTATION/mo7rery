@@ -38,12 +38,16 @@ describe("backend extract transport", () => {
       RequestInit | undefined,
     ];
     expect(url).toBe("http://127.0.0.1:8787/api/file-extract");
-    expect(requestInit?.headers).toEqual({ "Content-Type": "application/json" });
+    expect(requestInit?.headers).toEqual({
+      "Content-Type": "application/json",
+    });
     expect(typeof requestInit?.body).toBe("string");
   });
 
   it("raises connectivity error when backend is unreachable", async () => {
-    const fetchMock = vi.fn().mockRejectedValue(new TypeError("network failed"));
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValue(new TypeError("network failed"));
     vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
 
     const file = new File(["doc-content"], "sample.doc", {

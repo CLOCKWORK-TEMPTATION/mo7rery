@@ -40,6 +40,23 @@ function Get-BackendHealth {
   }
 }
 
+function Test-IsLegacyWordDoc {
+  param([byte[]]$Bytes)
+
+  if (-not $Bytes -or $Bytes.Length -lt 8) {
+    return $false
+  }
+
+  $oleSignature = @(0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1)
+  for ($index = 0; $index -lt $oleSignature.Length; $index++) {
+    if ([int]$Bytes[$index] -ne $oleSignature[$index]) {
+      return $false
+    }
+  }
+
+  return $true
+}
+
 $health = Get-BackendHealth -url $healthUrl
 $ocrConfigured = $false
 $antiwordReady = $false
@@ -86,6 +103,13 @@ foreach ($spec in $fixtureSpecs) {
   }
 
   $bytes = [System.IO.File]::ReadAllBytes($fixturePath)
+
+  if ($extension -eq "doc" -and -not (Test-IsLegacyWordDoc -Bytes $bytes)) {
+    Write-Warning ("[SKIP] {0} -> fixture is not a binary .doc file." -f $name)
+    $skipped++
+    continue
+  }
+
   $base64 = [System.Convert]::ToBase64String($bytes)
 
   $payload = @{

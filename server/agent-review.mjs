@@ -47,6 +47,14 @@ const normalizeIncomingText = (value, maxLength = 50_000) => {
   return value.trim().slice(0, maxLength);
 };
 
+const resolveAgentReviewMockMode = () => {
+  const value = normalizeIncomingText(process.env.AGENT_REVIEW_MOCK_MODE, 32)
+    .toLowerCase()
+    .trim();
+  if (value === "success" || value === "error") return value;
+  return null;
+};
+
 // ─────────────────────────────────────────────────────────
 // أخطاء التحقق
 // ─────────────────────────────────────────────────────────
@@ -802,6 +810,47 @@ const uniqueSortedStrings = (values) =>
     ...new Set((values ?? []).filter((value) => isNonEmptyString(value))),
   ].sort();
 
+const chooseMockRelabelType = (assignedType) =>
+  assignedType === "action" ? "dialogue" : "action";
+
+const buildMockReviewCommands = (request) => {
+  const suspiciousByItemId = new Map();
+
+  for (const line of request.suspiciousLines) {
+    if (!isObjectRecord(line)) continue;
+    const normalizedItemId = isNonEmptyString(line.itemId)
+      ? line.itemId
+      : isIntegerNumber(line.itemIndex)
+        ? `item-${line.itemIndex}`
+        : "";
+    if (!normalizedItemId) continue;
+    suspiciousByItemId.set(normalizedItemId, line);
+  }
+
+  const forcedIds = new Set(request.forcedItemIds);
+
+  return request.requiredItemIds
+    .map((itemId) => {
+      const sourceLine = suspiciousByItemId.get(itemId);
+      if (!sourceLine) return null;
+
+      const shouldRelabel =
+        forcedIds.has(itemId) || sourceLine.routingBand === "agent-forced";
+      const newType = shouldRelabel
+        ? chooseMockRelabelType(sourceLine.assignedType)
+        : sourceLine.assignedType;
+
+      return {
+        op: "relabel",
+        itemId,
+        newType,
+        confidence: 0.99,
+        reason: "أمر محاكاة لاختبارات التكامل وE2E.",
+      };
+    })
+    .filter((command) => command !== null);
+};
+
 /**
  * تطبيع الأوامر ضد الطلب (API v2)
  * إزالة الأوامر لـ itemIds غير موجودة
@@ -961,6 +1010,33 @@ export const reviewSuspiciousLinesWithClaude = async (request) => {
   const startedAt = Date.now();
   const requestId = randomUUID();
   const emptyMeta = buildReviewCoverageMeta(request, []);
+  const mockMode = resolveAgentReviewMockMode();
+
+  if (mockMode === "error") {
+    return {
+      status: "error",
+      model: MODEL_ID,
+      apiVersion: AGENT_API_VERSION,
+      mode: AGENT_API_MODE,
+      importOpId: request.importOpId,
+      requestId,
+      commands: [],
+      message: "AGENT_REVIEW_MOCK_MODE=error",
+      latencyMs: Date.now() - startedAt,
+      meta: emptyMeta,
+    };
+  }
+
+  if (mockMode === "success") {
+    const commands = buildMockReviewCommands(request);
+    return createReviewResponseWithCoverage(
+      request,
+      commands,
+      startedAt,
+      `تمت محاكاة ${commands.length} أمر للمراجعة.`,
+      requestId
+    );
+  }
 
   if (!process.env.ANTHROPIC_API_KEY) {
     const hasUnresolvedForced = emptyMeta.unresolvedForcedItemIds.length > 0;

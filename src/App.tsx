@@ -897,7 +897,8 @@ export function App(): React.JSX.Element {
           filename: file.name,
           mode,
           strategy: "backend-only-strict",
-          pipeline: "frontend-open->backend-extract->backend-agent-review->editor-apply",
+          pipeline:
+            "frontend-open->backend-extract->backend-agent-review->editor-apply",
         },
       });
 

@@ -75,10 +75,12 @@ describe("backend /api/file-extract contract", () => {
       antiwordBinaryAvailable?: unknown;
       antiwordHomeExists?: unknown;
       agentReviewConfigured?: unknown;
+      ocrConfigured?: unknown;
     };
 
     expect(typeof health.antiwordBinaryAvailable).toBe("boolean");
     expect(typeof health.antiwordHomeExists).toBe("boolean");
     expect(typeof health.agentReviewConfigured).toBe("boolean");
+    expect(typeof health.ocrConfigured).toBe("boolean");
   });
 });

@@ -18,14 +18,16 @@ describe("extractImportedFile backend-only strict", () => {
     doubles.extractFileWithBackend.mockReset();
 
     doubles.isBackendExtractionConfigured.mockReturnValue(true);
-    doubles.extractFileWithBackend.mockImplementation(async (_file, fileType) => ({
-      text: "سطر اختبار",
-      fileType,
-      method: "backend-api",
-      usedOcr: false,
-      warnings: [],
-      attempts: ["backend-api"],
-    }));
+    doubles.extractFileWithBackend.mockImplementation(
+      async (_file, fileType) => ({
+        text: "سطر اختبار",
+        fileType,
+        method: "backend-api",
+        usedOcr: false,
+        warnings: [],
+        attempts: ["backend-api"],
+      })
+    );
   });
 
   it("fails fast when backend endpoint is not configured", async () => {
@@ -39,6 +41,7 @@ describe("extractImportedFile backend-only strict", () => {
   });
 
   it.each([
+    ["sample.pdf", "pdf"],
     ["sample.doc", "doc"],
     ["sample.docx", "docx"],
     ["sample.txt", "txt"],

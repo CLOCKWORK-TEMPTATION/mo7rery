@@ -8,7 +8,15 @@ import reactRefresh from "eslint-plugin-react-refresh";
 export default tseslint.config(
   {
     // تجاهل المجلدات والملفات التي لا تتطلب فحص المنطق
-    ignores: ["dist", "build", "node_modules", "coverage", "scripts", ".tools"],
+    ignores: [
+      "dist",
+      "build",
+      "node_modules",
+      "coverage",
+      "scripts",
+      ".tools",
+      "ocr-arabic-pdf-to-txt",
+    ],
   },
   {
     // تطبيق الإعدادات القياسية لـ JavaScript و TypeScript

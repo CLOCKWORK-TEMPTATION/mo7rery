@@ -1,1 +1,1 @@
-export * from './insert-menu-controller';
+export * from "./insert-menu-controller";

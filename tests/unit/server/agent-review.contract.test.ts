@@ -116,4 +116,51 @@ describe("agent-review contract", () => {
       }
     }
   });
+
+  it("returns deterministic applied commands when mock mode is enabled", async () => {
+    const { reviewSuspiciousLinesWithClaude, validateAgentReviewRequestBody } =
+      await import("../../../server/agent-review.mjs");
+
+    const previousKey = process.env.ANTHROPIC_API_KEY;
+    const previousMockMode = process.env.AGENT_REVIEW_MOCK_MODE;
+    delete process.env.ANTHROPIC_API_KEY;
+    process.env.AGENT_REVIEW_MOCK_MODE = "success";
+
+    try {
+      const requestPayload = validateAgentReviewRequestBody({
+        sessionId: "s-5",
+        importOpId: "op-5",
+        totalReviewed: 2,
+        suspiciousLines: [
+          createSuspiciousLine(0, "agent-candidate"),
+          createSuspiciousLine(1, "agent-forced"),
+        ],
+        requiredItemIds: ["item-0", "item-1"],
+        forcedItemIds: ["item-1"],
+      });
+
+      const response = await reviewSuspiciousLinesWithClaude(requestPayload);
+
+      expect(response.status).toBe("applied");
+      expect(response.commands).toHaveLength(2);
+      expect(response.meta?.missingItemIds).toEqual([]);
+      expect(response.meta?.unresolvedForcedItemIds).toEqual([]);
+      expect(
+        response.commands.find((command) => command.itemId === "item-1")
+          ?.newType
+      ).toBe("action");
+    } finally {
+      if (previousKey) {
+        process.env.ANTHROPIC_API_KEY = previousKey;
+      } else {
+        delete process.env.ANTHROPIC_API_KEY;
+      }
+
+      if (previousMockMode) {
+        process.env.AGENT_REVIEW_MOCK_MODE = previousMockMode;
+      } else {
+        delete process.env.AGENT_REVIEW_MOCK_MODE;
+      }
+    }
+  });
 });

@@ -1,5 +1,24 @@
 import type { PipelineConfig } from "./types.js";
 
+const resolveOcrProvider = (): "mistral" | "azure" | "none" => {
+  const nodeProvider =
+    typeof process !== "undefined" ? process.env?.OCR_PROVIDER : undefined;
+  const viteProvider = import.meta.env.VITE_OCR_PROVIDER as string | undefined;
+  const rawProvider = (nodeProvider ?? viteProvider ?? "mistral")
+    .trim()
+    .toLowerCase();
+
+  if (
+    rawProvider === "mistral" ||
+    rawProvider === "azure" ||
+    rawProvider === "none"
+  ) {
+    return rawProvider;
+  }
+
+  return "mistral";
+};
+
 export const defaultConfig: PipelineConfig = {
   lineMerge: {
     yTolerance: 2.5,
@@ -13,8 +32,7 @@ export const defaultConfig: PipelineConfig = {
   },
   ocr: {
     enabled: true,
-    provider:
-      (process.env.OCR_PROVIDER as "mistral" | "azure" | "none") || "mistral",
+    provider: resolveOcrProvider(),
     maxPagesPerBatch: 8,
   },
   patch: {
