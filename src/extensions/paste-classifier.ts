@@ -1210,7 +1210,15 @@ const requestAgentReview = async (
           isRetryable,
         });
         if (isRetryable && attempt < AGENT_REVIEW_MAX_ATTEMPTS) {
-          await waitBeforeRetry(AGENT_REVIEW_RETRY_DELAY_MS * attempt);
+          // Longer delay for overload errors (server already retried internally)
+          const isOverload =
+            response.status === 429 ||
+            response.status === 529 ||
+            response.status === 503;
+          const delay = isOverload
+            ? Math.max(AGENT_REVIEW_RETRY_DELAY_MS * attempt * 4, 3_000)
+            : AGENT_REVIEW_RETRY_DELAY_MS * attempt;
+          await waitBeforeRetry(delay);
           continue;
         }
         throw new Error(

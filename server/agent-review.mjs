@@ -9,6 +9,7 @@ import { resolveAnthropicApiRuntime } from "./provider-api-runtime.mjs";
 config();
 
 export const DEFAULT_MODEL_ID = "claude-opus-4-6";
+const FALLBACK_MODEL_ID = "claude-sonnet-4-20250514";
 const REVIEW_TEMPERATURE = 0.0;
 const DEFAULT_TIMEOUT_MS = 90_000;
 const AGENT_API_VERSION = "2.0";
@@ -20,6 +21,33 @@ const NON_ANTHROPIC_MODEL_RE =
 const BASE_OUTPUT_TOKENS = 500;
 const TOKENS_PER_SUSPICIOUS_LINE = 400;
 const PRACTICAL_MAX_OUTPUT = 64000;
+
+// ─── Retry & backoff settings for overload (529) ───
+const OVERLOAD_MAX_RETRIES = 3;
+const OVERLOAD_BASE_DELAY_MS = 3_000;
+const OVERLOAD_BACKOFF_MULTIPLIER = 2;
+
+const isOverloadError = (error) => {
+  if (!error) return false;
+  const status =
+    typeof error.status === "number"
+      ? error.status
+      : typeof error.statusCode === "number"
+        ? error.statusCode
+        : null;
+  if (status === 429 || status === 529 || status === 503) return true;
+  const msg = String(error.message || error).toLowerCase();
+  return msg.includes("overloaded") || msg.includes("rate_limit");
+};
+
+const isOverloadAxiosError = (error) => {
+  const status = error?.response?.status ?? error?.status;
+  if (status === 429 || status === 529 || status === 503) return true;
+  const msg = String(error?.message || "").toLowerCase();
+  return msg.includes("overloaded") || msg.includes("rate_limit");
+};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const logger = pino({ name: "agent-review" });
 let reviewModelFallbackWarned = false;
@@ -499,7 +527,7 @@ const getAnthropicClient = () => {
   anthropicClientSingleton = new Anthropic({
     apiKey: keyValidation.apiKey,
     baseURL: runtime.baseUrl,
-    maxRetries: 2,
+    maxRetries: 0,  // نتحكم في retry بنفسنا في reviewSuspiciousLinesWithClaude
     timeout: DEFAULT_TIMEOUT_MS,
   });
   return anthropicClientSingleton;
@@ -1195,9 +1223,41 @@ const createReviewResponseWithCoverage = (
 // ─────────────────────────────────────────────────────────
 
 /**
+ * محاولة إرسال طلب لـ Claude عبر SDK ثم REST fallback.
+ * ترجع النتيجة أو ترمي error.
+ */
+const tryCallAnthropicOnce = async (params, reviewRuntime, anthropicApiKey) => {
+  try {
+    const message = await tryCreateMessageWithSdk(params);
+    return { source: "sdk", content: message.content };
+  } catch (sdkError) {
+    logger.warn({ err: sdkError }, "فشل SDK في المراجعة، تجربة REST fallback");
+    // لو الـ SDK فشل بـ overload، نحاول REST مرة واحدة
+    const response = await axios.post(
+      reviewRuntime.messagesEndpoint,
+      params,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": anthropicApiKey,
+          "anthropic-version": reviewRuntime.apiVersion,
+        },
+        timeout: DEFAULT_TIMEOUT_MS,
+      }
+    );
+    const responseContent = Array.isArray(response?.data?.content)
+      ? response.data.content
+      : [];
+    return { source: "rest", content: responseContent };
+  }
+};
+
+/**
  * مراجعة السطور المشتبه فيها مع Claude (API v2)
- * المسار الأساسي: Anthropic SDK
- * المسار البديل: REST API عبر axios
+ * الاستراتيجية:
+ * 1. حاول الموديل الأساسي مع retry + exponential backoff
+ * 2. لو كل المحاولات فشلت بـ overload → حاول fallback model (Sonnet)
+ * 3. لو كله فشل → ارجع error مع HTTP status مناسب (providerStatusCode)
  */
 export const reviewSuspiciousLinesWithClaude = async (request) => {
   const startedAt = Date.now();
@@ -1280,68 +1340,112 @@ export const reviewSuspiciousLinesWithClaude = async (request) => {
     )
   );
 
-  const params = buildAnthropicMessageParams(request, maxTokens, reviewModel);
+  // ─── الاستراتيجية: primary model → retry with backoff → fallback model ───
+  const modelsToTry = [reviewModel];
+  // أضف fallback model فقط إذا كان مختلف عن الأساسي
+  if (FALLBACK_MODEL_ID && FALLBACK_MODEL_ID !== reviewModel) {
+    modelsToTry.push(FALLBACK_MODEL_ID);
+  }
 
-  try {
-    const message = await tryCreateMessageWithSdk(params);
-    const text = extractTextFromAnthropicBlocks(message.content);
-    const commands = parseReviewCommands(text);
-    return createReviewResponseWithCoverage(
-      request,
-      commands,
-      startedAt,
-      `تم استلام ${commands.length} أمر من الوكيل.`,
-      requestId,
-      reviewModel
-    );
-  } catch (sdkError) {
-    logger.warn({ err: sdkError }, "فشل SDK في المراجعة، تجربة REST fallback");
-    try {
-      const response = await axios.post(
-        reviewRuntime.messagesEndpoint,
-        params,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": anthropicApiKey,
-            "anthropic-version": reviewRuntime.apiVersion,
-          },
-          timeout: DEFAULT_TIMEOUT_MS,
+  let lastError = null;
+  let lastProviderStatus = null;
+
+  for (const currentModel of modelsToTry) {
+    const params = buildAnthropicMessageParams(request, maxTokens, currentModel);
+    const isFallback = currentModel !== reviewModel;
+
+    for (let attempt = 1; attempt <= OVERLOAD_MAX_RETRIES; attempt += 1) {
+      try {
+        const result = await tryCallAnthropicOnce(
+          params,
+          reviewRuntime,
+          anthropicApiKey
+        );
+        const text = extractTextFromAnthropicBlocks(result.content);
+        const commands = parseReviewCommands(text);
+        const suffix = isFallback ? " (fallback model)" : "";
+        const sourceLabel = result.source === "rest" ? " (REST)" : "";
+        if (isFallback) {
+          logger.info(
+            { model: currentModel, attempt },
+            `نجح الموديل البديل ${currentModel}`
+          );
         }
+        return createReviewResponseWithCoverage(
+          request,
+          commands,
+          startedAt,
+          `تم استلام ${commands.length} أمر${sourceLabel}${suffix}.`,
+          requestId,
+          currentModel
+        );
+      } catch (err) {
+        lastError = err;
+        const overload =
+          isOverloadError(err) || isOverloadAxiosError(err);
+        const providerInfo = resolveProviderErrorInfo(err);
+        lastProviderStatus = providerInfo.status;
+
+        logger.warn(
+          {
+            model: currentModel,
+            attempt,
+            maxAttempts: OVERLOAD_MAX_RETRIES,
+            overload,
+            isFallback,
+            status: providerInfo.status,
+            message: providerInfo.message,
+          },
+          `فشلت المحاولة ${attempt}/${OVERLOAD_MAX_RETRIES} للموديل ${currentModel}`
+        );
+
+        if (!overload) {
+          // خطأ غير overload — لا فائدة من retry
+          break;
+        }
+
+        if (attempt < OVERLOAD_MAX_RETRIES) {
+          const delay =
+            OVERLOAD_BASE_DELAY_MS *
+            Math.pow(OVERLOAD_BACKOFF_MULTIPLIER, attempt - 1);
+          logger.info(
+            { delay, attempt, model: currentModel },
+            `انتظار ${delay}ms قبل المحاولة التالية...`
+          );
+          await sleep(delay);
+        }
+      }
+    }
+
+    // كل محاولات هذا الموديل فشلت
+    if (!isFallback && modelsToTry.length > 1) {
+      logger.warn(
+        { model: currentModel, fallback: FALLBACK_MODEL_ID },
+        `كل محاولات ${currentModel} فشلت، التحويل إلى الموديل البديل ${FALLBACK_MODEL_ID}`
       );
-      const responseContent = Array.isArray(response?.data?.content)
-        ? response.data.content
-        : [];
-      const text = extractTextFromAnthropicBlocks(responseContent);
-      const commands = parseReviewCommands(text);
-      return createReviewResponseWithCoverage(
-        request,
-        commands,
-        startedAt,
-        `تم استلام ${commands.length} أمر (REST fallback).`,
-        requestId,
-        reviewModel
-      );
-    } catch (restError) {
-      const providerInfo = resolveProviderErrorInfo(restError);
-      return {
-        status: "error",
-        model: reviewModel,
-        apiVersion: AGENT_API_VERSION,
-        mode: AGENT_API_MODE,
-        importOpId: request.importOpId,
-        requestId,
-        commands: [],
-        message: `فشل الوكيل: ${providerInfo.message}${
-          providerInfo.requestId
-            ? ` (request_id=${providerInfo.requestId})`
-            : ""
-        }`,
-        latencyMs: Date.now() - startedAt,
-        meta: emptyMeta,
-      };
     }
   }
+
+  // كل الموديلات فشلت
+  const providerInfo = resolveProviderErrorInfo(lastError);
+  return {
+    status: "error",
+    model: reviewModel,
+    apiVersion: AGENT_API_VERSION,
+    mode: AGENT_API_MODE,
+    importOpId: request.importOpId,
+    requestId,
+    commands: [],
+    message: `فشل الوكيل: ${providerInfo.message}${
+      providerInfo.requestId
+        ? ` (request_id=${providerInfo.requestId})`
+        : ""
+    }`,
+    latencyMs: Date.now() - startedAt,
+    meta: emptyMeta,
+    // حقل جديد: status code من الـ provider لتمريره للكلاينت
+    providerStatusCode: lastProviderStatus,
+  };
 };
 
 export const buildAnthropicMessageParams = (request, maxTokens, modelId) => ({

@@ -1030,7 +1030,15 @@ const handleAgentReview = async (req, res) => {
       typeof rawBody?.importOpId === "string" ? rawBody.importOpId : null;
     const body = validateAgentReviewRequestBody(rawBody);
     const response = await requestAnthropicReview(body);
-    sendJson(res, 200, response);
+    // إذا كان الـ provider رجع status code (529/503/429)، مرره للكلاينت
+    // عشان يقدر يعمل retry صحيح
+    const httpStatus =
+      response.status === "error" &&
+      typeof response.providerStatusCode === "number" &&
+      response.providerStatusCode >= 400
+        ? response.providerStatusCode
+        : 200;
+    sendJson(res, httpStatus, response);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const statusCode =
