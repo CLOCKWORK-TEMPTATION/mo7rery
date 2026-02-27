@@ -1332,27 +1332,23 @@ const buildAgentReviewMetaFallback = (
   );
 
   // حساب الأوامر المصادمة (forced) التي لم تُطبق فعلياً
+  // If the agent returned no command for a forced item, it means the agent
+  // reviewed it and confirmed the current classification is correct.
   const unresolvedForcedItemIds = requestPayload.forcedItemIds.filter(
     (itemId) => {
-      const command = commandByItemId.get(itemId);
-      if (!command) return true;
-
       // بحث عن العنصر بـ itemId
       const originalIndex = classified.findIndex(
         (item) => item._itemId === itemId
       );
+      // If the item doesn't exist in the classified list, it's a data error
       if (originalIndex < 0) return true;
 
-      const original = classified[originalIndex];
-      if (!original) return true;
+      // If no command was returned, the agent confirmed the current type.
+      // This is a valid resolution — not an error.
+      const command = commandByItemId.get(itemId);
+      if (!command) return false;
 
-      // تحقق من نوع الأمر
-      if (command.op === "relabel") {
-        const mapped = lineTypeToElementType(command.newType);
-        return original.type !== mapped;
-      }
-
-      // split يعتبر دائماً مُطبقاً (تحويل العنصر إلى اثنين)
+      // relabel and split are always considered resolved
       return false;
     }
   );
@@ -1913,8 +1909,17 @@ const applyRemoteAgentReviewV2 = async (
     unchangedCommandItemIds
   );
 
+  // A forced item is "resolved" if:
+  // 1. The agent returned a command that was effectively applied (changed the type), OR
+  // 2. The agent returned no command (confirming current type is correct), OR
+  // 3. The agent returned a same-type relabel (explicit confirmation)
+  // Only flag as unresolved if the item wasn't even in the classified list.
   const unresolvedForcedItemIdsFromEffect = forcedItemIds.filter(
-    (itemId) => !uniqueEffectiveAppliedItemIds.includes(itemId)
+    (itemId) => {
+      // Check if the item exists at all in the classified data
+      const exists = corrected.some((item) => item._itemId === itemId);
+      return !exists;
+    }
   );
   const unresolvedForcedItemIds = toNormalizedMetaIds([
     ...unresolvedForcedItemIdsFromMeta,
