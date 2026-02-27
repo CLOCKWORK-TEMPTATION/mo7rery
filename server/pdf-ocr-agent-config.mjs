@@ -37,16 +37,20 @@ const baseConfigSchema = z.object({
   pages: z.string().min(1),
   mistralApiKey: z.string(),
   moonshotApiKey: z.string(),
+  geminiApiKey: z.string(),
   visionCompareModel: z.string(),
   visionJudgeModel: z.string(),
+  visionProofreadModel: z.string(),
   visionCompareTimeoutMs: z.number().int().min(1_000).max(10 * 60 * 1_000),
   visionJudgeTimeoutMs: z.number().int().min(1_000).max(10 * 60 * 1_000),
+  visionProofreadTimeoutMs: z.number().int().min(1_000).max(10 * 60 * 1_000),
   visionRenderDpi: z.number().int().min(96).max(600),
   externalReferencePath: z.string(),
   openAgentVerifyFootprint: z.boolean(),
   openAgentEnableMcpStage: z.boolean(),
   enableClassification: z.boolean(),
   enableEnhancement: z.boolean(),
+  enableVisionProofread: z.boolean(),
 });
 
 const isFalseLike = (value) => /^(0|false|no|off)$/iu.test(value.trim());
@@ -118,13 +122,16 @@ const resolveRawConfig = () => {
     pages: process.env.PDF_OCR_AGENT_PAGES?.trim() || "all",
     mistralApiKey: process.env.MISTRAL_API_KEY?.trim() || "",
     moonshotApiKey: process.env.MOONSHOT_API_KEY?.trim() || "",
+    geminiApiKey: process.env.GEMINI_API_KEY?.trim() || "",
     visionCompareModel: process.env.PDF_VISION_COMPARE_MODEL?.trim() || "",
     visionJudgeModel: process.env.PDF_VISION_JUDGE_MODEL?.trim() || "",
+    visionProofreadModel: process.env.PDF_VISION_PROOFREAD_MODEL?.trim() || "gemini-2.5-flash",
     visionCompareTimeoutMs: toNumber(
       process.env.PDF_VISION_COMPARE_TIMEOUT_MS,
       180_000
     ),
     visionJudgeTimeoutMs: toNumber(process.env.PDF_VISION_JUDGE_TIMEOUT_MS, 180_000),
+    visionProofreadTimeoutMs: toNumber(process.env.PDF_VISION_PROOFREAD_TIMEOUT_MS, 180_000),
     visionRenderDpi: toNumber(process.env.PDF_VISION_RENDER_DPI, 300),
     externalReferencePath:
       process.env.PDF_OCR_EXTERNAL_REFERENCE_PATH?.trim() || "",
@@ -138,6 +145,9 @@ const resolveRawConfig = () => {
       process.env.PDF_OCR_AGENT_CLASSIFY_ENABLED
     ),
     enableEnhancement: toEnabledFlag(process.env.PDF_OCR_AGENT_ENHANCE_ENABLED),
+    enableVisionProofread: toEnabledFlag(
+      process.env.PDF_OCR_ENABLE_VISION_PROOFREAD ?? "true"
+    ),
   };
 };
 
@@ -182,6 +192,22 @@ export const getPdfOcrAgentConfig = () => {
     );
   }
 
+  // Gemini API key — required when vision proofread is enabled
+  if (parsed.enableVisionProofread) {
+    if (!parsed.geminiApiKey) {
+      throw configError(
+        "PDF_OCR_CFG_MISSING_GEMINI_API_KEY",
+        "PDF OCR agent misconfigured: GEMINI_API_KEY is required when vision proofread is enabled."
+      );
+    }
+    if (/\s/iu.test(parsed.geminiApiKey)) {
+      throw configError(
+        "PDF_OCR_CFG_INVALID_GEMINI_API_KEY",
+        "PDF OCR agent misconfigured: GEMINI_API_KEY must not contain whitespace."
+      );
+    }
+  }
+
   if (!existsSync(parsed.agentRoot)) {
     throw configError(
       "PDF_OCR_CFG_MISSING_AGENT_ROOT",
@@ -219,6 +245,7 @@ export const getPdfOcrAgentHealth = async () => {
 
   const hasMistralApiKey = config.mistralApiKey.length > 0;
   const hasMoonshotApiKey = config.moonshotApiKey.length > 0;
+  const hasGeminiApiKey = config.geminiApiKey.length > 0;
   const hasVisionCompareModel = config.visionCompareModel.length > 0;
   const hasValidVisionCompareModel = config.visionCompareModel.length > 0;
   const hasVisionJudgeModel = config.visionJudgeModel.length > 0;
@@ -241,6 +268,8 @@ export const getPdfOcrAgentHealth = async () => {
   const errorCodes = [];
   if (!hasMistralApiKey) errorCodes.push("PDF_OCR_CFG_MISSING_MISTRAL_API_KEY");
   if (!hasMoonshotApiKey) errorCodes.push("PDF_OCR_CFG_MISSING_MOONSHOT_API_KEY");
+  if (config.enableVisionProofread && !hasGeminiApiKey)
+    errorCodes.push("PDF_OCR_CFG_MISSING_GEMINI_API_KEY");
   if (!hasVisionCompareModel)
     errorCodes.push("PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL");
 
@@ -270,11 +299,13 @@ export const getPdfOcrAgentHealth = async () => {
     strictValidation: true,
     hasMistralApiKey,
     hasMoonshotApiKey,
+    hasGeminiApiKey,
     hasVisionCompareModel,
     hasValidVisionCompareModel,
     hasVisionJudgeModel,
     visionCompareModel: config.visionCompareModel,
     visionJudgeModel: config.visionJudgeModel,
+    visionProofreadModel: config.visionProofreadModel,
     visionCompareTimeoutMs: config.visionCompareTimeoutMs,
     visionJudgeTimeoutMs: config.visionJudgeTimeoutMs,
     visionRenderDpi: config.visionRenderDpi,
@@ -295,6 +326,7 @@ export const getPdfOcrAgentHealth = async () => {
     writeOutputScriptExists,
     enableClassification: config.enableClassification,
     enableEnhancement: config.enableEnhancement,
+    enableVisionProofread: config.enableVisionProofread,
     timeoutMs: config.timeoutMs,
     pages: config.pages,
     dependencies: {

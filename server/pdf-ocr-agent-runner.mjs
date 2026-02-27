@@ -10,7 +10,9 @@ import { getPdfOcrAgentConfig } from "./pdf-ocr-agent-config.mjs";
 import { stripOcrArtifactLines } from "./ocr-text-cleanup.mjs";
 import {
   buildPdfReference,
+  renderPdfPages,
 } from "./pdf-reference-builder.mjs";
+import { runVisionProofread } from "./pdf-vision-proofread.mjs";
 import { enforceTokenMatch } from "./token-enforcement.mjs";
 import { writeMismatchReport } from "./mismatch-reporter.mjs";
 
@@ -527,6 +529,8 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
       pages: config.pages,
       enableClassification: config.enableClassification,
       enableEnhancement: config.enableEnhancement,
+      enableVisionProofread: config.enableVisionProofread,
+      visionProofreadModel: config.visionProofreadModel,
       visionCompareModel: config.visionCompareModel,
       visionJudgeModel: config.visionJudgeModel,
     },
@@ -638,6 +642,113 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
       } else {
         finalMarkdownText = finalText;
       }
+    }
+
+    // ── Gemini Vision Proofread (post-correction) ─────────────
+    // Enabled by default (PDF_OCR_ENABLE_VISION_PROOFREAD=true).
+    // Renders each page to an image, sends image + OCR text to
+    // Gemini 2.5 Flash, and gets back corrected text.
+    if (config.enableVisionProofread && config.geminiApiKey) {
+      attempts.push("vision-proofread");
+      logger.info(
+        {
+          model: config.visionProofreadModel,
+          renderDpi: config.visionRenderDpi,
+        },
+        "vision-proofread-start"
+      );
+      const tProofread = Date.now();
+
+      try {
+        // Render PDF pages to PNG images
+        const proofreadPageImages = await renderPdfPages({
+          pdfPath: inputPath,
+          dpi: config.visionRenderDpi,
+        });
+
+        // Build ocrPages from the OCR JSON
+        const ocrJsonRaw = await readFile(ocrJsonPath, "utf-8");
+        const ocrPayload = JSON.parse(ocrJsonRaw);
+        const ocrPagesForProofread = Array.isArray(ocrPayload?.pages)
+          ? ocrPayload.pages
+              .filter(
+                (p) =>
+                  p &&
+                  typeof p === "object" &&
+                  typeof p.index === "number" &&
+                  typeof p.markdown === "string"
+              )
+              .sort((a, b) => a.index - b.index)
+              .map((p) => ({ index: p.index, text: p.markdown.trim() }))
+          : [];
+
+        if (ocrPagesForProofread.length > 0 && proofreadPageImages.length > 0) {
+          const proofreadResult = await runVisionProofread({
+            apiKey: config.geminiApiKey,
+            model: config.visionProofreadModel,
+            pageImages: proofreadPageImages,
+            ocrPages: ocrPagesForProofread,
+            timeoutMs: config.visionProofreadTimeoutMs,
+          });
+
+          // Replace finalText with proofread output
+          const proofreadText = proofreadResult.pages
+            .sort((a, b) => a.page - b.page)
+            .map((p) => p.text.trim())
+            .filter(Boolean)
+            .join("\n\n");
+
+          if (proofreadText.trim()) {
+            const originalLen = finalText.length;
+            finalText = proofreadText;
+            finalMarkdownText = proofreadText;
+            normalizationApplied.push("vision-proofread-gemini");
+            logger.info(
+              {
+                durationMs: Date.now() - tProofread,
+                originalLen,
+                correctedLen: proofreadText.length,
+                pages: proofreadResult.pages.length,
+              },
+              "vision-proofread-complete"
+            );
+          } else {
+            allWarnings.push("vision-proofread returned empty text — keeping original OCR output");
+            logger.warn("vision-proofread-empty-result");
+          }
+        } else {
+          allWarnings.push("vision-proofread skipped: no OCR pages or no rendered images");
+          logger.warn(
+            { ocrPages: ocrPagesForProofread.length, images: proofreadPageImages.length },
+            "vision-proofread-skipped-no-data"
+          );
+        }
+      } catch (proofreadError) {
+        // Non-fatal: if proofread fails, keep original OCR text
+        allWarnings.push(
+          `vision-proofread failed: ${
+            proofreadError instanceof Error
+              ? proofreadError.message
+              : String(proofreadError)
+          }`
+        );
+        logger.error(
+          {
+            error:
+              proofreadError instanceof Error
+                ? proofreadError.message
+                : String(proofreadError),
+            durationMs: Date.now() - tProofread,
+          },
+          "vision-proofread-failed"
+        );
+      }
+    } else if (!config.enableVisionProofread) {
+      attempts.push("vision-proofread-disabled");
+      logger.info("vision-proofread-disabled (PDF_OCR_ENABLE_VISION_PROOFREAD is not set)");
+    } else {
+      attempts.push("vision-proofread-no-key");
+      logger.warn("vision-proofread-skipped (GEMINI_API_KEY missing)");
     }
 
     // ── Vision reference (compare + judge + enforcement) ─────

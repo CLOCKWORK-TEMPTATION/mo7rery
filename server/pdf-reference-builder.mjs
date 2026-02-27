@@ -131,7 +131,7 @@ const sortPngPages = (files, prefixBaseName) =>
       return ai - bi;
     });
 
-const renderPdfPages = async ({ pdfPath, dpi }) => {
+export const renderPdfPages = async ({ pdfPath, dpi }) => {
   log("render-start", { pdfPath, dpi });
   const t0 = Date.now();
   const pdftoppmCommand = await ensurePdftoppmAvailable();
