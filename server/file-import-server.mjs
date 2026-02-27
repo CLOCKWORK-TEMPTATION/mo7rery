@@ -34,8 +34,9 @@ const DOC_CONVERTER_MAX_BUFFER = 64 * 1024 * 1024;
 const DEFAULT_ANTIWORD_PATH = "antiword";
 const DEFAULT_ANTIWORD_HOME = "/usr/share/antiword";
 const DOCX_TO_DOC_SCRIPT_PATH = fileURLToPath(
-  new URL("../docx-to-doc.final.ts", import.meta.url)
+  new URL("./docx-to-doc.final.ts", import.meta.url)
 );
+const DOCX_TO_DOC_SCRIPT_EXISTS = existsSync(DOCX_TO_DOC_SCRIPT_PATH);
 
 const SUPPORTED_EXTENSIONS = new Set([
   "pdf",
@@ -623,6 +624,12 @@ const runAntiwordPreflight = () => {
 };
 
 const ANTIWORD_PREFLIGHT = runAntiwordPreflight();
+const FILE_IMPORT_PREFLIGHT_WARNINGS = [...ANTIWORD_PREFLIGHT.warnings];
+if (!DOCX_TO_DOC_SCRIPT_EXISTS) {
+  FILE_IMPORT_PREFLIGHT_WARNINGS.push(
+    `DOCX converter script غير موجود: ${DOCX_TO_DOC_SCRIPT_PATH}`
+  );
+}
 
 const runAntiword = async (antiwordPath, args, antiwordHome) =>
   new Promise((resolve, reject) => {
@@ -930,6 +937,20 @@ const extractByType = async (buffer, extension, filename) => {
   }
 
   if (extension === "docx") {
+    if (!DOCX_TO_DOC_SCRIPT_EXISTS) {
+      throw new ExecFileClassifiedError(
+        "تعذر استخراج DOCX: ملف المحول غير موجود (docx-to-doc.final.ts).",
+        {
+          statusCode: 422,
+          category: "invalid-config",
+          classifiedError: {
+            category: "invalid-config",
+            converterScript: DOCX_TO_DOC_SCRIPT_PATH,
+          },
+        }
+      );
+    }
+
     if (!ANTIWORD_PREFLIGHT.binaryAvailable) {
       throw new ExecFileClassifiedError(
         "تعذر استخراج DOCX: antiword غير متاح. راجع health endpoint والتأكد من ANTIWORD_PATH.",
@@ -1052,7 +1073,9 @@ const server = http.createServer(async (req, res) => {
       antiwordHome: process.env.ANTIWORDHOME || DEFAULT_ANTIWORD_HOME,
       antiwordBinaryAvailable: ANTIWORD_PREFLIGHT.binaryAvailable,
       antiwordHomeExists: ANTIWORD_PREFLIGHT.antiwordHomeExists,
-      antiwordWarnings: ANTIWORD_PREFLIGHT.warnings,
+      antiwordWarnings: FILE_IMPORT_PREFLIGHT_WARNINGS,
+      docxConverterScriptPath: DOCX_TO_DOC_SCRIPT_PATH,
+      docxConverterScriptExists: DOCX_TO_DOC_SCRIPT_EXISTS,
       agentReviewConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
       ocrConfigured: ocrAgent.configured,
       ocrAgent,
@@ -1119,9 +1142,9 @@ server.listen(PORT, HOST, () => {
   console.log(`review endpoint:  http://${HOST}:${PORT}/api/agent/review`);
   // eslint-disable-next-line no-console
   console.log(`health:           http://${HOST}:${PORT}/health`);
-  if (ANTIWORD_PREFLIGHT.warnings.length > 0) {
+  if (FILE_IMPORT_PREFLIGHT_WARNINGS.length > 0) {
     console.warn("[antiword preflight] warnings:");
-    for (const warning of ANTIWORD_PREFLIGHT.warnings) {
+    for (const warning of FILE_IMPORT_PREFLIGHT_WARNINGS) {
       console.warn(`- ${warning}`);
     }
   }
