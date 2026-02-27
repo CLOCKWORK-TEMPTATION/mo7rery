@@ -22,7 +22,6 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { buildAgentConfig } from "./config.js";
 import { classifyPdfTool } from "./tools.js";
 import {
-  skillClassifyPdf,
   skillOcrMistral,
   skillWriteOutput,
 } from "./skill-tools.js";
@@ -348,16 +347,8 @@ const main = async (): Promise<void> => {
   );
   attempts.push("classify-local");
 
-  const skillClassificationRaw = await runTool(
-    skillClassifyPdf,
-    { pdfPath: inputPath },
-    "skill_classify_pdf"
-  );
-  attempts.push("classify-skill");
-
-  const classification =
-    toClassification(skillClassificationRaw) ??
-    toClassification(localClassificationRaw);
+  // Duplicate skill classification removed — single classify is sufficient
+  const classification = toClassification(localClassificationRaw);
 
   if (!classification) {
     throw new Error("تعذر بناء نتيجة تصنيف PDF من أدوات الوكيل.");

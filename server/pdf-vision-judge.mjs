@@ -6,6 +6,7 @@ const DEFAULT_TIMEOUT_MS = 180_000;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_RETRY_BASE_MS = 500;
 const DEFAULT_KIMI_THINKING_MODE = "disabled";
+const JUDGE_CONCURRENCY = 3;
 
 const toDataUrl = (buffer, mimeType) =>
   `data:${mimeType};base64,${buffer.toString("base64")}`;
@@ -148,10 +149,23 @@ const requestKimiJudge = async ({
         },
         body: JSON.stringify({
           model: runtime.model,
-          response_format: { type: "json_object" },
+          // kimi-k2.5: temperature/top_p/n/presence_penalty/frequency_penalty
+          // are FIXED by the server and MUST NOT be sent (docs: "Any other value will result in an error").
+          // max_tokens defaults to 32768 for k2.5; the general API deprecates it in favour of max_completion_tokens.
+          // For non-k2.5 models we still set temperature=0 and response_format for deterministic JSON.
           ...(runtime.isK2_5
-            ? { thinking: { type: runtime.thinkingType } }
-            : { temperature: 0 }),
+            ? {
+                thinking: { type: runtime.thinkingType },
+                // JSON Mode is supported for vision, but NOT when thinking is enabled
+                // (thinking mode streams reasoning_content first).
+                ...(runtime.thinkingType === "disabled"
+                  ? { response_format: { type: "json_object" } }
+                  : {}),
+              }
+            : {
+                temperature: 0,
+                response_format: { type: "json_object" },
+              }),
           messages: [
             {
               role: "system",
@@ -241,6 +255,83 @@ export const runVisionJudgePreflight = async ({
   }
 };
 
+const processJudgePage = async ({ page, apiKey, model, timeoutMs }) => {
+  const patches = Array.isArray(page.proposedPatches) ? page.proposedPatches : [];
+  if (patches.length === 0) {
+    return { approved: [], rejected: [] };
+  }
+
+  const imageBuffer = await readFile(page.imagePath);
+  const imageDataUrl = toDataUrl(imageBuffer, "image/png");
+  const decisions = await requestKimiJudge({
+    apiKey,
+    model,
+    imageDataUrl,
+    currentText: String(page.currentPageText ?? ""),
+    patches,
+    timeoutMs,
+  });
+
+  const decisionsById = new Map(
+    decisions
+      .filter((item) => item && typeof item.id === "string")
+      .map((item) => [
+        item.id,
+        {
+          approve: Boolean(item.approve),
+          reason:
+            typeof item.reason === "string" && item.reason.trim()
+              ? item.reason.trim()
+              : "no-reason",
+          confidence:
+            typeof item.confidence === "number" && Number.isFinite(item.confidence)
+              ? item.confidence
+              : 0,
+        },
+      ])
+  );
+
+  const approved = [];
+  const rejected = [];
+  for (const patch of patches) {
+    const decision = decisionsById.get(patch.id);
+    if (!decision) {
+      rejected.push({
+        ...patch,
+        judgeReason: "missing-judge-decision",
+        judgeConfidence: 0,
+      });
+      continue;
+    }
+
+    if (decision.approve) {
+      approved.push({
+        ...patch,
+        judgeReason: decision.reason,
+        judgeConfidence: decision.confidence,
+      });
+    } else {
+      rejected.push({
+        ...patch,
+        judgeReason: decision.reason,
+        judgeConfidence: decision.confidence,
+      });
+    }
+  }
+
+  return { approved, rejected };
+};
+
+const runParallelBatches = async (items, concurrency, fn) => {
+  const results = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+};
+
 export const runVisionJudge = async ({
   apiKey,
   model,
@@ -252,79 +343,23 @@ export const runVisionJudge = async ({
     throw new Error("vision judge requires compare pages.");
   }
 
-  if (!skipPreflight) {
-    await runVisionJudgePreflight({
-      apiKey,
-      model,
-      imagePath: comparePages[0].imagePath,
-      timeoutMs,
-    });
-  }
+  // Preflight removed — skip always (called separately if needed)
+
+  const pagesWithPatches = comparePages.filter(
+    (page) => Array.isArray(page.proposedPatches) && page.proposedPatches.length > 0
+  );
+
+  const pageResults = await runParallelBatches(
+    pagesWithPatches,
+    JUDGE_CONCURRENCY,
+    (page) => processJudgePage({ page, apiKey, model, timeoutMs })
+  );
 
   const approvedPatches = [];
   const rejectedPatches = [];
-
-  for (const page of comparePages) {
-    const patches = Array.isArray(page.proposedPatches) ? page.proposedPatches : [];
-    if (patches.length === 0) {
-      continue;
-    }
-
-    const imageBuffer = await readFile(page.imagePath);
-    const imageDataUrl = toDataUrl(imageBuffer, "image/png");
-    const decisions = await requestKimiJudge({
-      apiKey,
-      model,
-      imageDataUrl,
-      currentText: String(page.currentPageText ?? ""),
-      patches,
-      timeoutMs,
-    });
-
-    const decisionsById = new Map(
-      decisions
-        .filter((item) => item && typeof item.id === "string")
-        .map((item) => [
-          item.id,
-          {
-            approve: Boolean(item.approve),
-            reason:
-              typeof item.reason === "string" && item.reason.trim()
-                ? item.reason.trim()
-                : "no-reason",
-            confidence:
-              typeof item.confidence === "number" && Number.isFinite(item.confidence)
-                ? item.confidence
-                : 0,
-          },
-        ])
-    );
-
-    for (const patch of patches) {
-      const decision = decisionsById.get(patch.id);
-      if (!decision) {
-        rejectedPatches.push({
-          ...patch,
-          judgeReason: "missing-judge-decision",
-          judgeConfidence: 0,
-        });
-        continue;
-      }
-
-      if (decision.approve) {
-        approvedPatches.push({
-          ...patch,
-          judgeReason: decision.reason,
-          judgeConfidence: decision.confidence,
-        });
-      } else {
-        rejectedPatches.push({
-          ...patch,
-          judgeReason: decision.reason,
-          judgeConfidence: decision.confidence,
-        });
-      }
-    }
+  for (const result of pageResults) {
+    approvedPatches.push(...result.approved);
+    rejectedPatches.push(...result.rejected);
   }
 
   return {

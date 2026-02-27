@@ -1,6 +1,8 @@
 const CANONICAL_MISTRAL_BASE_URL = "https://api.mistral.ai";
 export const CANONICAL_MISTRAL_OCR_ENDPOINT =
   "https://api.mistral.ai/v1/ocr";
+export const CANONICAL_MISTRAL_CHAT_COMPLETIONS_ENDPOINT =
+  "https://api.mistral.ai/v1/chat/completions";
 export const CANONICAL_MISTRAL_CONVERSATIONS_ENDPOINT =
   "https://api.mistral.ai/v1/conversations";
 export const CANONICAL_MISTRAL_AGENTS_ENDPOINT =
@@ -33,6 +35,14 @@ export const resolveMistralOcrRuntime = (env = process.env) => {
   return {
     baseUrl: CANONICAL_MISTRAL_BASE_URL,
     ocrEndpoint: CANONICAL_MISTRAL_OCR_ENDPOINT,
+    endpointSource: "hard-locked-canonical",
+  };
+};
+
+export const resolveMistralChatRuntime = (env = process.env) => {
+  return {
+    baseUrl: CANONICAL_MISTRAL_BASE_URL,
+    chatCompletionsEndpoint: CANONICAL_MISTRAL_CHAT_COMPLETIONS_ENDPOINT,
     endpointSource: "hard-locked-canonical",
   };
 };

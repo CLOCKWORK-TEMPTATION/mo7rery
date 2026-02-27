@@ -129,7 +129,7 @@ const sortPngPages = (files, prefixBaseName) =>
 
 const renderPdfPages = async ({ pdfPath, dpi }) => {
   const pdftoppmCommand = await ensurePdftoppmAvailable();
-  const renderRoot = await mkdtemp(join(tmpdir(), "filmlane-pdf-vision-"));
+  const renderRoot = await mkdtemp(join(tmpdir(), "mo7rer-pdf-vision-"));
   const prefix = join(renderRoot, "page");
 
   await execFileAsync(
@@ -151,7 +151,7 @@ const renderPdfPages = async ({ pdfPath, dpi }) => {
 
 const renderFirstPdfPage = async ({ pdfPath, dpi }) => {
   const pdftoppmCommand = await ensurePdftoppmAvailable();
-  const renderRoot = await mkdtemp(join(tmpdir(), "filmlane-pdf-vision-probe-"));
+  const renderRoot = await mkdtemp(join(tmpdir(), "mo7rer-pdf-vision-probe-"));
   const prefix = join(renderRoot, "probe");
 
   await execFileAsync(
@@ -289,7 +289,7 @@ export const buildPdfReference = async ({
     model: judge.model,
     comparePages: compareResult.pages,
     timeoutMs: judge.timeoutMs,
-    skipPreflight: Boolean(visionPreflightDone),
+    skipPreflight: true,
   });
 
   const patchedPages = compareResult.pages.map((item) => ({

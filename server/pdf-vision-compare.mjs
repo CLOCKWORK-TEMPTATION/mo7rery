@@ -1,15 +1,15 @@
 import { readFile } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
 import {
-  resolveMistralAgentsRuntime,
-  resolveMistralConversationsRuntime,
+  resolveMistralChatRuntime,
 } from "./provider-api-runtime.mjs";
 
 const DEFAULT_TIMEOUT_MS = 180_000;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_RETRY_BASE_MS = 500;
-const CANONICAL_VISION_COMPARE_MODEL = "mistral-large-2512";
-const VISION_COMPARE_REQUEST_SCHEMA = "inputs-v2-no-model-no-completion-args";
+const CANONICAL_VISION_COMPARE_MODEL = "mistral-large-latest";
+const VISION_COMPARE_REQUEST_SCHEMA = "messages-v1-chat-completions";
+const COMPARE_CONCURRENCY = 3;
 
 const toDataUrl = (buffer, mimeType) =>
   `data:${mimeType};base64,${buffer.toString("base64")}`;
@@ -51,40 +51,24 @@ const toOptionalTrimmedString = (value, maxLength = 256) => {
   return value.trim().slice(0, maxLength);
 };
 
-const resolveHardLockedCompareModel = (rawModel) => {
+const resolveCompareModel = (rawModel) => {
   const model = toOptionalTrimmedString(rawModel, 128);
   if (!model) {
-    throw new Error(
-      `[PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL] PDF OCR agent misconfigured: PDF_VISION_COMPARE_MODEL is required.`
-    );
+    return CANONICAL_VISION_COMPARE_MODEL;
   }
-  if (model !== CANONICAL_VISION_COMPARE_MODEL) {
-    throw new Error(
-      `[PDF_OCR_CFG_INVALID_VISION_COMPARE_MODEL] PDF OCR agent misconfigured: PDF_VISION_COMPARE_MODEL must be ${CANONICAL_VISION_COMPARE_MODEL}. Received: ${model}`
-    );
-  }
-  return CANONICAL_VISION_COMPARE_MODEL;
+  return model;
 };
 
 const resolveMistralCompareRuntime = ({ model }) => {
-  const conversationsRuntime = resolveMistralConversationsRuntime(process.env);
-  const agentsRuntime = resolveMistralAgentsRuntime(process.env);
-  const agentId = toOptionalTrimmedString(
-    process.env.PDF_VISION_COMPARE_AGENT_ID ??
-      process.env.MISTRAL_VISION_COMPARE_AGENT_ID,
-    128
-  );
-  const lockedModel = resolveHardLockedCompareModel(model);
+  const chatRuntime = resolveMistralChatRuntime(process.env);
+  const resolvedModel = resolveCompareModel(model);
 
   return {
-    model: lockedModel,
+    model: resolvedModel,
     requestSchema: VISION_COMPARE_REQUEST_SCHEMA,
-    api: "conversations",
-    agentId: agentId || null,
-    endpoint: conversationsRuntime.conversationsEndpoint,
-    baseUrl: conversationsRuntime.baseUrl,
-    agentsEndpoint: agentsRuntime.agentsEndpoint,
-    agentsCompletionsEndpoint: agentsRuntime.agentsCompletionsEndpoint,
+    api: "chat-completions",
+    endpoint: chatRuntime.chatCompletionsEndpoint,
+    baseUrl: chatRuntime.baseUrl,
     endpointSource: "hard-locked-canonical",
   };
 };
@@ -98,64 +82,27 @@ const createTimeoutState = (timeoutMs) => {
   };
 };
 
-const extractTextFromChunks = (chunks) => {
-  if (!Array.isArray(chunks)) return "";
-  const out = [];
-  for (const chunk of chunks) {
-    if (!chunk || typeof chunk !== "object") continue;
-
-    if (chunk.type === "text" && typeof chunk.text === "string") {
-      out.push(chunk.text);
-      continue;
-    }
-
-    if (chunk.type === "thinking" && Array.isArray(chunk.thinking)) {
-      for (const token of chunk.thinking) {
-        if (
-          token &&
-          typeof token === "object" &&
-          token.type === "text" &&
-          typeof token.text === "string"
-        ) {
-          out.push(token.text);
-        }
-      }
-    }
-  }
-  return out.join("").trim();
-};
-
 const extractAssistantMessageText = (payload) => {
-  const outputs = Array.isArray(payload?.outputs) ? payload.outputs : [];
-  for (let index = outputs.length - 1; index >= 0; index -= 1) {
-    const output = outputs[index];
-    if (!output || typeof output !== "object") continue;
-
-    const role = toOptionalTrimmedString(output.role, 32).toLowerCase();
-    const type = toOptionalTrimmedString(output.type, 64).toLowerCase();
-    if (role && role !== "assistant") continue;
-    if (type && !type.includes("message")) continue;
-
-    if (typeof output.content === "string") {
-      const text = output.content.trim();
-      if (text) return text;
-    }
-
-    const chunkText = extractTextFromChunks(output.content);
-    if (chunkText) return chunkText;
-  }
-
   const firstChoice = Array.isArray(payload?.choices)
     ? payload.choices[0]
     : null;
+  if (!firstChoice) return "";
+
   const choiceMessage = firstChoice?.message?.content;
   if (typeof choiceMessage === "string") {
     const text = choiceMessage.trim();
     if (text) return text;
   }
   if (Array.isArray(choiceMessage)) {
-    const chunkText = extractTextFromChunks(choiceMessage);
-    if (chunkText) return chunkText;
+    const out = [];
+    for (const chunk of choiceMessage) {
+      if (!chunk || typeof chunk !== "object") continue;
+      if (chunk.type === "text" && typeof chunk.text === "string") {
+        out.push(chunk.text);
+      }
+    }
+    const joined = out.join("").trim();
+    if (joined) return joined;
   }
 
   return "";
@@ -170,35 +117,7 @@ const buildVisionTranscriptionPrompt = () =>
     "Do not add markdown fences or explanations.",
   ].join("\n");
 
-const ensureCompareAgentExists = async ({ apiKey, runtime, timeoutMs }) => {
-  if (!runtime.agentId) return;
-
-  const timeoutState = createTimeoutState(timeoutMs);
-  try {
-    const response = await fetch(
-      `${runtime.agentsEndpoint}/${encodeURIComponent(runtime.agentId)}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          Accept: "application/json",
-        },
-        signal: timeoutState.signal,
-      }
-    );
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      throw new Error(
-        `[PDF_OCR_VISION_COMPARE_AGENT_NOT_FOUND] compare agent check failed: ${response.status} ${response.statusText} ${body}`
-      );
-    }
-  } finally {
-    timeoutState.cleanup();
-  }
-};
-
-const requestMistralConversationForImage = async ({
+const requestMistralChatForImage = async ({
   apiKey,
   model,
   imageDataUrl,
@@ -212,20 +131,15 @@ const requestMistralConversationForImage = async ({
   let attempt = 0;
   let lastError;
 
-  await ensureCompareAgentExists({
-    apiKey,
-    runtime,
-    timeoutMs,
-  });
-
   while (attempt <= maxRetries) {
     const timeoutState = createTimeoutState(timeoutMs);
     try {
       const requestPayload = {
-        inputs: [
+        model: runtime.model,
+        messages: [
           {
             role: "system",
-            content: [{ type: "text", text: "You are a strict visual OCR comparator." }],
+            content: "You are a strict visual OCR comparator.",
           },
           {
             role: "user",
@@ -241,14 +155,7 @@ const requestMistralConversationForImage = async ({
           },
         ],
         stream: false,
-        store: false,
       };
-
-      if (runtime.agentId) {
-        requestPayload.agent_id = runtime.agentId;
-      } else {
-        requestPayload.model = runtime.model;
-      }
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -350,6 +257,50 @@ const buildProposedPatches = ({
   return patches;
 };
 
+const processComparePage = async ({
+  pageIndex,
+  imagePath,
+  ocrPage,
+  apiKey,
+  model,
+  timeoutMs,
+}) => {
+  const pageNumber = pageIndex + 1;
+  const imageBuffer = await readFile(imagePath);
+  const imageDataUrl = toDataUrl(imageBuffer, "image/png");
+  const compareText = await requestMistralChatForImage({
+    apiKey,
+    model,
+    imageDataUrl,
+    timeoutMs,
+  });
+
+  const sourcePage = ocrPage ?? { text: "" };
+  const proposedPatches = buildProposedPatches({
+    page: pageNumber,
+    currentText: sourcePage.text,
+    referenceText: compareText,
+  });
+
+  return {
+    page: pageNumber,
+    imagePath,
+    currentPageText: sourcePage.text,
+    referencePageText: compareText,
+    proposedPatches,
+  };
+};
+
+const runParallelBatches = async (items, concurrency, fn) => {
+  const results = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    const batchResults = await Promise.all(batch.map(fn));
+    results.push(...batchResults);
+  }
+  return results;
+};
+
 export const runVisionCompare = async ({
   apiKey,
   model,
@@ -364,34 +315,25 @@ export const runVisionCompare = async ({
     throw new Error("vision compare requires OCR pages.");
   }
 
-  const resultPages = [];
-  for (let pageIndex = 0; pageIndex < pageImages.length; pageIndex += 1) {
-    const pageNumber = pageIndex + 1;
-    const imagePath = pageImages[pageIndex];
-    const imageBuffer = await readFile(imagePath);
-    const imageDataUrl = toDataUrl(imageBuffer, "image/png");
-    const compareText = await requestMistralConversationForImage({
-      apiKey,
-      model,
-      imageDataUrl,
-      timeoutMs,
-    });
+  const pageItems = pageImages.map((imagePath, pageIndex) => ({
+    pageIndex,
+    imagePath,
+    ocrPage: ocrPages[pageIndex],
+  }));
 
-    const sourcePage = ocrPages[pageIndex] ?? { text: "" };
-    const proposedPatches = buildProposedPatches({
-      page: pageNumber,
-      currentText: sourcePage.text,
-      referenceText: compareText,
-    });
-
-    resultPages.push({
-      page: pageNumber,
-      imagePath,
-      currentPageText: sourcePage.text,
-      referencePageText: compareText,
-      proposedPatches,
-    });
-  }
+  const resultPages = await runParallelBatches(
+    pageItems,
+    COMPARE_CONCURRENCY,
+    (item) =>
+      processComparePage({
+        pageIndex: item.pageIndex,
+        imagePath: item.imagePath,
+        ocrPage: item.ocrPage,
+        apiKey,
+        model,
+        timeoutMs,
+      })
+  );
 
   return {
     pages: resultPages,
@@ -417,7 +359,7 @@ export const runVisionComparePreflight = async ({
   try {
     const imageBuffer = await readFile(imagePath);
     const imageDataUrl = toDataUrl(imageBuffer, "image/png");
-    await requestMistralConversationForImage({
+    await requestMistralChatForImage({
       apiKey,
       model,
       imageDataUrl,

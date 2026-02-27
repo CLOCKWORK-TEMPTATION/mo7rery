@@ -970,7 +970,10 @@ export function App(): React.JSX.Element {
         }
       }
 
-      const extraction = await extractImportedFile(file);
+      const isPdf = file.name.toLowerCase().endsWith(".pdf");
+      const extraction = await extractImportedFile(file, {
+        backend: { timeoutMs: isPdf ? 10 * 60 * 1_000 : 45_000 },
+      });
       const action = buildFileOpenPipelineAction(extraction, mode);
       let appliedPipeline = "paste-classifier" as const;
 

@@ -38,7 +38,7 @@ const PIPELINE_OPEN_AGENT_BOOT_TIMEOUT_MS = 10_000;
 const MISMATCH_REPORTS_ROOT = resolve(__dirname, "..", "tmp", "mismatch-reports");
 const CANONICAL_MISTRAL_OCR_MODEL = "mistral-ocr-latest";
 const CANONICAL_MISTRAL_OCR_ENDPOINT = "https://api.mistral.ai/v1/ocr";
-const CANONICAL_VISION_COMPARE_MODEL = "mistral-large-2512";
+const CANONICAL_VISION_COMPARE_MODEL = "mistral-large-latest";
 
 // ─── دوال مساعدة عامة ─────────────────────────────────────────
 
@@ -511,7 +511,7 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
     throw new Error("PDF OCR agent mocked failure.");
   }
 
-  const tempRoot = await mkdtemp(join(tmpdir(), "filmlane-pdf-ocr-"));
+  const tempRoot = await mkdtemp(join(tmpdir(), "mo7rer-pdf-ocr-"));
   const inputPath = join(tempRoot, toSafePdfFilename(filename));
   const ocrJsonPath = join(tempRoot, "ocr-result.json");
   const formattedTxtPath = join(tempRoot, "output.txt");
@@ -538,6 +538,14 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
     await writeFile(inputPath, buffer);
 
     attempts.push("vision-capability-preflight");
+    logger.info(
+      {
+        compareModel: config.visionCompareModel,
+        judgeModel: config.visionJudgeModel,
+        renderDpi: config.visionRenderDpi,
+      },
+      "vision-capability-preflight-start"
+    );
     await verifyVisionModelCapabilities({
       pdfPath: inputPath,
       compare: {
@@ -552,6 +560,13 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
       },
       renderDpi: config.visionRenderDpi,
     });
+    logger.info(
+      {
+        compareModel: config.visionCompareModel,
+        judgeModel: config.visionJudgeModel,
+      },
+      "vision-capability-preflight-complete"
+    );
 
     // ── المسار الأساسي: وكيل فتح PDF (مهارة + MCP) ──────────
     let classification = null;
@@ -654,6 +669,15 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
       }
     }
 
+    attempts.push("vision-reference-build");
+    logger.info(
+      {
+        compareModel: config.visionCompareModel,
+        judgeModel: config.visionJudgeModel,
+        renderDpi: config.visionRenderDpi,
+      },
+      "vision-reference-build-start"
+    );
     const reference = await buildPdfReference({
       pdfPath: inputPath,
       ocrJsonPath,
@@ -671,7 +695,25 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
       renderDpi: config.visionRenderDpi,
       visionPreflightDone: true,
     });
+    logger.info(
+      {
+        referenceMode: reference.referenceMode,
+        renderedPages: Number(reference?.compareReport?.renderedPages ?? 0),
+        proposedPatches: Number(reference?.compareReport?.proposedPatches ?? 0),
+        approvedPatches: Number(reference?.compareReport?.approvedPatches ?? 0),
+        rejectedPatches: Number(reference?.compareReport?.rejectedPatches ?? 0),
+      },
+      "vision-reference-build-complete"
+    );
 
+    attempts.push("token-enforcement");
+    logger.info(
+      {
+        referenceMode: reference.referenceMode,
+        minWordMatch: 99.5,
+      },
+      "token-enforcement-start"
+    );
     const enforcement = enforceTokenMatch({
       candidateText: finalText,
       referenceText: reference.referenceText,
@@ -679,6 +721,14 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
       criticalTokens: buildCriticalTokenList(reference.referenceText),
       minWordMatch: 99.5,
     });
+    logger.info(
+      {
+        status: enforcement.status,
+        wordMatch: enforcement?.quality?.wordMatch,
+        structuralMatch: enforcement?.quality?.structuralMatch,
+      },
+      "token-enforcement-complete"
+    );
 
     const status = enforcement.status;
     const rejectionReason = enforcement.rejectionReason;
@@ -765,9 +815,6 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
     await rm(tempRoot, { recursive: true, force: true }).catch(() => undefined);
   }
 };
-
-
-
 
 
 
