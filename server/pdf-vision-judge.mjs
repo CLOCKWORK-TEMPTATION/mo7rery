@@ -12,6 +12,7 @@ const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_RETRY_BASE_MS = 500;
 const DEFAULT_KIMI_THINKING_MODE = "disabled";
 const JUDGE_CONCURRENCY = 3;
+const MAX_PATCHES_PER_JUDGE_REQUEST = 150;
 
 const toDataUrl = (buffer, mimeType) =>
   `data:${mimeType};base64,${buffer.toString("base64")}`;
@@ -267,14 +268,28 @@ export const runVisionJudgePreflight = async ({
 };
 
 const processJudgePage = async ({ page, apiKey, model, timeoutMs }) => {
-  const patches = Array.isArray(page.proposedPatches) ? page.proposedPatches : [];
-  if (patches.length === 0) {
+  const allPatches = Array.isArray(page.proposedPatches) ? page.proposedPatches : [];
+  if (allPatches.length === 0) {
     log("page-skip", { page: page.page, reason: "no-patches" });
     return { approved: [], rejected: [] };
   }
 
-  log("page-start", { page: page.page, patches: patches.length });
+  // Sort by confidence descending — send only the top N to Kimi to avoid
+  // hanging on enormous payloads (1000+ patches would make the prompt huge).
+  const sorted = [...allPatches].sort(
+    (a, b) => (b.confidence ?? 0) - (a.confidence ?? 0)
+  );
+  const patchesToJudge = sorted.slice(0, MAX_PATCHES_PER_JUDGE_REQUEST);
+  const autoRejected = sorted.slice(MAX_PATCHES_PER_JUDGE_REQUEST);
+
+  log("page-start", {
+    page: page.page,
+    totalPatches: allPatches.length,
+    sentToJudge: patchesToJudge.length,
+    autoRejected: autoRejected.length,
+  });
   const t0 = Date.now();
+
   const imageBuffer = await readFile(page.imagePath);
   const imageDataUrl = toDataUrl(imageBuffer, "image/png");
   const decisions = await requestKimiJudge({
@@ -282,7 +297,7 @@ const processJudgePage = async ({ page, apiKey, model, timeoutMs }) => {
     model,
     imageDataUrl,
     currentText: String(page.currentPageText ?? ""),
-    patches,
+    patches: patchesToJudge,
     timeoutMs,
     _pageLabel: page.page,
   });
@@ -308,7 +323,8 @@ const processJudgePage = async ({ page, apiKey, model, timeoutMs }) => {
 
   const approved = [];
   const rejected = [];
-  for (const patch of patches) {
+
+  for (const patch of patchesToJudge) {
     const decision = decisionsById.get(patch.id);
     if (!decision) {
       rejected.push({
@@ -332,6 +348,15 @@ const processJudgePage = async ({ page, apiKey, model, timeoutMs }) => {
         judgeConfidence: decision.confidence,
       });
     }
+  }
+
+  // Overflow patches are auto-rejected (not judged) to avoid API hang.
+  for (const patch of autoRejected) {
+    rejected.push({
+      ...patch,
+      judgeReason: "overflow-auto-rejected",
+      judgeConfidence: 0,
+    });
   }
 
   log("page-done", { page: page.page, approved: approved.length, rejected: rejected.length, ms: Date.now() - t0 });
