@@ -4,6 +4,11 @@ import {
   resolveMistralChatRuntime,
 } from "./provider-api-runtime.mjs";
 
+const log = (tag, data) => {
+  const ts = new Date().toISOString();
+  console.log(`[${ts}] [vision-compare] ${tag}`, data != null ? JSON.stringify(data) : "");
+};
+
 const DEFAULT_TIMEOUT_MS = 180_000;
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_RETRY_BASE_MS = 500;
@@ -124,12 +129,16 @@ const requestMistralChatForImage = async ({
   timeoutMs = DEFAULT_TIMEOUT_MS,
   maxRetries = DEFAULT_MAX_RETRIES,
   retryBaseDelayMs = DEFAULT_RETRY_BASE_MS,
+  _pageLabel = "?",
 }) => {
   const runtime = resolveMistralCompareRuntime({ model });
   const endpoint = runtime.endpoint;
   const prompt = buildVisionTranscriptionPrompt();
   let attempt = 0;
   let lastError;
+
+  log("api-call-start", { page: _pageLabel, model: runtime.model, endpoint, timeoutMs });
+  const t0 = Date.now();
 
   while (attempt <= maxRetries) {
     const timeoutState = createTimeoutState(timeoutMs);
@@ -195,6 +204,7 @@ const requestMistralChatForImage = async ({
           "mistral-compare returned empty assistant text for page image."
         );
       }
+      log("api-call-done", { page: _pageLabel, ms: Date.now() - t0, attempt, textLen: text.length });
       return text;
     } catch (error) {
       lastError = error;
@@ -206,6 +216,7 @@ const requestMistralChatForImage = async ({
     }
   }
 
+  log("api-call-failed", { page: _pageLabel, ms: Date.now() - t0, error: toErrorMessage(lastError) });
   throw new Error(`mistral-compare failed after retries: ${toErrorMessage(lastError)}`);
 };
 
@@ -266,13 +277,17 @@ const processComparePage = async ({
   timeoutMs,
 }) => {
   const pageNumber = pageIndex + 1;
+  log("page-start", { page: pageNumber });
+  const t0 = Date.now();
   const imageBuffer = await readFile(imagePath);
   const imageDataUrl = toDataUrl(imageBuffer, "image/png");
+  log("page-image-loaded", { page: pageNumber, sizeKb: Math.round(imageBuffer.length / 1024) });
   const compareText = await requestMistralChatForImage({
     apiKey,
     model,
     imageDataUrl,
     timeoutMs,
+    _pageLabel: pageNumber,
   });
 
   const sourcePage = ocrPage ?? { text: "" };
@@ -282,6 +297,7 @@ const processComparePage = async ({
     referenceText: compareText,
   });
 
+  log("page-done", { page: pageNumber, patches: proposedPatches.length, ms: Date.now() - t0 });
   return {
     page: pageNumber,
     imagePath,
