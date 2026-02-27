@@ -1,0 +1,13 @@
+Source URL:
+- https://github.com/motdotla/dotenv
+Fetched: 2026-02-27
+
+dotenv usage notes:
+- Load as early as possible in process startup.
+- config() defaults to .env in current working directory.
+- path option supports custom env path.
+- CLI preload supported via node -r dotenv/config.
+
+Implementation implications:
+- Keep config() at top-level bootstrap for API provider modules.
+- Avoid late env-loading after provider singleton initialization.

@@ -95,6 +95,7 @@ import {
 } from "./hooks";
 import {
   ACCEPTED_FILE_EXTENSIONS,
+  getFileType,
   DEFAULT_TYPING_SYSTEM_SETTINGS,
   minutesToMilliseconds,
   sanitizeTypingSystemSettings,
@@ -105,6 +106,7 @@ import {
 import {
   buildFileOpenPipelineAction,
   extractImportedFile,
+  probeBackendPdfOcrReadiness,
   pickImportFile,
 } from "./utils/file-import";
 import { logger } from "./utils/logger";
@@ -226,6 +228,45 @@ const INSERT_ICON_GLYPH_BY_ID: Readonly<Record<EditorStyleFormatId, string>> = {
   parenthetical: "☷",
   transition: "⟶",
   "scene-header-top-line": "▦",
+};
+const PDF_OCR_ERROR_HINTS: Record<string, string> = {
+  PDF_OCR_PDF_RENDERER_MISSING:
+    "تعذر تشغيل استخراج PDF لأن أداة pdftoppm غير متاحة. ثبّت Poppler أو اضبط POPPLER_BIN.",
+  PDF_OCR_PDF_RENDERER_UNUSABLE:
+    "تعذر تشغيل استخراج PDF لأن أمر pdftoppm غير صالح في بيئة التشغيل الحالية.",
+  PDF_OCR_CFG_MISSING_MISTRAL_API_KEY:
+    "إعداد OCR غير مكتمل: MISTRAL_API_KEY غير مضبوط.",
+  PDF_OCR_CFG_MISSING_MOONSHOT_API_KEY:
+    "إعداد OCR غير مكتمل: MOONSHOT_API_KEY غير مضبوط.",
+  PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL:
+    "إعداد OCR غير مكتمل: PDF_VISION_COMPARE_MODEL غير مضبوط.",
+  PDF_OCR_CFG_INVALID_VISION_COMPARE_MODEL:
+    "إعداد OCR غير صالح: PDF_VISION_COMPARE_MODEL غير متوافق مع مسار المقارنة البصرية الحالي.",
+  PDF_OCR_CFG_MISSING_VISION_JUDGE_MODEL:
+    "إعداد OCR غير مكتمل: PDF_VISION_JUDGE_MODEL غير مضبوط.",
+  PDF_OCR_HEALTH_TIMEOUT:
+    "تعذر التحقق من جاهزية OCR بسبب انتهاء مهلة فحص الخادم الخلفي.",
+  PDF_OCR_HEALTH_UNREACHABLE:
+    "تعذر الوصول إلى الخادم الخلفي لفحص جاهزية OCR.",
+};
+
+const formatPdfOcrIssueDescription = (
+  errorCode?: string,
+  fallbackMessage?: string
+): string => {
+  const normalizedCode =
+    typeof errorCode === "string" && errorCode.trim() ? errorCode.trim() : "";
+
+  const mapped = normalizedCode ? PDF_OCR_ERROR_HINTS[normalizedCode] : undefined;
+  if (mapped) {
+    return `${mapped}${normalizedCode ? `\n(${normalizedCode})` : ""}`;
+  }
+
+  if (typeof fallbackMessage === "string" && fallbackMessage.trim()) {
+    return fallbackMessage.trim();
+  }
+
+  return "تعذر تشغيل مسار OCR للملف PDF بسبب إعدادات غير مكتملة في الخادم الخلفي.";
 };
 
 /** مكون خلفية الشبكة الزخرفية — يعرض شبكة نقطية مع توهجات ضبابية ملونة */
@@ -902,6 +943,33 @@ export function App(): React.JSX.Element {
         },
       });
 
+      const detectedFileType = getFileType(file.name);
+      if (detectedFileType === "pdf") {
+        const readiness = await probeBackendPdfOcrReadiness();
+        if (!readiness.ready) {
+          const readinessMessage = formatPdfOcrIssueDescription(
+            readiness.errorCode,
+            readiness.errorMessage
+          );
+
+          toast({
+            title: mode === "replace" ? "تعذر فتح الملف" : "تعذر إدراج الملف",
+            description: readinessMessage,
+            variant: "destructive",
+          });
+
+          logger.warn("PDF import blocked by OCR readiness", {
+            scope: "file-import",
+            data: {
+              filename: file.name,
+              mode,
+              readiness,
+            },
+          });
+          return;
+        }
+      }
+
       const extraction = await extractImportedFile(file);
       const action = buildFileOpenPipelineAction(extraction, mode);
       let appliedPipeline = "paste-classifier" as const;
@@ -939,13 +1007,22 @@ export function App(): React.JSX.Element {
         error instanceof Error
           ? error.message
           : "حدث خطأ غير معروف أثناء فتح الملف.";
+      const extractionErrorCode =
+        typeof (error as { errorCode?: unknown })?.errorCode === "string"
+          ? ((error as { errorCode?: string }).errorCode ?? "").trim()
+          : "";
+
+      const normalizedMessage = extractionErrorCode
+        ? formatPdfOcrIssueDescription(extractionErrorCode, rawMessage)
+        : rawMessage;
+
       const backendRelatedFailure =
         /failed to fetch|backend|connection|timed out|err_connection_refused|vite_file_import_backend_url/i.test(
-          rawMessage
+          normalizedMessage
         );
       const message = backendRelatedFailure
-        ? `${rawMessage}\nفي التطوير المحلي: استخدم pnpm dev (يشغّل backend تلقائيًا).`
-        : rawMessage;
+        ? `${normalizedMessage}\nفي التطوير المحلي: استخدم pnpm dev (يشغّل backend تلقائيًا).`
+        : normalizedMessage;
       toast({
         title: mode === "replace" ? "تعذر فتح الملف" : "تعذر إدراج الملف",
         description: message,
@@ -1446,3 +1523,8 @@ export function App(): React.JSX.Element {
     </div>
   );
 }
+
+
+
+
+

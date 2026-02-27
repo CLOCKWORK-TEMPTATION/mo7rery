@@ -16,6 +16,8 @@ import {
   NormalizationOptions,
 } from "./ncio_mistral_all_in_one.js";
 
+const CANONICAL_MISTRAL_OCR_MODEL = "mistral-ocr-latest";
+
 const server = new Server(
   {
     name: "mistral-ocr-mcp",
@@ -58,8 +60,13 @@ const convertDocumentInputSchema = {
     },
     llmModel: {
       type: "string",
-      description: "The LLM model to use for refinement",
-      default: "gpt-4o",
+      description: "The Kimi chat model to use for structural refinement",
+      default: "kimi-k2.5",
+    },
+    llmReferencePath: {
+      type: "string",
+      description:
+        "Optional absolute path to the reference markdown used for structural diff-based refinement",
     },
     llmStrict: {
       type: "boolean",
@@ -156,6 +163,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     saveRawMarkdown?: boolean;
     useLlm?: boolean;
     llmModel?: string;
+    llmReferencePath?: string;
     llmStrict?: boolean;
     mistralOcrModel?: string;
     useBatchOcr?: boolean;
@@ -172,12 +180,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     normalizeOutput = true,
     saveRawMarkdown = true,
     useLlm = false,
-    llmModel = "gpt-4o",
+    llmModel = "kimi-k2.5",
+    llmReferencePath,
     llmStrict = false,
     mistralOcrModel = "mistral-ocr-latest",
     useBatchOcr = false,
     normalizerOptions,
   } = args;
+
+  if (mistralOcrModel !== CANONICAL_MISTRAL_OCR_MODEL) {
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      `mistralOcrModel must be ${CANONICAL_MISTRAL_OCR_MODEL}.`
+    );
+  }
 
   const config: ConfigManager = {
     inputPath,
@@ -188,10 +204,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     llm: {
       enabled: useLlm,
       model: llmModel,
+      referencePath: llmReferencePath,
       strict: llmStrict,
       iterative: true,
-      maxIterations: 3,
-      targetMatch: 100.0,
+      maxIterations: 2,
+      targetMatch: 98.5,
       diffPreviewLines: 12,
     },
     mistral: {

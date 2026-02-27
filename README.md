@@ -8,6 +8,24 @@
 
 أفان تيتر هو محرر نصوص سيناريو متخصص في الكتابة الدرامية العربية. يعمل بالكامل داخل المتصفح، ويوفر تصنيفاً تلقائياً ذكياً لعناصر السيناريو، وتخطيطاً صفحياً يحاكي معايير الصناعة (صفحة واحدة ≈ دقيقة شاشة واحدة)، وتجربة كتابة طبيعية لا تقاطع تدفق الكاتب.
 
+### تشغيل محلي بأمر واحد
+
+```bash
+pnpm start
+```
+
+`pnpm start` ينفّذ Preflight إجباري قبل التشغيل:
+- يقتل أي عملية `file-import-server.mjs` قديمة.
+- يفرّغ بورت الـ backend الحالي (افتراضيًا `8787` أو من `FILE_IMPORT_PORT`).
+- ينظّف الكاش التالي: `node_modules/.vite`, `tmp`, `dist`, `test-results`.
+- ثم يشغّل `frontend + backend` معًا.
+
+للتشغيل السريع بدون Preflight استخدم:
+
+```bash
+pnpm dev
+```
+
 ---
 
 ## 2. المشكلة التي يحلها
@@ -158,13 +176,16 @@ src/
 
 | المتغير                         | الوصف                                                      | الافتراضي    |
 | ------------------------------- | ---------------------------------------------------------- | ------------ |
-| `PDF_OCR_AGENT_ENABLED`         | تفعيل/تعطيل مسار وكيل PDF OCR                              | `true`       |
-| `PDF_OCR_AGENT_ROOT`            | مسار جذر حزمة الوكيل `ocr-arabic-pdf-to-txt`               | داخل المشروع |
-| `PDF_OCR_AGENT_OCR_SCRIPT_PATH` | مسار سكربت OCR الفعلي (`src/skill-scripts/ocr-mistral.ts`) | داخل الحزمة  |
-| `PDF_OCR_AGENT_TIMEOUT_MS`      | مهلة تنفيذ OCR بالمللي ثانية                               | `600000`     |
-| `PDF_OCR_AGENT_PAGES`           | نطاق الصفحات (`all` أو `0-9` أو `0,2,5`)                   | `all`        |
-| `MISTRAL_API_KEY`               | مفتاح OCR الإلزامي لمسار PDF                               | —            |
-
+| `PDF_OCR_AGENT_ENABLED`         | تفعيل/تعطيل مسار وكيل PDF OCR                                        | `true`       |
+| `PDF_OCR_AGENT_ROOT`            | مسار جذر حزمة الوكيل `ocr-arabic-pdf-to-txt`                         | داخل المشروع |
+| `PDF_OCR_AGENT_OCR_SCRIPT_PATH` | مسار سكربت OCR الفعلي (`src/skill-scripts/ocr-mistral.ts`)           | داخل الحزمة  |
+| `PDF_OCR_AGENT_TIMEOUT_MS`      | مهلة تنفيذ OCR بالمللي ثانية                                         | `600000`     |
+| `PDF_OCR_AGENT_PAGES`           | نطاق الصفحات (`all` أو `0-9` أو `0,2,5`)                             | `all`        |
+| `MISTRAL_API_KEY`               | مفتاح OCR الإلزامي لمسار PDF                                         | —            |
+| `MOONSHOT_API_KEY`              | مفتاح نموذج التحكيم Vision (Judge)                                   | —            |
+| `PDF_VISION_COMPARE_MODEL`      | نموذج المقارن Vision (Comparator)                                    | —            |
+| `PDF_VISION_JUDGE_MODEL`        | نموذج المحكّم Vision (Judge)                                         | —            |
+| `POPPLER_BIN`                   | مسار مجلد `bin` لـ Poppler لحل `pdftoppm` عندما لا يكون موجودًا بالـ PATH | —            |
 ---
 
 ## 11. بايبلاين استخراج النص من PDF (OCR Pipeline)
@@ -241,6 +262,17 @@ pnpm ocr:start
 | `PDF_OCR_AGENT_WRITE_OUTPUT_SCRIPT_PATH` | مسار `write-output.ts`            | داخل البايبلاين |
 | `PDF_OCR_AGENT_ENHANCE_SCRIPT_PATH`      | مسار `enhance-image.ts`           | داخل البايبلاين |
 | `OPENAI_API_KEY`                         | مفتاح OpenAI (للـ LLM refinement) | —               |
+
+### Startup Readiness Checklist (PDF OCR)
+
+قبل رفع أي PDF، تأكد من التالي:
+
+1. `MISTRAL_API_KEY` و `MOONSHOT_API_KEY` مضبوطان.
+2. `PDF_VISION_COMPARE_MODEL` و `PDF_VISION_JUDGE_MODEL` مضبوطان.
+3. أمر `pdftoppm` قابل للتشغيل (عبر PATH أو عبر `POPPLER_BIN`).
+4. نقطة `/health` تُرجع:
+   - `ocrConfigured: true`
+   - `ocrAgent.dependencies.pdftoppm.available: true`
 
 ---
 
@@ -368,3 +400,34 @@ MIME: application/x-filmlane-blocks+json
 | [`docs/FILE_RELATIONS.md`](docs/FILE_RELATIONS.md) | خرائط علاقات الملفات بناءً على الاستيرادات الفعلية |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md)             | تتبع تقدم التوثيق                                  |
 | [`CLAUDE.md`](CLAUDE.md)                           | تعليمات المشروع لوكلاء الكود                       |
+
+---
+
+## 20. تشغيل اختبارات التدقيق الشامل (E2E + Integration)
+
+للاختبارات الحرجة المضافة حديثًا:
+
+- `pnpm test:integration:critical`  
+  يشغّل اختبارات تكامل المسارات الحرجة في الخادم (`/health`، `/api/files/extract`، `/api/agent/review`).
+
+- `pnpm test:e2e:audit`  
+  يشغّل سيناريو E2E الشامل لتدقيق واجهة التطبيق (القوائم، الشريط، الجانبي، المحرر، الشريط السفلي، اختصارات لوحة المفاتيح، edge cases).
+
+- `pnpm test:e2e:release-gate`  
+  يشغّل نفس سيناريو التدقيق بوضع صارم نهائي (Strict Gate):
+  - المسموح من حالات `لا يعمل`: صفر
+  - المسموح من حالات `يعمل جزئياً`: صفر
+  - الحد الأدنى لمعدل النجاح: 100%
+
+- `pnpm test:release:night`  
+  تشغيل نهائي قبل النشر الليلي: تكامل حرج + بوابة E2E الصارمة.
+
+### مخرجات التدقيق
+
+- تقرير Markdown: داخل `test-results/` باسم مشابه:  
+  `avan-titre-audit-<timestamp>.md`
+- تقرير JSON: داخل `test-results/` باسم مشابه:  
+  `avan-titre-audit-<timestamp>.json`
+- لقطات الشاشة للحالات غير المكتملة: داخل  
+  `test-results/e2e-audit-screenshots/`
+

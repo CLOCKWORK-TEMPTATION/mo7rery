@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+const CANONICAL_MISTRAL_OCR_MODEL = "mistral-ocr-latest";
+const CANONICAL_MISTRAL_OCR_BASE_URL = "https://api.mistral.ai";
+
 export type MistralResponseFormat =
   | { type: "text" }
   | { type: "json_object" }
@@ -61,6 +64,8 @@ export interface MistralOcrClientOptions {
   readonly baseUrl?: string;
   readonly model?: string;
   readonly timeoutMs?: number;
+  readonly maxRetries?: number;
+  readonly retryBaseDelayMs?: number;
   readonly autoDeleteUploadedFile?: boolean;
   readonly defaultHeaders?: Readonly<Record<string, string>>;
 }
@@ -76,21 +81,23 @@ export class MistralOcrClient {
   private readonly baseUrl: string;
   private readonly model: string;
   private readonly timeoutMs: number;
+  private readonly maxRetries: number;
+  private readonly retryBaseDelayMs: number;
   private readonly autoDeleteUploadedFile: boolean;
   private readonly defaultHeaders: Readonly<Record<string, string>>;
 
   constructor(options: MistralOcrClientOptions = {}) {
-    this.apiKey = options.apiKey ?? process.env.MISTRAL_API_KEY ?? "";
-    if (!this.apiKey) {
-      throw new Error("MISTRAL_API_KEY is missing.");
-    }
+    this.apiKey = requireApiKey(options.apiKey ?? process.env.MISTRAL_API_KEY);
 
-    this.baseUrl = (options.baseUrl ?? "https://api.mistral.ai").replace(
-      /\/$/,
-      ""
+    this.baseUrl = resolveHardLockedBaseUrl(
+      options.baseUrl ?? process.env.MISTRAL_BASE_URL
     );
-    this.model = options.model ?? "mistral-ocr-latest";
-    this.timeoutMs = options.timeoutMs ?? 120_000;
+    this.model = resolveHardLockedModel(
+      options.model ?? process.env.MISTRAL_OCR_MODEL
+    );
+    this.timeoutMs = options.timeoutMs ?? 90_000;
+    this.maxRetries = Math.max(0, Math.min(options.maxRetries ?? 1, 5));
+    this.retryBaseDelayMs = Math.max(100, options.retryBaseDelayMs ?? 500);
     this.autoDeleteUploadedFile = options.autoDeleteUploadedFile ?? false;
     this.defaultHeaders = options.defaultHeaders ?? {};
   }
@@ -221,7 +228,7 @@ export class MistralOcrClient {
       case "image_url":
         return {
           type: "image_url",
-          image_url: { url: input.imageUrl },
+          image_url: input.imageUrl,
         };
 
       case "file_path": {
@@ -233,37 +240,68 @@ export class MistralOcrClient {
   }
 
   private async requestJson<T>(route: string, init: RequestInit): Promise<T> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    let attempt = 0;
+    let lastError: unknown;
 
-    try {
-      const headers = new Headers(init.headers ?? {});
-      headers.set("Authorization", `Bearer ${this.apiKey}`);
-      for (const [key, value] of Object.entries(this.defaultHeaders)) {
-        if (!headers.has(key)) headers.set(key, value);
+    while (attempt <= this.maxRetries) {
+      const timeoutState = createTimeoutState(this.timeoutMs);
+      try {
+        const headers = new Headers(init.headers ?? {});
+        headers.set("Authorization", `Bearer ${this.apiKey}`);
+        if (!headers.has("Accept")) {
+          headers.set("Accept", "application/json");
+        }
+        for (const [key, value] of Object.entries(this.defaultHeaders)) {
+          if (!headers.has(key)) headers.set(key, value);
+        }
+
+        const response = await fetch(`${this.baseUrl}${route}`, {
+          ...init,
+          headers,
+          signal: timeoutState.signal,
+        });
+
+        const text = await response.text();
+        const json = text ? safeJsonParse(text) : null;
+
+        if (!response.ok) {
+          const error = new Error(
+            `Mistral API error ${response.status}: ${
+              typeof json === "object" && json ? JSON.stringify(json) : text
+            }`
+          );
+
+          if (isRetryableStatus(response.status) && attempt < this.maxRetries) {
+            attempt += 1;
+            await sleep(
+              exponentialBackoffDelay(this.retryBaseDelayMs, attempt)
+            );
+            continue;
+          }
+
+          throw error;
+        }
+
+        return json as T;
+      } catch (error) {
+        lastError = error;
+        if (
+          shouldRetryRequest(error, timeoutState.didTimeout) &&
+          attempt < this.maxRetries
+        ) {
+          attempt += 1;
+          await sleep(exponentialBackoffDelay(this.retryBaseDelayMs, attempt));
+          continue;
+        }
+        throw error;
+      } finally {
+        timeoutState.cleanup();
       }
-
-      const response = await fetch(`${this.baseUrl}${route}`, {
-        ...init,
-        headers,
-        signal: controller.signal,
-      });
-
-      const text = await response.text();
-      const json = text ? safeJsonParse(text) : null;
-
-      if (!response.ok) {
-        throw new Error(
-          `Mistral API error ${response.status}: ${
-            typeof json === "object" && json ? JSON.stringify(json) : text
-          }`
-        );
-      }
-
-      return json as T;
-    } finally {
-      clearTimeout(timeout);
     }
+
+    throw new Error(
+      `Mistral request failed after retries: ${toErrorMessage(lastError)}`
+    );
   }
 }
 
@@ -273,6 +311,125 @@ function safeJsonParse(text: string): unknown {
   } catch {
     return text;
   }
+}
+
+function requireApiKey(raw: string | undefined): string {
+  const value = (raw ?? "").trim();
+  if (!value) {
+    throw new Error("MISTRAL_API_KEY is missing.");
+  }
+  if (/\s/u.test(value)) {
+    throw new Error("MISTRAL_API_KEY is invalid: contains whitespace.");
+  }
+  return value;
+}
+
+function normalizeComparableValue(value: string): string {
+  return value.trim().replace(/\/+$/u, "");
+}
+
+function resolveHardLockedModel(raw: string | undefined): string {
+  if (typeof raw !== "string" || !raw.trim()) {
+    return CANONICAL_MISTRAL_OCR_MODEL;
+  }
+  if (
+    normalizeComparableValue(raw) !==
+    normalizeComparableValue(CANONICAL_MISTRAL_OCR_MODEL)
+  ) {
+    throw new Error(
+      `MISTRAL_OCR_MODEL is hard-locked to ${CANONICAL_MISTRAL_OCR_MODEL}. Received: ${raw.trim()}`
+    );
+  }
+  return CANONICAL_MISTRAL_OCR_MODEL;
+}
+
+function resolveHardLockedBaseUrl(raw: string | undefined): string {
+  if (typeof raw !== "string" || !raw.trim()) {
+    return CANONICAL_MISTRAL_OCR_BASE_URL;
+  }
+  const normalized = normalizeComparableValue(raw);
+  if (normalized !== normalizeComparableValue(CANONICAL_MISTRAL_OCR_BASE_URL)) {
+    throw new Error(
+      `MISTRAL OCR base URL is hard-locked to ${CANONICAL_MISTRAL_OCR_BASE_URL}. Received: ${raw.trim()}`
+    );
+  }
+  return CANONICAL_MISTRAL_OCR_BASE_URL;
+}
+
+function createTimeoutState(timeoutMs: number): {
+  signal: AbortSignal;
+  cleanup: () => void;
+  didTimeout: () => boolean;
+} {
+  const hasAbortSignalTimeout =
+    typeof AbortSignal !== "undefined" &&
+    typeof (AbortSignal as unknown as { timeout?: unknown }).timeout ===
+      "function";
+
+  if (hasAbortSignalTimeout) {
+    const timeoutSignal = (
+      AbortSignal as unknown as { timeout: (ms: number) => AbortSignal }
+    ).timeout(timeoutMs);
+    return {
+      signal: timeoutSignal,
+      cleanup: () => undefined,
+      didTimeout: () => timeoutSignal.aborted,
+    };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return {
+    signal: controller.signal,
+    cleanup: () => clearTimeout(timer),
+    didTimeout: () => controller.signal.aborted,
+  };
+}
+
+function isRetryableStatus(status: number): boolean {
+  return status === 408 || status === 425 || status === 429 || status >= 500;
+}
+
+function shouldRetryRequest(
+  error: unknown,
+  didTimeout: () => boolean
+): boolean {
+  if (didTimeout()) {
+    return true;
+  }
+  if (error instanceof Error) {
+    if (error.name === "AbortError" || error.name === "TimeoutError") {
+      return true;
+    }
+    const lowerMessage = error.message.toLowerCase();
+    if (
+      lowerMessage.includes("fetch failed") ||
+      lowerMessage.includes("network") ||
+      lowerMessage.includes("timed out")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function exponentialBackoffDelay(baseDelayMs: number, attempt: number): number {
+  const withExponent = baseDelayMs * 2 ** Math.max(0, attempt - 1);
+  const jitter = Math.round(Math.random() * 100);
+  return withExponent + jitter;
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error ?? "unknown error");
 }
 
 function inferMimeType(fileName: string): string {

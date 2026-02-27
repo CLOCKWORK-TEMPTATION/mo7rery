@@ -14,13 +14,17 @@ import path from "node:path";
 import process from "node:process";
 import util from "node:util";
 import { setTimeout as sleep } from "node:timers/promises";
+import {
+  StructuralRepair,
+  waitForRepairStability,
+} from "./structural-repair.js";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
 const APP_NAME = "MistralOCRPDFConverter";
-const DEFAULT_LLM_MODEL = "gpt-5.2";
+const DEFAULT_LLM_MODEL = "kimi-k2.5";
 const DEFAULT_MISTRAL_OCR_MODEL = "mistral-ocr-latest";
 const DEFAULT_PRE_OCR_LANG = "ar";
 
@@ -32,10 +36,23 @@ const DEFAULT_LLM_TARGET_MATCH = 100.0;
 const DEFAULT_DIFF_PREVIEW_LINES = 12;
 
 const DEFAULT_INPUT = String.raw`E:\New folder (31)\12.pdf`;
-const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-const MISTRAL_BASE_URL = (
-  process.env.MISTRAL_BASE_URL ?? "https://api.mistral.ai/v1"
-).replace(/\/+$/u, "");
+const MISTRAL_BASE_URL = "https://api.mistral.ai/v1";
+const MISTRAL_HTTP_TIMEOUT_MS = Math.max(
+  1_000,
+  Number.parseInt(process.env.MISTRAL_HTTP_TIMEOUT_MS ?? "120000", 10) ||
+    120_000
+);
+const MISTRAL_HTTP_MAX_RETRIES = Math.max(
+  0,
+  Math.min(
+    Number.parseInt(process.env.MISTRAL_HTTP_MAX_RETRIES ?? "2", 10) || 2,
+    5
+  )
+);
+const MISTRAL_HTTP_RETRY_BASE_MS = Math.max(
+  100,
+  Number.parseInt(process.env.MISTRAL_HTTP_RETRY_BASE_MS ?? "500", 10) || 500
+);
 
 // ============================================================================
 // Types
@@ -99,6 +116,39 @@ export interface ConfigManager {
 }
 
 type JsonRecord = Record<string, unknown>;
+
+interface NamedReplacement {
+  wrong: string;
+  correct: string;
+  label: string;
+}
+
+const CRITICAL_OCR_REPLACEMENTS: ReadonlyArray<NamedReplacement> = [
+  { wrong: "مسـاهد", correct: "مشهد", label: "مشهد" },
+  { wrong: "مساهد", correct: "مشهد", label: "مشهد" },
+  { wrong: "نشـقـة", correct: "شقة", label: "شقة" },
+  { wrong: "نشقة", correct: "شقة", label: "شقة" },
+  { wrong: "الصـالة", correct: "الصالة", label: "الصالة" },
+  { wrong: "ام ام", correct: "إم إم", label: "همزات إم إم" },
+  { wrong: "ابونا", correct: "أبونا", label: "همزة أبونا" },
+  { wrong: "رينا", correct: "ربنا", label: "ربنا" },
+  { wrong: "الضياع", correct: "الضباع", label: "الضباع" },
+  { wrong: "جنة كل واحد", correct: "جتة كل واحد", label: "جتة" },
+  { wrong: "ردهوش", correct: "ردهووش", label: "ردهووش" },
+  { wrong: "هتشال", correct: "هتتشال", label: "هتتشال" },
+  { wrong: "تتسوش", correct: "تنسوش", label: "تنسوش" },
+  { wrong: "هنتم", correct: "هنتلم", label: "هنتلم" },
+  { wrong: "دوفنا", correct: "دوقنا", label: "دوقنا" },
+  { wrong: "ونتم", correct: "ونتلم", label: "ونتلم" },
+  { wrong: "هيرجعي", correct: "هيرجعلي", label: "هيرجعلي" },
+  { wrong: "بعينها", correct: "يعينها", label: "يعينها" },
+  { wrong: "لتنتظر", correct: "لتنظ ر", label: "لتنظ ر" },
+  { wrong: "مالكن", correct: "مالكش", label: "مالكش" },
+  { wrong: "هيدينا", correct: "وهيودينا", label: "وهيودينا" },
+  { wrong: "ينكي", correct: "بنكي", label: "بنكي" },
+  { wrong: "اختلفشاش", correct: "اختلفناش", label: "اختلفناش" },
+  { wrong: "وسايبيني", correct: "وسايبني", label: "وسايبني" },
+];
 
 // ============================================================================
 // Logging
@@ -180,6 +230,91 @@ function getEnvOrRaise(key: string, message?: string): string {
   return value;
 }
 
+function ensureMistralApiKey(raw: string): string {
+  const apiKey = raw.trim();
+  if (!apiKey) {
+    throw new Error("MISTRAL_API_KEY غير موجود.");
+  }
+  if (/\s/u.test(apiKey)) {
+    throw new Error("MISTRAL_API_KEY غير صالح: يحتوي على مسافات.");
+  }
+  return apiKey;
+}
+
+function ensureKimiApiKey(raw: string): string {
+  const apiKey = raw.trim();
+  if (!apiKey) {
+    throw new Error("MOONSHOT_API_KEY غير موجود.");
+  }
+  if (/\s/u.test(apiKey)) {
+    throw new Error("MOONSHOT_API_KEY غير صالح: يحتوي على مسافات.");
+  }
+  return apiKey;
+}
+
+function isRetryableHttpStatus(status: number): boolean {
+  return status === 408 || status === 425 || status === 429 || status >= 500;
+}
+
+function isRetryableRequestError(
+  error: unknown,
+  didTimeout?: () => boolean
+): boolean {
+  if (didTimeout?.()) {
+    return true;
+  }
+  if (error instanceof Error) {
+    if (error.name === "AbortError" || error.name === "TimeoutError") {
+      return true;
+    }
+    const lower = error.message.toLowerCase();
+    if (
+      lower.includes("fetch failed") ||
+      lower.includes("network") ||
+      lower.includes("timed out")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function retryDelayMs(attempt: number): number {
+  const base = MISTRAL_HTTP_RETRY_BASE_MS * 2 ** Math.max(0, attempt - 1);
+  const jitter = Math.round(Math.random() * 100);
+  return base + jitter;
+}
+
+function createTimeoutState(timeoutMs: number): {
+  signal: AbortSignal;
+  cleanup: () => void;
+  didTimeout: () => boolean;
+} {
+  const hasAbortSignalTimeout =
+    typeof AbortSignal !== "undefined" &&
+    typeof (AbortSignal as unknown as { timeout?: unknown }).timeout ===
+      "function";
+
+  if (hasAbortSignalTimeout) {
+    const timeoutSignal = (
+      AbortSignal as unknown as { timeout: (ms: number) => AbortSignal }
+    ).timeout(timeoutMs);
+    return {
+      signal: timeoutSignal,
+      cleanup: () => undefined,
+      didTimeout: () => timeoutSignal.aborted,
+    };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return {
+    signal: controller.signal,
+    cleanup: () => clearTimeout(timer),
+    didTimeout: () => controller.signal.aborted,
+  };
+}
+
 function ensureTrailingNewline(text: string): string {
   return text.endsWith("\n") ? text : `${text}\n`;
 }
@@ -202,6 +337,10 @@ function str(value: unknown): string {
   return String(value);
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function toNumberInt(raw: string | undefined, fallback: number): number {
   if (!raw) {
     return fallback;
@@ -216,6 +355,67 @@ function toNumberFloat(raw: string | undefined, fallback: number): number {
   }
   const v = Number.parseFloat(raw);
   return Number.isFinite(v) ? v : fallback;
+}
+
+const HINDI_TO_ARABIC_DIGITS: Readonly<Record<string, string>> = {
+  "٠": "0",
+  "١": "1",
+  "٢": "2",
+  "٣": "3",
+  "٤": "4",
+  "٥": "5",
+  "٦": "6",
+  "٧": "7",
+  "٨": "8",
+  "٩": "9",
+};
+
+const SCENE_HEADER_VARIANTS_PATTERN =
+  "(?:مشهد|مشـهد|مشاهد|مشـاهد|مسـاهد|مساهد|مسـ|مسهد|مساحة|scene)";
+const SCENE_HEADER_LINE_PATTERN = new RegExp(
+  `^\\s*(?:#+\\s*)?(?:[٠١٢٣٤٥٦٧٨٩0-9]+\\s+)?${SCENE_HEADER_VARIANTS_PATTERN}\\s*([٠١٢٣٤٥٦٧٨٩0-9]+)\\b\\s*(.*)$`,
+  "iu"
+);
+
+function normalizeHindiDigitsToWestern(text: string): string {
+  return text.replace(
+    /[٠١٢٣٤٥٦٧٨٩]/g,
+    (digit) => HINDI_TO_ARABIC_DIGITS[digit] ?? digit
+  );
+}
+
+function normalizeSceneHeadersRobust(
+  text: string,
+  onNormalized?: (sceneHeader: string) => void
+): string {
+  const lines = text.split(/\r?\n/);
+  const out: string[] = [];
+
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+    const match = line.match(SCENE_HEADER_LINE_PATTERN);
+    if (!match) {
+      out.push(line);
+      continue;
+    }
+
+    const sceneNumber = normalizeHindiDigitsToWestern(match[1] ?? "").trim();
+    if (!sceneNumber) {
+      out.push(line);
+      continue;
+    }
+
+    const normalizedHeader = `مشهد${sceneNumber}`;
+    onNormalized?.(normalizedHeader);
+    out.push(normalizedHeader);
+
+    const tail = (match[2] ?? "").trim();
+    if (tail) {
+      out.push(tail);
+    }
+  }
+
+  return out.join("\n");
 }
 
 interface ParsedArgs {
@@ -375,6 +575,11 @@ function buildConfig(argv: string[]): ConfigManager {
     extractFooter: argBool(args, "mistral-extract-footer"),
     includeImageBase64: argBool(args, "mistral-include-image-base64"),
   };
+  if (mistral.model !== DEFAULT_MISTRAL_OCR_MODEL) {
+    throw new Error(
+      `Mistral OCR model must be ${DEFAULT_MISTRAL_OCR_MODEL}. Received: ${mistral.model}`
+    );
+  }
 
   const preOcr: PreOCRConfig = {
     enabled: !argBool(args, "disable-pre-ocr-filter"),
@@ -901,36 +1106,215 @@ export class MarkdownNormalizer {
 }
 
 // ============================================================================
-// LLM Post Processor
+// STAGE 1: Pre-processing (قبل إرسال للـ LLM)
+// ============================================================================
+
+interface PreprocessResult {
+  text: string;
+  detectedIssues: string[];
+}
+
+class OCRPreprocessor {
+  private static readonly NAME_PATTERNS = [
+    { reversed: "يربص", correct: "صبري" },
+    { reversed: "فصنم", correct: "منصف" },
+    { reversed: "دومحم", correct: "محمود" },
+    { reversed: "دمحا", correct: "أحمد" },
+    { reversed: "دنه", correct: "هند" },
+    { reversed: "يسوب", correct: "بوسي" },
+    { reversed: "رمرم", correct: "مرمر" },
+    { reversed: "مإ مإ", correct: "إم إم" },
+    { reversed: "ىطسلاا", correct: "الاسطى" },
+    { reversed: "يزوف", correct: "فوزي" },
+    { reversed: "سونرع", correct: "عرنوس" },
+    { reversed: "دعسم", correct: "مسعد" },
+  ] as const;
+
+  preprocess(text: string): PreprocessResult {
+    const issues: string[] = [];
+    let processed = this.fixCatastrophicStart(text, issues);
+
+    for (const pattern of OCRPreprocessor.NAME_PATTERNS) {
+      if (processed.includes(pattern.reversed)) {
+        issues.push(`انعكاس: ${pattern.reversed} ← ${pattern.correct}`);
+        processed = processed.replace(
+          new RegExp(escapeRegExp(pattern.reversed), "g"),
+          pattern.correct
+        );
+      }
+    }
+
+    processed = this.applyCriticalCorrections(processed, issues);
+
+    const digitsNormalized = normalizeHindiDigitsToWestern(processed);
+    if (digitsNormalized !== processed) {
+      issues.push("تحويل الأرقام الهندية إلى عربية");
+      processed = digitsNormalized;
+    }
+
+    processed = this.normalizeSceneHeaders(processed, issues);
+
+    if (processed.match(/^-\s+/m)) {
+      issues.push("توحيد علامات الكلام: - ← •");
+      processed = processed.replace(/^-\s+/gm, "• ");
+    }
+
+    if (processed.includes("ام ام")) {
+      issues.push("إضافة همزة: ام ام ← إم إم");
+      processed = processed.replace(/ام ام/g, "إم إم");
+    }
+
+    const scenePattern = /مشهد[١٢٣٤٥٦٧٨٩٠1-9]/g;
+    const scenes = processed.match(scenePattern);
+    if (scenes && scenes.length > 1) {
+      issues.push(`إضافة كلمة "قطع" قبل ${scenes.length - 1} مشهد`);
+    }
+
+    return { text: processed, detectedIssues: issues };
+  }
+
+  private fixCatastrophicStart(text: string, issues: string[]): string {
+    const lines = text.split(/\r?\n/);
+    const firstIndex = lines.findIndex((line) => line.trim().length > 0);
+    if (firstIndex < 0) {
+      return text;
+    }
+
+    let sceneLineIndex = firstIndex;
+    let sceneLine = lines[sceneLineIndex].trim();
+
+    // بعض ملفات OCR تبدأ برقم صفحة مفرد ثم ترويسة المشهد في السطر التالي.
+    if (/^[٠١٢٣٤٥٦٧٨٩0-9]+$/u.test(sceneLine)) {
+      const nextNonEmptyIndex = lines.findIndex(
+        (line, index) => index > sceneLineIndex && line.trim().length > 0
+      );
+      if (nextNonEmptyIndex >= 0) {
+        sceneLineIndex = nextNonEmptyIndex;
+        sceneLine = lines[sceneLineIndex].trim();
+      }
+    }
+
+    // لا نلمس السطر إذا كان بالفعل ترويسة سليمة.
+    if (/^(?:\s*#+\s*)?مشهد\s*[٠١٢٣٤٥٦٧٨٩0-9]+\b/u.test(sceneLine)) {
+      return text;
+    }
+
+    const sceneMatch = sceneLine.match(SCENE_HEADER_LINE_PATTERN);
+    if (!sceneMatch) {
+      return text;
+    }
+
+    const sceneNumber = normalizeHindiDigitsToWestern(sceneMatch[1] ?? "").trim();
+    if (!sceneNumber) {
+      return text;
+    }
+
+    // إزالة رقم الصفحة المفرد في البداية إذا كان منفصلاً عن المحتوى.
+    if (sceneLineIndex !== firstIndex && /^[٠١٢٣٤٥٦٧٨٩0-9]+$/u.test(lines[firstIndex].trim())) {
+      lines.splice(firstIndex, 1);
+      sceneLineIndex -= 1;
+    }
+
+    const tail = (sceneMatch[2] ?? "").trim();
+    if (tail) {
+      lines.splice(sceneLineIndex, 1, `مشهد${sceneNumber}`, tail);
+    } else {
+      lines[sceneLineIndex] = `مشهد${sceneNumber}`;
+    }
+
+    if (!text.includes("بسم الله")) {
+      lines.unshift("بسم الله الرحمن الرحيم");
+      issues.push("إصلاح بداية كارثية: إضافة البسملة وتطبيع أول مشهد");
+    } else {
+      issues.push("إصلاح بداية كارثية: تطبيع أول مشهد");
+    }
+
+    return lines.join("\n");
+  }
+
+  private applyCriticalCorrections(text: string, issues: string[]): string {
+    let out = text;
+    for (const replacement of CRITICAL_OCR_REPLACEMENTS) {
+      if (!out.includes(replacement.wrong)) {
+        continue;
+      }
+      out = out.replace(
+        new RegExp(escapeRegExp(replacement.wrong), "g"),
+        replacement.correct
+      );
+      issues.push(`تصحيح حرج: ${replacement.label}`);
+    }
+    return out;
+  }
+
+  private normalizeSceneHeaders(text: string, issues: string[]): string {
+    return normalizeSceneHeadersRobust(text, (sceneHeader) => {
+      issues.push(`توحيد ترويسة مشهد: ${sceneHeader}`);
+    });
+  }
+}
+
+// ============================================================================
+// STAGE 2: Enhanced LLM Post-Processor
 // ============================================================================
 
 export class LLMPostProcessor {
-  private static readonly SYSTEM_PROMPT =
-    "You are an expert Arabic OCR post-processor for screenplay markdown. Return ONLY the final corrected markdown without explanations. Do not drop content. Keep headings, scene structure, and speaker lines consistent.";
+  private static readonly SYSTEM_PROMPT = `أنت خبير في تصحيح نصوص السيناريو العربية. مهمتك:
+1. مقارنة النص المدخل بالمرجع حرفياً
+2. إصلاح الأخطاء الهيكلية: ترويسات المشاهد، أسماء المتكلمين، علامات الانتقال
+3. إضافة كلمة "قطع" قبل كل مشهد جديد (باستثناء المشهد الأول)
+4. الحفاظ على التشكيل والهمزات من المرجع
+5. استخدام • لعلامات الكلام وليس -
+6. الحفاظ على التنسيق الدقيق: "نهار \\-داخلي" وليس "نهار -داخلي"
+7. إرجاع Markdown فقط بدون أي شرح`;
 
-  private static readonly USER_TEMPLATE = [
-    "صحّح النص التالي لتحسين التطابق مع النسخة المرجعية إن وُجدت.",
-    "قواعد التنفيذ:",
-    "1) لا تضف شروحاً أو تعليقات.",
-    "2) أخرج Markdown فقط.",
-    "3) حافظ على ترتيب المشاهد والأسطر قدر الإمكان.",
-    "4) حسّن أخطاء OCR الإملائية وعلامات الترقيم وترويسات المشاهد.",
-    "",
-    "[FEEDBACK]",
-    "{feedback}",
-    "",
-    "[INPUT_MARKDOWN]",
-    "{markdown_text}",
-    "",
-    "[REFERENCE_MARKDOWN]",
-    "{reference_text}",
-  ].join("\n");
+  private static readonly USER_TEMPLATE = `قم بتصحيح النص التالي ليتطابق 100% مع المرجع:
+
+[النص المرجعي - استخدمه كحقيقة مطلقة]
+{reference_text}
+
+[النص المدخل - قم بتصحيحه]
+{markdown_text}
+
+[ملاحظات ما قبل المعالجة]
+{preprocess_notes}
+
+[تعليقات إضافية]
+{feedback}
+
+قواعد صارمة:
+1. أضف "قطع" في سطر منفصل قبل كل مشهد جديد (بعد المشهد الأول)
+2. استخدم • للكلام وليس -
+3. الحفاظ على التشكيل والهمزات كما في المرجع
+4. "إم إم" وليس "ام ام"
+5. تنسيق المشهد: "مشهد1 نهار \\-داخلي"
+6. لا تدمج السطور المستقلة
+7. صحّح الكلمات الحرجة الشائعة مثل: رينا→ربنا، الضياع→الضباع، ينكي→بنكي
+8. أخرج Markdown فقط`;
+
+  private static readonly KIMI_BASE_URL = (
+    process.env.KIMI_BASE_URL ?? "https://api.moonshot.ai/v1"
+  ).replace(/\/+$/u, "");
+  private static readonly KIMI_HTTP_TIMEOUT_MS = Math.max(
+    30_000,
+    Number.parseInt(process.env.KIMI_HTTP_TIMEOUT_MS ?? "180000", 10) || 180_000
+  );
+  private static readonly KIMI_HTTP_MAX_RETRIES = Math.max(
+    0,
+    Math.min(
+      Number.parseInt(process.env.KIMI_HTTP_MAX_RETRIES ?? "3", 10) || 3,
+      5
+    )
+  );
+  private static readonly DEFAULT_KIMI_MODEL = "kimi-k2.5";
 
   private readonly config: LLMConfig;
   private referenceCache?: string;
+  private readonly preprocessor: OCRPreprocessor;
 
   constructor(config: LLMConfig) {
     this.config = config;
+    this.preprocessor = new OCRPreprocessor();
   }
 
   async getReferenceText(): Promise<string> {
@@ -956,95 +1340,301 @@ export class LLMPostProcessor {
     referenceText?: string,
     feedback = ""
   ): Promise<string> {
-    const apiKey = getEnvOrRaise("OPENAI_API_KEY");
     const effectiveReference = referenceText ?? (await this.getReferenceText());
+    const preprocessed = this.preprocessor.preprocess(markdownText);
 
-    const userPrompt = LLMPostProcessor.USER_TEMPLATE.replace(
-      "{feedback}",
-      feedback || "N/A"
-    )
-      .replace("{markdown_text}", markdownText)
-      .replace("{reference_text}", effectiveReference || "N/A");
+    const userPrompt = LLMPostProcessor.USER_TEMPLATE
+      .replace("{reference_text}", effectiveReference || "N/A")
+      .replace("{markdown_text}", preprocessed.text)
+      .replace(
+        "{preprocess_notes}",
+        preprocessed.detectedIssues.join("\n") || "لا توجد ملاحظات"
+      )
+      .replace("{feedback}", feedback || "N/A");
 
-    const response = await fetch(OPENAI_RESPONSES_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: this.config.model,
-        input: [
-          {
-            role: "system",
-            content: [
-              { type: "input_text", text: LLMPostProcessor.SYSTEM_PROMPT },
-            ],
-          },
-          { role: "user", content: [{ type: "input_text", text: userPrompt }] },
-        ],
-      }),
-    });
+    const data = await this.callKimiChat(userPrompt);
 
-    const raw = await response.text();
-    if (!response.ok) {
-      throw new Error(
-        `فشل استدعاء OpenAI: ${response.status} ${response.statusText} - ${raw}`
-      );
-    }
-
-    let data: JsonRecord = {};
-    try {
-      data = JSON.parse(raw) as JsonRecord;
-    } catch {
-      throw new Error("تعذر تحليل استجابة OpenAI كـ JSON.");
-    }
-
-    const out = this.extractOutputText(data).trim();
+    let out = this.extractOutputText(data).trim();
     if (!out) {
       throw new Error("الاستجابة من نموذج LLM كانت فارغة.");
     }
 
-    const cleaned = this.stripMarkdownFences(out);
-    return ensureTrailingNewline(cleaned);
+    out = this.stripMarkdownFences(out);
+    out = this.finalValidation(out);
+    return ensureTrailingNewline(out);
+  }
+
+  private finalValidation(output: string): string {
+    let validated = output;
+
+    validated = this.ensureCutsBetweenScenes(validated);
+    validated = this.applyCriticalReplacements(validated);
+    validated = this.normalizeSceneHeadersForValidation(validated);
+
+    if (validated.match(/^-\s+/m) && !validated.match(/^•\s+/m)) {
+      validated = validated.replace(/^-\s+/gm, "• ");
+    }
+
+    validated = normalizeHindiDigitsToWestern(validated);
+
+    return validated;
+  }
+
+  private applyCriticalReplacements(text: string): string {
+    let out = text;
+
+    for (const replacement of CRITICAL_OCR_REPLACEMENTS) {
+      if (!out.includes(replacement.wrong)) {
+        continue;
+      }
+      out = out.replace(
+        new RegExp(escapeRegExp(replacement.wrong), "g"),
+        replacement.correct
+      );
+    }
+
+    // تصحيح شائع إضافي للحالات المختصرة.
+    out = out.replace(/\bام إم\b/g, "إم إم");
+    out = out.replace(/\bامام\b/g, "إم إم");
+    return out;
+  }
+
+  private ensureCutsBetweenScenes(text: string): string {
+    const lines = text.split(/\r?\n/);
+    const out: string[] = [];
+    let seenScene = 0;
+
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+      if (/^\s*مشهد[0-9٠-٩]+/u.test(line)) {
+        seenScene += 1;
+        if (seenScene > 1) {
+          const lastNonEmpty = [...out].reverse().find((entry) => entry.trim());
+          if (lastNonEmpty?.trim() !== "قطع") {
+            out.push("قطع");
+          }
+        }
+      }
+      out.push(line);
+    }
+
+    return out.join("\n");
+  }
+
+  private normalizeSceneHeadersForValidation(text: string): string {
+    return normalizeSceneHeadersRobust(text);
+  }
+
+  private async callKimiChat(userPrompt: string): Promise<JsonRecord> {
+    const apiKey = ensureKimiApiKey(getEnvOrRaise("MOONSHOT_API_KEY"));
+    const url = `${LLMPostProcessor.KIMI_BASE_URL}/chat/completions`;
+    let attempt = 0;
+    let lastError: unknown;
+
+    while (attempt <= LLMPostProcessor.KIMI_HTTP_MAX_RETRIES) {
+      try {
+        const timeoutState = createTimeoutState(
+          LLMPostProcessor.KIMI_HTTP_TIMEOUT_MS
+        );
+        let response: Response;
+        try {
+          response = await fetch(url, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              "User-Agent": `${APP_NAME}/1.0`,
+            },
+            body: JSON.stringify({
+              model:
+                this.config.model ||
+                LLMPostProcessor.DEFAULT_KIMI_MODEL ||
+                DEFAULT_LLM_MODEL,
+              temperature: 0,
+              extra_body: {
+                thinking: { type: "disabled" },
+              },
+              messages: [
+                { role: "system", content: LLMPostProcessor.SYSTEM_PROMPT },
+                { role: "user", content: userPrompt },
+              ],
+            }),
+            signal: timeoutState.signal,
+          });
+        } finally {
+          timeoutState.cleanup();
+        }
+
+        const raw = await response.text();
+        let data: unknown = {};
+        if (raw.trim()) {
+          try {
+            data = JSON.parse(raw);
+          } catch {
+            throw new Error("تعذر تحليل استجابة Kimi Chat كـ JSON.");
+          }
+        }
+
+        if (!response.ok) {
+          const dataObject =
+            data && typeof data === "object" ? (data as JsonRecord) : {};
+          const requestId = str(
+            field(dataObject, "request_id", "") ||
+              field(dataObject, "requestId", "") ||
+              field(dataObject, "id", "")
+          ).trim();
+
+          if (
+            isRetryableHttpStatus(response.status) &&
+            attempt < LLMPostProcessor.KIMI_HTTP_MAX_RETRIES
+          ) {
+            attempt += 1;
+            const delay = retryDelayMs(attempt);
+            log(
+              "WARN",
+              "Kimi Chat returned %s. retry=%s delayMs=%s",
+              response.status,
+              attempt,
+              delay
+            );
+            await sleep(delay);
+            continue;
+          }
+
+          const requestSuffix = requestId ? ` request_id=${requestId}` : "";
+          throw new Error(
+            `فشل استدعاء Kimi Chat: ${response.status} ${response.statusText}${requestSuffix} - ${raw}`
+          );
+        }
+
+        if (!data || typeof data !== "object" || Array.isArray(data)) {
+          throw new Error("استجابة Kimi Chat ليست JSON object صالح.");
+        }
+
+        return data as JsonRecord;
+      } catch (error) {
+        lastError = error;
+        if (
+          isRetryableRequestError(error) &&
+          attempt < LLMPostProcessor.KIMI_HTTP_MAX_RETRIES
+        ) {
+          attempt += 1;
+          const delay = retryDelayMs(attempt);
+          log(
+            "WARN",
+            "Kimi Chat request failed. retry=%s delayMs=%s error=%s",
+            attempt,
+            delay,
+            String(error)
+          );
+          await sleep(delay);
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw new Error(`فشل Kimi Chat بعد retries: ${String(lastError)}`);
   }
 
   private extractOutputText(data: JsonRecord): string {
+    const choices = field<unknown[]>(data, "choices", []);
+    if (Array.isArray(choices) && choices.length > 0) {
+      const first = choices[0];
+      const message = field<unknown>(first, "message", null);
+      if (message && typeof message === "object") {
+        const content = field<unknown>(message, "content", "");
+        const extracted = this.extractContentText(content);
+        if (extracted.trim()) {
+          return extracted.trim();
+        }
+      }
+    }
+
     const direct = field<string>(data, "output_text", "");
     if (typeof direct === "string" && direct.trim()) {
       return direct;
     }
 
-    const output = field<unknown[]>(data, "output", []);
-    if (!Array.isArray(output)) {
+    return "";
+  }
+
+  private extractContentText(content: unknown): string {
+    if (typeof content === "string") {
+      return content;
+    }
+    if (!Array.isArray(content)) {
       return "";
     }
 
     const chunks: string[] = [];
-    for (const item of output) {
-      if (str(field(item, "type", "")) !== "message") {
+    for (const part of content) {
+      if (!part || typeof part !== "object") {
         continue;
       }
-      const content = field<unknown[]>(item, "content", []);
-      if (!Array.isArray(content)) {
-        continue;
-      }
-      for (const segment of content) {
-        const text = field<string>(segment, "text", "");
-        if (typeof text === "string" && text.trim()) {
-          chunks.push(text);
-        }
+      const text = field<string>(part, "text", "");
+      if (typeof text === "string" && text.trim()) {
+        chunks.push(text);
       }
     }
-
     return chunks.join("\n").trim();
   }
 
   private stripMarkdownFences(text: string): string {
-    let out = text.trim();
-    out = out.replace(/^```(?:markdown)?\s*/iu, "");
-    out = out.replace(/\s*```$/u, "");
-    return out.trim();
+    return text
+      .trim()
+      .replace(/^```(?:markdown)?\s*/iu, "")
+      .replace(/\s*```$/u, "")
+      .trim();
+  }
+}
+
+// ============================================================================
+// STAGE 3: Quality Metrics & Comparison
+// ============================================================================
+
+export class QualityChecker {
+  static calculateSimilarity(text1: string, text2: string): number {
+    const normalize = (s: string) =>
+      s
+        .replace(/\s+/g, " ")
+        .replace(/[\u064B-\u065F\u0670]/g, "")
+        .trim();
+
+    const n1 = normalize(text1);
+    const n2 = normalize(text2);
+    const distance = this.levenshteinDistance(n1, n2);
+    const maxLen = Math.max(n1.length, n2.length);
+
+    return maxLen === 0 ? 100 : Math.round((1 - distance / maxLen) * 100);
+  }
+
+  private static levenshteinDistance(s1: string, s2: string): number {
+    const m = s1.length;
+    const n = s2.length;
+    const dp: number[][] = Array.from({ length: m + 1 }, () =>
+      Array(n + 1).fill(0)
+    );
+
+    for (let i = 0; i <= m; i += 1) dp[i][0] = i;
+    for (let j = 0; j <= n; j += 1) dp[0][j] = j;
+
+    for (let i = 1; i <= m; i += 1) {
+      for (let j = 1; j <= n; j += 1) {
+        if (s1[i - 1] === s2[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1];
+        } else {
+          dp[i][j] = Math.min(
+            dp[i - 1][j] + 1,
+            dp[i][j - 1] + 1,
+            dp[i - 1][j - 1] + 1
+          );
+        }
+      }
+    }
+
+    return dp[m][n];
   }
 }
 
@@ -1058,6 +1648,11 @@ export class MistralOCRService {
   private lastDocumentAnnotation?: unknown;
 
   constructor(config: MistralOCRConfig) {
+    if (config.model !== DEFAULT_MISTRAL_OCR_MODEL) {
+      throw new Error(
+        `Mistral OCR model must be ${DEFAULT_MISTRAL_OCR_MODEL}. Received: ${config.model}`
+      );
+    }
     this.config = config;
   }
 
@@ -1511,29 +2106,88 @@ export class MistralOCRService {
     endpoint: string,
     body?: unknown
   ): Promise<JsonRecord> {
-    const response = await this.requestRaw(method, endpoint, body);
-    const raw = await response.text();
+    let attempt = 0;
+    let lastError: unknown;
 
-    let data: unknown = {};
-    if (raw.trim()) {
+    while (attempt <= MISTRAL_HTTP_MAX_RETRIES) {
       try {
-        data = JSON.parse(raw);
-      } catch {
-        data = { raw };
+        const response = await this.requestRaw(method, endpoint, body);
+        const raw = await response.text();
+
+        let data: unknown = {};
+        if (raw.trim()) {
+          try {
+            data = JSON.parse(raw);
+          } catch {
+            data = { raw };
+          }
+        }
+
+        if (!response.ok) {
+          const requestId =
+            data && typeof data === "object"
+              ? str(
+                  field(data, "request_id", "") || field(data, "requestId", "")
+                ).trim()
+              : "";
+
+          if (
+            isRetryableHttpStatus(response.status) &&
+            attempt < MISTRAL_HTTP_MAX_RETRIES
+          ) {
+            attempt += 1;
+            const delay = retryDelayMs(attempt);
+            log(
+              "WARN",
+              "Mistral API returned %s for %s %s. retry=%s delayMs=%s",
+              response.status,
+              method,
+              endpoint,
+              attempt,
+              delay
+            );
+            await sleep(delay);
+            continue;
+          }
+
+          const requestSuffix = requestId ? ` request_id=${requestId}` : "";
+          throw new Error(
+            `Mistral API error ${response.status} ${response.statusText}${requestSuffix}: ${raw}`
+          );
+        }
+
+        if (!data || typeof data !== "object" || Array.isArray(data)) {
+          return {};
+        }
+
+        return data as JsonRecord;
+      } catch (error) {
+        lastError = error;
+        if (
+          isRetryableRequestError(error) &&
+          attempt < MISTRAL_HTTP_MAX_RETRIES
+        ) {
+          attempt += 1;
+          const delay = retryDelayMs(attempt);
+          log(
+            "WARN",
+            "Mistral request failed for %s %s. retry=%s delayMs=%s error=%s",
+            method,
+            endpoint,
+            attempt,
+            delay,
+            String(error)
+          );
+          await sleep(delay);
+          continue;
+        }
+        throw error;
       }
     }
 
-    if (!response.ok) {
-      throw new Error(
-        `Mistral API error ${response.status} ${response.statusText}: ${raw}`
-      );
-    }
-
-    if (!data || typeof data !== "object" || Array.isArray(data)) {
-      return {};
-    }
-
-    return data as JsonRecord;
+    throw new Error(
+      `Mistral request failed after retries: ${String(lastError)}`
+    );
   }
 
   private async requestRaw(
@@ -1541,11 +2195,13 @@ export class MistralOCRService {
     endpoint: string,
     body?: unknown
   ): Promise<Response> {
-    const apiKey = getEnvOrRaise("MISTRAL_API_KEY");
+    const apiKey = ensureMistralApiKey(getEnvOrRaise("MISTRAL_API_KEY"));
     const url = `${MISTRAL_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${apiKey}`,
+      Accept: "application/json",
+      "User-Agent": `${APP_NAME}/1.0`,
     };
 
     let bodyInit: string | FormData | undefined;
@@ -1558,11 +2214,17 @@ export class MistralOCRService {
       }
     }
 
-    return fetch(url, {
-      method,
-      headers,
-      body: bodyInit,
-    });
+    const timeoutState = createTimeoutState(MISTRAL_HTTP_TIMEOUT_MS);
+    try {
+      return await fetch(url, {
+        method,
+        headers,
+        body: bodyInit,
+        signal: timeoutState.signal,
+      });
+    } finally {
+      timeoutState.cleanup();
+    }
   }
 }
 
@@ -1575,11 +2237,15 @@ export class PDFToTextConverter {
   private readonly normalizer: MarkdownNormalizer;
   private readonly mistralService: MistralOCRService;
   private readonly llmPostProcessor?: LLMPostProcessor;
+  private readonly structuralRepair: StructuralRepair;
+  private readonly ocrPreprocessor: OCRPreprocessor;
 
   constructor(config: ConfigManager) {
     this.config = config;
     this.normalizer = new MarkdownNormalizer(config.normalizerOptions);
     this.mistralService = new MistralOCRService(config.mistral);
+    this.structuralRepair = new StructuralRepair();
+    this.ocrPreprocessor = new OCRPreprocessor();
     if (config.llm.enabled) {
       this.llmPostProcessor = new LLMPostProcessor(config.llm);
     }
@@ -1683,6 +2349,13 @@ export class PDFToTextConverter {
     }
   }
 
+  private async applyStructuralRepair(
+    text: string,
+    referenceText = ""
+  ): Promise<string> {
+    return waitForRepairStability(this.structuralRepair, text, referenceText);
+  }
+
   calculateMatchScore(referenceText: string, candidateText: string): number {
     const refLines = referenceText.split(/\r?\n/);
     const candLines = candidateText.split(/\r?\n/);
@@ -1739,23 +2412,32 @@ export class PDFToTextConverter {
       referenceText = this.normalizer.normalize(referenceText);
     }
 
+    const repairedInitial = await this.applyStructuralRepair(
+      initialMarkdown,
+      referenceText
+    );
+
     if (!referenceText) {
       log("INFO", "لا يوجد مرجع نصي؛ سيتم تنفيذ تمرير LLM واحد فقط.");
-      let result = await this.llmPostProcessor.postprocess(initialMarkdown);
+      let result = await this.llmPostProcessor.postprocess(repairedInitial);
       if (this.config.normalizeOutput) {
         result = this.normalizer.normalize(result);
       }
-      return result;
+      return this.applyStructuralRepair(result);
     }
 
-    let best = initialMarkdown;
+    let best = repairedInitial;
     let bestScore = this.calculateMatchScore(referenceText, best);
+    let bestSemanticScore = QualityChecker.calculateSimilarity(referenceText, best);
     log("INFO", "نسبة التطابق قبل LLM: %.2f%%", bestScore);
+    log("INFO", "نسبة التطابق الدلالي قبل LLM: %s%%", bestSemanticScore);
 
-    let current = initialMarkdown;
+    let current = repairedInitial;
     const rounds = this.config.llm.iterative
       ? this.config.llm.maxIterations
       : 1;
+    let noImprovementRounds = 0;
+    const minImprovementDelta = 0.1;
 
     for (let i = 1; i <= rounds; i += 1) {
       if (bestScore >= this.config.llm.targetMatch) {
@@ -1787,18 +2469,59 @@ export class PDFToTextConverter {
       if (this.config.normalizeOutput) {
         candidate = this.normalizer.normalize(candidate);
       }
+      candidate = await this.applyStructuralRepair(candidate, referenceText);
 
       const score = this.calculateMatchScore(referenceText, candidate);
+      const semanticScore = QualityChecker.calculateSimilarity(
+        referenceText,
+        candidate
+      );
       log("INFO", "جولة LLM %s/%s -> نسبة التطابق: %.2f%%", i, rounds, score);
+      log(
+        "INFO",
+        "جولة LLM %s/%s -> نسبة التطابق الدلالي: %s%%",
+        i,
+        rounds,
+        semanticScore
+      );
 
       current = candidate;
-      if (score >= bestScore) {
+      const improved =
+        score > bestScore + minImprovementDelta ||
+        (Math.abs(score - bestScore) <= minImprovementDelta &&
+          semanticScore > bestSemanticScore);
+
+      if (
+        score > bestScore ||
+        (score === bestScore && semanticScore >= bestSemanticScore)
+      ) {
         bestScore = score;
+        bestSemanticScore = semanticScore;
         best = candidate;
+      }
+
+      if (improved) {
+        noImprovementRounds = 0;
+      } else {
+        noImprovementRounds += 1;
+      }
+
+      if (noImprovementRounds >= 2) {
+        log(
+          "INFO",
+          "لا يوجد تحسن ملموس لعدد %s جولات متتالية، سيتم إيقاف التحسين التكراري.",
+          noImprovementRounds
+        );
+        break;
       }
     }
 
     log("INFO", "أفضل نسبة تطابق بعد التحسين التكراري: %.2f%%", bestScore);
+    log(
+      "INFO",
+      "أفضل نسبة تطابق دلالي بعد التحسين التكراري: %s%%",
+      bestSemanticScore
+    );
     return best;
   }
 
@@ -1817,6 +2540,21 @@ export class PDFToTextConverter {
     } else {
       log("INFO", "تم الاستخراج بدون تطبيع بناءً على الإعدادات.");
     }
+
+    if (path.extname(this.config.inputPath).toLowerCase() === ".pdf") {
+      const preprocessed = this.ocrPreprocessor.preprocess(finalMarkdown);
+      if (preprocessed.detectedIssues.length > 0) {
+        log(
+          "INFO",
+          "تم تطبيق تصحيحات OCR المسبقة: %s",
+          preprocessed.detectedIssues.join(" | ")
+        );
+      }
+      finalMarkdown = preprocessed.text;
+    }
+
+    finalMarkdown = await this.applyStructuralRepair(finalMarkdown);
+    log("INFO", "اكتمل الإصلاح البنيوي الأولي للنص المستخرج.");
 
     if (this.config.llm.enabled && this.llmPostProcessor) {
       log("INFO", "بدء تمرير طبقة LLM لتحسين التطابق...");

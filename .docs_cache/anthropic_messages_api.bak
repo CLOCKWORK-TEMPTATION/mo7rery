@@ -1,0 +1,18 @@
+Source URLs:
+- https://docs.anthropic.com/en/api/getting-started
+- https://docs.anthropic.com/en/api/messages-examples
+- https://docs.anthropic.com/en/api/versioning
+Fetched: 2026-02-27
+
+Key requirements for direct HTTP calls:
+- Endpoint for messages: https://api.anthropic.com/v1/messages
+- Required headers: x-api-key, anthropic-version, content-type: application/json
+- Required version header example: anthropic-version: 2023-06-01
+- Messages API is stateless; full conversation history must be sent each request.
+- Request size limit for standard endpoints (messages): 32 MB.
+- Response contains request-id header for tracing.
+
+Implementation implications:
+- Keep anthropic-version explicit and configurable.
+- Keep x-api-key auth in every REST fallback call.
+- Ensure request payload is JSON and model/max_tokens/messages are explicit.

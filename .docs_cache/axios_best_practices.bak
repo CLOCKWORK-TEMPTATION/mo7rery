@@ -1,0 +1,14 @@
+Source URLs:
+- https://axios-http.com/docs/handling_errors
+- https://axios-http.com/docs/cancellation
+Fetched: 2026-02-27
+
+Axios best-practice notes:
+- Classify error.response vs error.request vs setup errors.
+- Use validateStatus when custom HTTP acceptance is required.
+- Use timeout + AbortController signal for robust cancellation coverage.
+- Use error.toJSON() for richer diagnostics.
+
+Implementation implications:
+- Preserve structured provider error extraction.
+- Keep explicit timeout and categorized retryability.

@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Getting Started | Axios Docs</title>
+    <link rel="stylesheet" href="/style/index.css" />
+    <link rel="stylesheet" href="/style/post.css" />
+    <link rel="stylesheet" href="/style/sponsors.css" />
+    <style>
+      * {
+        
+      }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css"
+      integrity="sha384-AfEj0r4/OFrOo5t7NnNe46zW/tFgW6x/bCJG8FqQCEo3+Aro6EYUG4+cU+KJWu/X"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="preload"
+      as="style"
+      onload="this.rel='stylesheet'"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap"
+    />
+
+    <link rel="shortcut icon" href="/assets/favicon.ico" type="image/x-icon" />
+    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide-extension-auto-scroll@0.5.3/dist/js/splide-extension-auto-scroll.min.js"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+  </head>
+
+  <body>
+    <script>
+      let isDarkThemeActive = false;
+      const THEME_TIMEOUT = 24 * 3600; // 24 hours
+      const userDefaultTheme = localStorage.getItem("@axios-docs:theme");
+      const userTS = +localStorage.getItem("@axios-docs:ts");
+      const darkQuery = "(prefers-color-scheme: dark)";
+      const darkMQL = window.matchMedia ? window.matchMedia(darkQuery) : {};
+
+      if (
+         ((!userTS || (Date.now() - userTS) / 1000 > THEME_TIMEOUT) && darkMQL.media === darkQuery) ||
+         (userDefaultTheme && userDefaultTheme === "true")
+      ) {
+        document.body.classList.add("dark");
+        isDarkThemeActive = true;
+      }
+
+      localStorage.setItem("@axios-docs:ts", Date.now());
+
+      const updateImagesTheme = (isDark) => {
+        const attrName = 'data-dark';
+        const pics = document.querySelectorAll('img');
+
+        pics.forEach(image => {
+          const darkSource = image.getAttribute(attrName);
+          if (darkSource && image.src) {
+            if (isDark) {
+              image.setAttribute('data-light', image.getAttribute('src'));
+              image.src = darkSource;
+            } else {
+              image.src = image.getAttribute('data-light');
+            }
+          }
+        });
+      }
+
+    </script>
+    <header>
+      <div></div>
+      <div class="left">
+        <button id="hamburger">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            id="hamburgerIcon"
+          >
+            <path d="M3 8V6H21V8H3Z" fill="currentColor" />
+            <path d="M3 13H21V11H3V13Z" fill="currentColor" />
+            <path d="M3 18H21V16H3V18Z" fill="currentColor" />
+          </svg>
+        </button>
+      </div>
+    </header>
+    <aside>
+      <div>
+        <a href="/" id="logo">
+          <svg width="188" height="28" viewBox="0 0 188 28" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M93.295 3.65206L86.356 9.30495H90.8876V27.68L93.295 25.7411V3.65206Z" fill="currentColor"/>
+            <path d="M95.295 24.0997L102.356 18.305H97.6975V0.350052L95.295 2.02275V24.0997Z" fill="currentColor"/>
+            <path d="M182.695 6.95295C183.495 7.36895 184.071 7.72095 184.423 8.00895L186.919 3.25695C185.671 2.48895 184.167 1.80095 182.407 1.19295C180.679 0.584955 178.807 0.280952 176.791 0.280952C174.871 0.280952 173.095 0.600952 171.463 1.24095C169.863 1.88095 168.583 2.82495 167.623 4.07295C166.695 5.32095 166.231 6.87295 166.231 8.72895C166.231 10.809 166.887 12.409 168.199 13.529C169.543 14.617 171.591 15.513 174.343 16.217C176.551 16.793 178.327 17.321 179.671 17.801C181.047 18.249 181.735 19.001 181.735 20.057C181.735 21.625 180.263 22.409 177.319 22.409C175.847 22.409 174.455 22.233 173.143 21.881C171.831 21.529 170.679 21.097 169.687 20.585C168.727 20.073 168.039 19.609 167.623 19.193L165.031 24.233C166.695 25.289 168.599 26.121 170.743 26.729C172.887 27.337 175.047 27.641 177.223 27.641C179.111 27.641 180.871 27.385 182.503 26.873C184.135 26.329 185.447 25.465 186.439 24.281C187.463 23.065 187.975 21.4649 187.975 19.4809C187.975 17.8489 187.591 16.537 186.823 15.545C186.087 14.521 185.015 13.705 183.607 13.097C182.231 12.489 180.599 11.945 178.711 11.465C176.567 10.953 174.935 10.489 173.815 10.073C172.727 9.65695 172.183 8.95295 172.183 7.96095C172.183 6.26495 173.687 5.41695 176.695 5.41695C177.815 5.41695 178.903 5.57695 179.959 5.89695C181.015 6.18495 181.927 6.53695 182.695 6.95295Z" fill="currentColor"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M132.182 27.497C130.07 27.497 128.15 27.129 126.422 26.393C124.694 25.625 123.205 24.601 121.957 23.321C120.709 22.009 119.749 20.537 119.077 18.905C118.406 17.273 118.069 15.593 118.069 13.865C118.069 12.105 118.421 10.409 119.125 8.77695C119.829 7.14495 120.822 5.70496 122.102 4.45695C123.382 3.17695 124.885 2.16895 126.613 1.43295C128.341 0.696953 130.229 0.328949 132.277 0.328949C134.389 0.328949 136.31 0.728952 138.038 1.52895C139.766 2.29695 141.238 3.33695 142.454 4.64895C143.702 5.92895 144.661 7.38495 145.333 9.01695C146.005 10.649 146.342 12.3129 146.342 14.0089C146.342 15.7689 145.99 17.465 145.286 19.097C144.582 20.697 143.589 22.137 142.309 23.417C141.061 24.665 139.574 25.657 137.846 26.393C136.118 27.129 134.23 27.497 132.182 27.497ZM123.925 13.913C123.925 15.353 124.262 16.729 124.934 18.041C125.605 19.321 126.549 20.361 127.765 21.161C129.013 21.961 130.501 22.361 132.229 22.361C133.989 22.361 135.477 21.945 136.693 21.113C137.91 20.249 138.837 19.177 139.477 17.8969C140.117 16.5849 140.438 15.241 140.438 13.865C140.438 12.425 140.102 11.0649 139.43 9.78495C138.758 8.50495 137.798 7.48095 136.549 6.71295C135.333 5.91295 133.878 5.51295 132.182 5.51295C130.422 5.51295 128.917 5.92895 127.669 6.76095C126.453 7.59295 125.525 8.64896 124.885 9.92896C124.245 11.209 123.925 12.537 123.925 13.913Z" fill="currentColor"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M0 27.305L11.712 0.472954H16.464L28.128 27.305H21.984L19.296 21.017H8.88L6.192 27.305H0ZM14.112 7.52895L10.176 15.977H17.904L14.112 7.52895Z" fill="currentColor"/>
+            <path d="M50.8211 0.472954L58.2131 9.97695L65.6051 0.472954H71.8931L61.2851 14.057L71.5571 27.305H65.2691L58.2131 18.185L51.2051 27.305H44.8211L55.1411 14.057L44.4851 0.472954H50.8211Z" fill="currentColor"/>
+            </svg>
+        </a>
+      </div>
+      <details class="dropdown-language">
+        <summary>
+          <div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-globe"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            English
+          </div>
+          <svg id="chevron" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-down"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </summary>
+        <div class="options">
+             
+          <a href="/ptBR/docs/intro">Português Brasileiro</a>
+            
+          <a href="/de/docs/intro">Deutsch</a>
+            
+          <a href="/zh/docs/intro">中文</a>
+            
+          <a href="/uk/docs/intro">Українська</a>
+            
+          <a href="/ku/docs/intro">کوردی</a>
+            
+          <a href="/es/docs/intro">Español</a>
+            
+          <a href="/fr/docs/intro">Français</a>
+            
+          <a href="/hi/docs/intro">हिंदी</a>
+            
+          <a href="/tr/docs/intro">Türkçe</a>
+            
+          <a href="/kr/docs/intro">한국어</a>
+            
+          <a href="/vi/docs/intro">Tiếng Việt</a>
+            
+          <a href="/fa/docs/intro">فارسی</a>
+            
+          <a href="/ru/docs/intro">Русский</a>
+            
+          <a href="/ar/docs/intro">Arabic</a>
+            
+          <a href="/ja/docs/intro">日本語</a>
+            
+          <a href="/zhTW/docs/intro">繁體中文</a>
+            
+          <a href="/it/docs/intro">Italiano</a>
+           
+        </div>
+      </details>
+      <div class="aside-container">
+        
+          
+            <h3 class="group-name">Getting Started</h3>
+          
+        
+          
+            <a class="selected" href="/docs/intro">Introduction</a>
+          
+        
+          
+            <a class="" href="/docs/example">Example</a>
+          
+        
+          
+            <a class="" href="/docs/post_example">POST Requests</a>
+          
+        
+          
+            <h3 class="group-name">Axios API</h3>
+          
+        
+          
+            <a class="" href="/docs/api_intro">Axios API</a>
+          
+        
+          
+            <a class="" href="/docs/instance">The Axios Instance</a>
+          
+        
+          
+            <a class="" href="/docs/req_config">Request Config</a>
+          
+        
+          
+            <a class="" href="/docs/res_schema">Response Schema</a>
+          
+        
+          
+            <a class="" href="/docs/config_defaults">Config Defaults</a>
+          
+        
+          
+            <a class="" href="/docs/interceptors">Interceptors</a>
+          
+        
+          
+            <a class="" href="/docs/handling_errors">Handling Errors</a>
+          
+        
+          
+            <a class="" href="/docs/cancellation">Cancellation</a>
+          
+        
+          
+            <a class="" href="/docs/urlencoded">🆕 URL-Encoding Bodies</a>
+          
+        
+          
+            <a class="" href="/docs/multipart">🆕 Multipart Bodies</a>
+          
+        
+          
+            <h3 class="group-name">Other</h3>
+          
+        
+          
+            <a class="" href="https://github.com/axios/axios/blob/v1.x/ECOSYSTEM.md">Ecosystem</a>
+          
+        
+          
+            <a class="" href="/docs/notes">Notes</a>
+          
+        
+          
+            <h3 class="group-name">Contributors</h3>
+          
+        
+          
+            <a class="" href="/docs/sponsor">Sponsoring Axios</a>
+          
+        
+          
+            <a class="" href="https://github.com/axios/axios/blob/v1.x/CODE_OF_CONDUCT.md">Code of Conduct</a>
+          
+        
+          
+            <a class="" href="https://github.com/axios/axios/blob/v1.x/COLLABORATOR_GUIDE.md">Collaborator Guide</a>
+          
+        
+          
+            <a class="" href="https://github.com/axios/axios/blob/v1.x/CONTRIBUTING.md">Contributing to Axios</a>
+          
+        
+          
+            <a class="" href="/docs/translating">Translating these docs</a>
+          
+        
+      </div>
+      <section id="sponsors" aria-label="Axios sponsors">
+      </section>
+      <div class="button-container">
+        <button class="theme">
+          <div class="light">
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              fill="none"
+              shape-rendering="geometricPrecision"
+              style="color: currentcolor"
+            >
+              <circle cx="12" cy="12" r="5"></circle>
+              <path d="M12 1v2"></path>
+              <path d="M12 21v2"></path>
+              <path d="M4.22 4.22l1.42 1.42"></path>
+              <path d="M18.36 18.36l1.42 1.42"></path>
+              <path d="M1 12h2"></path>
+              <path d="M21 12h2"></path>
+              <path d="M4.22 19.78l1.42-1.42"></path>
+              <path d="M18.36 5.64l1.42-1.42"></path>
+            </svg>
+          </div>
+          <div class="slider">
+            <span aria-hidden="true" class="roller"></span>
+          </div>
+          <div class="dark">
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              fill="none"
+              shape-rendering="geometricPrecision"
+              style="color: currentcolor"
+            >
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+            </svg>
+          </div>
+        </button>
+      </div>
+    </aside>
+    <main>
+      <div class="body">
+        <h1 class="title">Getting Started</h1>
+        <p class="description">Promise based HTTP client for the browser and node.js</p>
+        <h1 id="what-is-axios">What is Axios?</h1>
+<p>Axios is a <em><a href="https://javascript.info/promise-basics">promise-based</a></em> HTTP Client for <a href="https://nodejs.org"><code>node.js</code></a> and the browser. It is <em><a href="https://www.lullabot.com/articles/what-is-an-isomorphic-application">isomorphic</a></em> (= it can run in the browser and node.js with the same codebase). On the server-side it uses the native node.js <code>http</code> module, while on the client (browser) it uses XMLHttpRequest.</p>
+<h1 id="features">Features</h1>
+<ul>
+<li>Make <a href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest">XMLHttpRequest</a> from the browser</li>
+<li>Make <a href="http://nodejs.org/api/http.html">http</a> requests from node.js</li>
+<li>Supports the <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a> API</li>
+<li>Intercept request and response</li>
+<li>Transform request and response data</li>
+<li>Cancel requests</li>
+<li>Timeouts</li>
+<li>Query parameters serialization with support for nested entries</li>
+<li>Automatic request body serialization to:
+<ul>
+<li>JSON (<code>application/json</code>)</li>
+<li>Multipart / FormData (<code>multipart/form-data</code>)</li>
+<li>URL encoded form (<code>application/x-www-form-urlencoded</code>)</li>
+</ul>
+</li>
+<li>Posting HTML forms as JSON</li>
+<li>Automatic JSON data handling in response</li>
+<li>Progress capturing for browsers and node.js with extra info (speed rate, remaining time)</li>
+<li>Setting bandwidth limits for node.js</li>
+<li>Compatible with spec-compliant FormData and Blob (including <code>node.js</code>)</li>
+<li>Client side support for protecting against <a href="http://en.wikipedia.org/wiki/Cross-site_request_forgery">XSRF</a></li>
+</ul>
+<h1 id="installing">Installing</h1>
+<p>Using npm:</p>
+<pre class="lang-bash"><code>$ <span class="token function">npm</span> <span class="token function">install</span> axios
+</code></pre>
+<p>Using bower:</p>
+<pre class="lang-bash"><code>$ bower <span class="token function">install</span> axios
+</code></pre>
+<p>Using yarn:</p>
+<pre class="lang-bash"><code>$ <span class="token function">yarn</span> <span class="token function">add</span> axios
+</code></pre>
+<p>Using pnpm:</p>
+<pre class="lang-bash"><code>$ <span class="token function">pnpm</span> <span class="token function">add</span> axios
+</code></pre>
+<p>Using jsDelivr CDN:</p>
+<pre class="lang-html"><code><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">></span></span>
+</code></pre>
+<p>Using unpkg CDN:</p>
+<pre class="lang-html"><code><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span> <span class="token attr-name">src</span><span class="token attr-value"><span class="token punctuation attr-equals">=</span><span class="token punctuation">"</span>https://unpkg.com/axios/dist/axios.min.js<span class="token punctuation">"</span></span><span class="token punctuation">></span></span><span class="token script"></span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">></span></span>
+</code></pre>
+<p>Prebuilt CommonJS modules for direct importing with require (if your module bundler failed to resolve them automatically)</p>
+<pre class="lang-js"><code><span class="token keyword">const</span> axios <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">'axios/dist/browser/axios.cjs'</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// browser</span>
+<span class="token keyword">const</span> axios <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">'axios/dist/node/axios.cjs'</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// node</span>
+</code></pre>
+
+        <div class="sponsors_container">
+          <a class="link-sponsors" href="https://opencollective.com/axios/contribute" target="_blank"><h4>Gold Sponsors</h4></a>
+          <span class="btn-container">
+            <a class="btn tip" href="https://opencollective.com/axios/contribute" target="_blank" data-tippy-content="&lt;p&gt;Thank you for considering supporting our project.&lt;/p&gt;
+               &lt;p&gt;You will be automatically added to this list within 24 hours if the tier you select provides this benefit.&lt;/p&gt;
+               &lt;div class=&#34;social&#34;&gt;&lt;a class=&#34;link&#34; href=&#34;/docs/sponsor&#34;&gt;Read more...&lt;/a&gt;&lt;/div&gt;
+              ">
+              <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                        stroke="#000000"
+                        stroke-opacity="30%"
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M12.0122 5.57169L10.9252 4.48469C8.77734 2.33681 5.29493 2.33681 3.14705 4.48469C0.999162 6.63258 0.999162 10.115 3.14705 12.2629L11.9859 21.1017L11.9877 21.0999L12.014 21.1262L20.8528 12.2874C23.0007 10.1395 23.0007 6.65711 20.8528 4.50923C18.705 2.36134 15.2226 2.36134 13.0747 4.50923L12.0122 5.57169ZM11.9877 18.2715L16.9239 13.3352L18.3747 11.9342L18.3762 11.9356L19.4386 10.8732C20.8055 9.50635 20.8055 7.29028 19.4386 5.92344C18.0718 4.55661 15.8557 4.55661 14.4889 5.92344L12.0133 8.39904L12.006 8.3918L12.005 8.39287L9.51101 5.89891C8.14417 4.53207 5.92809 4.53207 4.56126 5.89891C3.19442 7.26574 3.19442 9.48182 4.56126 10.8487L7.10068 13.3881L7.10248 13.3863L11.9877 18.2715Z"
+                        fill="white"
+                />
+              </svg>
+              <span>Become a sponsor</span>
+            </a>
+          </span>
+          <section class="splide" aria-label="Axios sponsors" oncontextmenu="return false;">
+            <div class="splide__track">
+              <ul class="splide__list">
+                
+
+                
+                  
+                    
+                  
+                    
+                  
+                    
+                      <li class="splide__slide sponsor-card  opacity_100" data-tier="gold" data-is-wide="false" data-has-logo="true" data-is-active="yes" data-image-type="png" data-tippy-content="&lt;h2 class=&#34;caption&#34;&gt;&lt;span&gt;Buzzoid - Buy Instagram Followers (4784$ &lt;sup class=&#34;tier&#34;&gt;Gold&lt;/sup&gt;)&lt;/span&gt;&lt;/h2&gt; &lt;div class=&#34;description&#34;&gt;At Buzzoid, you can buy Instagram followers quickly, safely, and easily with just a few clicks. Rated world&amp;#39;s #1 IG service since 2012.&lt;/div&gt;&lt;div class=&#34;social&#34;&gt;&lt;a href=&#34;https://buzzoid.com/buy-instagram-followers/?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;&lt;img class=&#34;icon&#34; src=&#34;/assets/icons/social/website.png&#34; alt=&#34;sponsor icon&#34;/&gt;&lt;/a&gt;&lt;/div&gt;">
+                        <a href="https://buzzoid.com/buy-instagram-followers/?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship" target="_blank" >
+                          <div>
+                            
+                           <img src="/assets/sponsors/opencollective/e1625cb54e10ee40180c99d1495a462e9d6664a4.png"  alt=""/>
+                          </div>
+                          <span class="caption">Buzzoid - Buy Instagram Followers</span>
+                        </a>
+                      </li>
+                    
+                  
+                    
+                      <li class="splide__slide sponsor-card  opacity_100" data-tier="gold" data-is-wide="false" data-has-logo="true" data-is-active="yes" data-image-type="png" data-tippy-content="&lt;h2 class=&#34;caption&#34;&gt;&lt;span&gt;Poprey - Buy Instagram Likes (4485$ &lt;sup class=&#34;tier&#34;&gt;Gold&lt;/sup&gt;)&lt;/span&gt;&lt;/h2&gt; &lt;div class=&#34;description&#34;&gt;Buy Instagram Likes&lt;/div&gt;&lt;div class=&#34;social&#34;&gt;&lt;a href=&#34;https://poprey.com/?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;&lt;img class=&#34;icon&#34; src=&#34;/assets/icons/social/website.png&#34; alt=&#34;sponsor icon&#34;/&gt;&lt;/a&gt;&lt;/div&gt;">
+                        <a href="https://poprey.com/?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship" target="_blank" >
+                          <div>
+                            
+                           <img src="/assets/sponsors/opencollective/e699ec99f7df3a203ddbc49d3c7712a907e628ea.png"  alt=""/>
+                          </div>
+                          <span class="caption">Poprey - Buy Instagram Likes</span>
+                        </a>
+                      </li>
+                    
+                  
+                    
+                  
+                    
+                      <li class="splide__slide sponsor-card  opacity_100" data-tier="gold" data-is-wide="false" data-has-logo="true" data-is-active="yes" data-image-type="png" data-tippy-content="&lt;h2 class=&#34;caption&#34;&gt;&lt;span&gt;Buy Instagram Followers Twicsy (4479$ &lt;sup class=&#34;tier&#34;&gt;Gold&lt;/sup&gt;)&lt;/span&gt;&lt;/h2&gt; &lt;div class=&#34;description&#34;&gt;Buy real Instagram followers from Twicsy starting at only $2.97. Twicsy has been voted the best site to buy followers from the likes of US Magazine.&lt;/div&gt;&lt;div class=&#34;social&#34;&gt;&lt;a href=&#34;https://twicsy.com/buy-instagram-followers?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;&lt;img class=&#34;icon&#34; src=&#34;/assets/icons/social/website.png&#34; alt=&#34;sponsor icon&#34;/&gt;&lt;/a&gt;&lt;/div&gt;">
+                        <a href="https://twicsy.com/buy-instagram-followers?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship" target="_blank" >
+                          <div>
+                            
+                           <img src="/assets/sponsors/opencollective/dfa9670ad5e66eea17315332453c7f4e3a3b5905.png"  alt=""/>
+                          </div>
+                          <span class="caption">Buy Instagram Followers Twicsy</span>
+                        </a>
+                      </li>
+                    
+                  
+                    
+                      <li class="splide__slide sponsor-card  opacity_100" data-tier="gold" data-is-wide="true" data-has-logo="true" data-is-active="yes" data-image-type="png" data-tippy-content="&lt;h2 class=&#34;caption&#34;&gt;&lt;span&gt;Descope (4600$ &lt;sup class=&#34;tier&#34;&gt;200$ a month&lt;/sup&gt;)&lt;/span&gt;&lt;/h2&gt; &lt;div class=&#34;description&#34;&gt;Hi, we&amp;#39;re Descope! We are building something in the authentication space for app developers and can’t wait to place it in your hands.&lt;/div&gt;&lt;div class=&#34;links&#34;&gt;&lt;a href=&#34;https://www.descope.com/?utm_source=axios&amp;utm_medium=referral&amp;utm_campaign=axios-oss-sponsorship&#34; target=&#34;_blank&#34;&gt;Website&lt;/a&gt;&lt;a href=&#34;https://docs.descope.com/?utm_source=axios&amp;utm_medium=referral&amp;utm_campaign=axios-oss-sponsorship&#34; target=&#34;_blank&#34;&gt;Docs&lt;/a&gt;&lt;a href=&#34;https://www.descope.com/community?utm_source=axios&amp;utm_medium=referral&amp;utm_campaign=axios-oss-sponsorship&#34; target=&#34;_blank&#34;&gt;Community&lt;/a&gt;&lt;/div&gt;&lt;div class=&#34;social&#34;&gt;&lt;a href=&#34;https://www.descope.com/?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;&lt;img class=&#34;icon&#34; src=&#34;/assets/icons/social/website.png&#34; alt=&#34;sponsor icon&#34;/&gt;&lt;/a&gt;&lt;a href=&#34;https://github.com/descope?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;&lt;img class=&#34;icon&#34; src=&#34;/assets/icons/social/github.png&#34; alt=&#34;sponsor icon&#34;/&gt;&lt;/a&gt;&lt;a href=&#34;https://twitter.com/descopeinc?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;&lt;img class=&#34;icon&#34; src=&#34;/assets/icons/social/twitter.png&#34; alt=&#34;sponsor icon&#34;/&gt;&lt;/a&gt;&lt;/div&gt;">
+                        <a href="https://www.descope.com/?utm_source=axios&amp;utm_medium=referral&amp;utm_campaign=axios-oss-sponsorship" target="_blank" >
+                          <div>
+                            
+                           <img src="/assets/sponsors/descope.png" data-dark="/assets/sponsors/descope_white.png"  alt=""/>
+                          </div>
+                          <span class="caption">Descope</span>
+                        </a>
+                      </li>
+                    
+                  
+                    
+                  
+                    
+                      <li class="splide__slide sponsor-card  opacity_100" data-tier="gold" data-is-wide="true" data-has-logo="true" data-is-active="yes" data-image-type="svg" data-tippy-content="&lt;h2 class=&#34;caption&#34;&gt;&lt;span&gt;Principal Financial Group (4475$ &lt;sup class=&#34;tier&#34;&gt;175$ a month&lt;/sup&gt;)&lt;/span&gt;&lt;/h2&gt; &lt;div class=&#34;description&#34;&gt;We’re bound by one common purpose: to give you the financial tools, resources and information you need to live your best life.&lt;/div&gt;&lt;div class=&#34;social&#34;&gt;&lt;a href=&#34;https://www.principal.com/about-us?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;&lt;img class=&#34;icon&#34; src=&#34;/assets/icons/social/website.png&#34; alt=&#34;sponsor icon&#34;/&gt;&lt;/a&gt;&lt;a href=&#34;https://github.com/PrincipalFinancialGroup?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;&lt;img class=&#34;icon&#34; src=&#34;/assets/icons/social/github.png&#34; alt=&#34;sponsor icon&#34;/&gt;&lt;/a&gt;&lt;a href=&#34;https://twitter.com/Principal?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;&lt;img class=&#34;icon&#34; src=&#34;/assets/icons/social/twitter.png&#34; alt=&#34;sponsor icon&#34;/&gt;&lt;/a&gt;&lt;/div&gt;">
+                        <a href="https://www.principal.com/about-us?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship" target="_blank" >
+                          <div>
+                            
+                           <img src="/assets/sponsors/principal.svg"  alt=""/>
+                          </div>
+                          <span class="caption">Principal Financial Group</span>
+                        </a>
+                      </li>
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                      <li class="splide__slide sponsor-card  opacity_100" data-tier="gold" data-is-wide="false" data-has-logo="true" data-is-active="yes" data-image-type="png" data-tippy-content="&lt;h2 class=&#34;caption&#34;&gt;&lt;span&gt;Requestly (1495$ &lt;sup class=&#34;tier&#34;&gt;Gold&lt;/sup&gt;)&lt;/span&gt;&lt;/h2&gt; &lt;div class=&#34;description&#34;&gt;A lightweight open-source API Development, Testing &amp;amp; Mocking platform&lt;/div&gt;&lt;div class=&#34;social&#34;&gt;&lt;a href=&#34;https://requestly.com/?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;&lt;img class=&#34;icon&#34; src=&#34;/assets/icons/social/website.png&#34; alt=&#34;sponsor icon&#34;/&gt;&lt;/a&gt;&lt;/div&gt;">
+                        <a href="https://requestly.com/?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship" target="_blank" >
+                          <div>
+                            
+                           <img src="/assets/sponsors/opencollective/16450b4dc0deb9dab5a511bf2bc8b8b4ac33412f.png"  alt=""/>
+                          </div>
+                          <span class="caption">Requestly</span>
+                        </a>
+                      </li>
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                      <li class="splide__slide sponsor-card  opacity_100" data-tier="gold" data-is-wide="true" data-has-logo="true" data-is-active="yes" data-image-type="png" data-tippy-content="&lt;h2 class=&#34;caption&#34;&gt;&lt;img class=&#34;sponsor-icon&#34; src=&#34;/assets/sponsors/route4me_icon_55e4b23adce0b1e9f721fc797800e1839c230f79.png&#34; alt=&#34;Route4Me&#34;/&gt;&lt;span&gt;Route4Me (1881$ &lt;sup class=&#34;tier&#34;&gt;99$ a month&lt;/sup&gt;)&lt;/span&gt;&lt;/h2&gt; &lt;div class=&#34;description&#34;&gt;Best Route Planning And Route Optimization Software&lt;/div&gt;&lt;div class=&#34;links&#34;&gt;&lt;a href=&#34;https://route4me.com/platform/route-optimization-software?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;Explore&lt;/a&gt;&lt;a href=&#34;https://route4me.com/platform/marketplace/pricing?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;Free Trial&lt;/a&gt;&lt;a href=&#34;https://route4me.com/contact?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;Contact&lt;/a&gt;&lt;/div&gt;&lt;div class=&#34;social&#34;&gt;&lt;a href=&#34;https://route4me.com/?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;&lt;img class=&#34;icon&#34; src=&#34;/assets/icons/social/website.png&#34; alt=&#34;sponsor icon&#34;/&gt;&lt;/a&gt;&lt;a href=&#34;https://github.com/route4me?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship&#34; target=&#34;_blank&#34;&gt;&lt;img class=&#34;icon&#34; src=&#34;/assets/icons/social/github.png&#34; alt=&#34;sponsor icon&#34;/&gt;&lt;/a&gt;&lt;/div&gt;">
+                        <a href="https://route4me.com/?utm_source=axios&amp;utm_medium=sponsorlist&amp;utm_campaign=sponsorship" target="_blank" >
+                          <div>
+                            
+                           <img src="/assets/sponsors/route4me.png" data-dark="/assets/sponsors/route4me_white.png"  alt="Route Planner and Route Optimizer"/>
+                          </div>
+                          <span class="caption">Route4Me</span>
+                        </a>
+                      </li>
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                    
+                  
+                
+              </ul>
+            </div>
+          </section>
+        </div>
+        <div class="links">
+          
+          <span>
+
+          </span>
+            
+              <a href="/docs/example" class="next-link">
+                <span>Next »</span>
+                <span class="l"> Minimal Example </span>
+              </a>
+            
+        </div>
+      </div>
+      <div class="col-right"></div>
+    </main>
+
+    <script>
+      document.querySelector("#hamburger").addEventListener("click", () => {
+        document.body.classList.toggle("show-aside");
+      });
+
+      document.querySelector("button.theme").addEventListener("click", () => {
+        isDarkThemeActive = !isDarkThemeActive;
+        localStorage.setItem("@axios-docs:theme", isDarkThemeActive);
+        localStorage.setItem("@axios-docs:ts", Date.now());
+
+        document.body.classList.toggle("dark");
+        document.querySelector("button.theme").classList.toggle("dark");
+
+        updateImagesTheme(isDarkThemeActive);
+      });
+
+      // switch `dir` of those RTL oriented elements that start with an
+      // English letter, assuming they are not intended to be RTL aligned.
+      if (document.dir === "rtl") {
+        document.querySelectorAll("*").forEach(element => {
+          if (/[a-zA-Z]/.test(element.textContent.charAt(0))) {
+            element.dir = "ltr"
+          }
+        })
+      }
+
+      window.onload = () => {
+        if (isDarkThemeActive) {
+          document.querySelector("button.theme").classList.toggle("dark");
+          updateImagesTheme(true);
+        }
+        document.documentElement.style.setProperty('--transition-delay', '300ms');
+      };
+
+      const sponsorsCount = 7;
+
+      const splide = new Splide('.splide', {
+        //type: 'slide',
+        type: 'loop',
+        drag: 'free',
+        focus: 'left',
+        perPage: 7,
+        snap: true,
+        pagination: false,
+        autoWidth: true,
+        autoScroll: {
+          speed: 0.7,
+          autoStart: false
+        }
+      });
+
+      splide.mount(window.splide.Extensions);
+
+      let timer;
+
+      const stop = () => {
+        if( timer ) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      }
+
+      tippy('.sponsor-card, .tip', {
+        trigger: 'mouseenter focus focusin oncontextmenu',
+        delay: [500, 500],
+        animation: 'fade',
+        allowHTML: true,
+        hideOnClick: true,
+        interactive: true,
+        maxWidth: '470px',
+        appendTo: () => document.body,
+        onShow(instance) {
+          if (instance.props.content.trim() === '') {
+            return false;
+          }
+
+          const tier = instance.reference.getAttribute('data-tier');
+
+          tier && instance.popper.setAttribute('data-tier', tier);
+
+          splide.Components.AutoScroll.pause();
+        },
+
+        onHide() {
+          stop();
+
+          timer = setTimeout(() => {
+            splide.Components.AutoScroll.play();
+          }, 5000);
+        }
+      });
+
+      const $splide = document.querySelector('.splide');
+
+      const onScroll = (e) => {
+        const {bottom} = $splide.getBoundingClientRect();
+
+        if (bottom < window.innerHeight) {
+          window.removeEventListener('scroll', onScroll);
+
+          setTimeout(() => {
+            splide.Components.AutoScroll.play();
+          }, 5000);
+        }
+      }
+
+      window.addEventListener('scroll', onScroll);
+
+      // Set external links to open in new tabs
+      document.addEventListener('DOMContentLoaded', function() {
+        const links = document.querySelectorAll('a[href]');
+        links.forEach(link => {
+          const href = link.getAttribute('href');
+          // Check if it's an external link (starts with http/https and not current domain)
+          if (href && (href.startsWith('http://') || href.startsWith('https://')) && !href.includes(window.location.hostname)) {
+            // Add target="_blank" only if not already set
+            if (!link.getAttribute('target')) {
+              link.setAttribute('target', '_blank');
+            }
+          }
+        });
+      });
+
+      // Code block copy functionality
+      function initCodeCopyButtons() {
+        // Get all pre tags
+        const preElements = document.querySelectorAll('main pre');
+        
+        preElements.forEach(pre => {
+          // Skip if copy button already exists
+          if (pre.querySelector('.copy-button')) return;
+          
+          // Create copy button
+          const copyButton = document.createElement('button');
+          copyButton.className = 'copy-button';
+          copyButton.textContent = 'Copy';
+          copyButton.setAttribute('aria-label', 'Copy code to clipboard');
+          
+          // Add copy functionality
+          copyButton.addEventListener('click', async () => {
+            try {
+              // Get text from code element inside pre tag
+              const codeElement = pre.querySelector('code');
+              let textToCopy = codeElement ? codeElement.textContent : pre.textContent;
+              
+              // Remove command line prompts ($ )
+              textToCopy = textToCopy.replace(/^\$ /gm, '');
+              
+              // Copy to clipboard
+              await navigator.clipboard.writeText(textToCopy);
+              
+              // Temporarily change button display
+              const originalText = copyButton.textContent;
+              copyButton.textContent = 'Copied!';
+              copyButton.classList.add('copied');
+              
+              // Reset after 2 seconds
+              setTimeout(() => {
+                copyButton.textContent = originalText;
+                copyButton.classList.remove('copied');
+              }, 2000);
+              
+            } catch (err) {
+              console.error('Failed to copy text: ', err);
+              
+              // Fallback for older browsers
+              const textArea = document.createElement('textarea');
+              const codeElement = pre.querySelector('code');
+              let textToCopy = codeElement ? codeElement.textContent : pre.textContent;
+              
+              // Remove command line prompts ($ )
+              textToCopy = textToCopy.replace(/^\$ /gm, '');
+              
+              textArea.value = textToCopy;
+              document.body.appendChild(textArea);
+              textArea.select();
+              
+              try {
+                document.execCommand('copy');
+                copyButton.textContent = 'Copied!';
+                copyButton.classList.add('copied');
+                
+                setTimeout(() => {
+                  copyButton.textContent = 'Copy';
+                  copyButton.classList.remove('copied');
+                }, 2000);
+              } catch (fallbackErr) {
+                console.error('Fallback copy failed: ', fallbackErr);
+                copyButton.textContent = 'Failed';
+                setTimeout(() => {
+                  copyButton.textContent = 'Copy';
+                }, 2000);
+              }
+              
+              document.body.removeChild(textArea);
+            }
+          });
+          
+          // Add copy button to pre tag
+          pre.appendChild(copyButton);
+        });
+      }
+
+      // Initialize copy buttons after DOM is loaded
+      document.addEventListener('DOMContentLoaded', initCodeCopyButtons);
+    </script>
+  </body>
+</html>

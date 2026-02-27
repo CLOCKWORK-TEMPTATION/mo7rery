@@ -1,0 +1,16 @@
+Source URL:
+- https://docs.mistral.ai/api/endpoint/ocr
+Fetched: 2026-02-27
+
+OCR API facts:
+- OCR endpoint: POST /v1/ocr
+- Full URL: https://api.mistral.ai/v1/ocr
+- Auth header: Authorization: Bearer <MISTRAL_API_KEY>
+- Content-Type: application/json
+- Document supports document_url, image_url, file_id flows.
+- Response includes model, pages[], usage_info, document_annotation.
+
+Implementation implications:
+- Keep /v1/ocr explicit in OCR provider calls.
+- Keep retry logic on 408/425/429/5xx.
+- Parse pages[].markdown defensively and reject empty OCR output.

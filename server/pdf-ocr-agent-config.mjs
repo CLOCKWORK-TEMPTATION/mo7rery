@@ -4,6 +4,9 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { config as loadEnv } from "dotenv";
 import { z } from "zod";
+import { probePdftoppmDependency } from "./pdf-reference-builder.mjs";
+import { getVisionCompareRuntime } from "./pdf-vision-compare.mjs";
+import { getVisionJudgeRuntime } from "./pdf-vision-judge.mjs";
 
 loadEnv();
 
@@ -16,6 +19,7 @@ const DEFAULT_AGENT_ROOT = resolve(
   "src",
   "ocr-arabic-pdf-to-txt-pipeline"
 );
+const CANONICAL_VISION_COMPARE_MODEL = "mistral-large-2512";
 
 const baseConfigSchema = z.object({
   enabled: z.boolean(),
@@ -32,11 +36,21 @@ const baseConfigSchema = z.object({
     .max(30 * 60 * 1_000),
   pages: z.string().min(1),
   mistralApiKey: z.string(),
+  moonshotApiKey: z.string(),
+  visionCompareModel: z.string(),
+  visionJudgeModel: z.string(),
+  visionCompareTimeoutMs: z.number().int().min(1_000).max(10 * 60 * 1_000),
+  visionJudgeTimeoutMs: z.number().int().min(1_000).max(10 * 60 * 1_000),
+  visionRenderDpi: z.number().int().min(96).max(600),
+  externalReferencePath: z.string(),
+  openAgentVerifyFootprint: z.boolean(),
+  openAgentEnableMcpStage: z.boolean(),
   enableClassification: z.boolean(),
   enableEnhancement: z.boolean(),
 });
 
 const isFalseLike = (value) => /^(0|false|no|off)$/iu.test(value.trim());
+const configError = (code, message) => new Error(`[${code}] ${message}`);
 
 const toEnabledFlag = (value) => {
   if (typeof value !== "string") return true;
@@ -49,6 +63,17 @@ const toTimeoutMs = (value) => {
     return fallback;
   }
 
+  const parsed = Number.parseInt(value.trim(), 10);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return parsed;
+};
+
+const toNumber = (value, fallback) => {
+  if (typeof value !== "string" || !value.trim()) {
+    return fallback;
+  }
   const parsed = Number.parseInt(value.trim(), 10);
   if (!Number.isFinite(parsed)) {
     return fallback;
@@ -92,6 +117,23 @@ const resolveRawConfig = () => {
     timeoutMs: toTimeoutMs(process.env.PDF_OCR_AGENT_TIMEOUT_MS),
     pages: process.env.PDF_OCR_AGENT_PAGES?.trim() || "all",
     mistralApiKey: process.env.MISTRAL_API_KEY?.trim() || "",
+    moonshotApiKey: process.env.MOONSHOT_API_KEY?.trim() || "",
+    visionCompareModel: process.env.PDF_VISION_COMPARE_MODEL?.trim() || "",
+    visionJudgeModel: process.env.PDF_VISION_JUDGE_MODEL?.trim() || "",
+    visionCompareTimeoutMs: toNumber(
+      process.env.PDF_VISION_COMPARE_TIMEOUT_MS,
+      180_000
+    ),
+    visionJudgeTimeoutMs: toNumber(process.env.PDF_VISION_JUDGE_TIMEOUT_MS, 180_000),
+    visionRenderDpi: toNumber(process.env.PDF_VISION_RENDER_DPI, 300),
+    externalReferencePath:
+      process.env.PDF_OCR_EXTERNAL_REFERENCE_PATH?.trim() || "",
+    openAgentVerifyFootprint: toEnabledFlag(
+      process.env.OPEN_PDF_AGENT_VERIFY_FOOTPRINT ?? "false"
+    ),
+    openAgentEnableMcpStage: toEnabledFlag(
+      process.env.OPEN_PDF_AGENT_ENABLE_MCP_STAGE ?? "true"
+    ),
     enableClassification: toEnabledFlag(
       process.env.PDF_OCR_AGENT_CLASSIFY_ENABLED
     ),
@@ -106,13 +148,52 @@ export const getPdfOcrAgentConfig = () => {
   }
 
   if (!parsed.mistralApiKey) {
-    throw new Error(
+    throw configError(
+      "PDF_OCR_CFG_MISSING_MISTRAL_API_KEY",
       "PDF OCR agent misconfigured: MISTRAL_API_KEY is required for PDF extraction."
+    );
+  }
+  if (/\s/iu.test(parsed.mistralApiKey)) {
+    throw configError(
+      "PDF_OCR_CFG_INVALID_MISTRAL_API_KEY",
+      "PDF OCR agent misconfigured: MISTRAL_API_KEY must not contain whitespace."
+    );
+  }
+
+  if (!parsed.moonshotApiKey) {
+    throw configError(
+      "PDF_OCR_CFG_MISSING_MOONSHOT_API_KEY",
+      "PDF OCR agent misconfigured: MOONSHOT_API_KEY is required for vision judge."
+    );
+  }
+  if (/\s/iu.test(parsed.moonshotApiKey)) {
+    throw configError(
+      "PDF_OCR_CFG_INVALID_MOONSHOT_API_KEY",
+      "PDF OCR agent misconfigured: MOONSHOT_API_KEY must not contain whitespace."
+    );
+  }
+  if (!parsed.visionCompareModel) {
+    throw configError(
+      "PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL",
+      "PDF OCR agent misconfigured: PDF_VISION_COMPARE_MODEL is required."
+    );
+  }
+  if (parsed.visionCompareModel !== CANONICAL_VISION_COMPARE_MODEL) {
+    throw configError(
+      "PDF_OCR_CFG_INVALID_VISION_COMPARE_MODEL",
+      `PDF OCR agent misconfigured: PDF_VISION_COMPARE_MODEL must be ${CANONICAL_VISION_COMPARE_MODEL}.`
+    );
+  }
+  if (!parsed.visionJudgeModel) {
+    throw configError(
+      "PDF_OCR_CFG_MISSING_VISION_JUDGE_MODEL",
+      "PDF OCR agent misconfigured: PDF_VISION_JUDGE_MODEL is required."
     );
   }
 
   if (!existsSync(parsed.agentRoot)) {
-    throw new Error(
+    throw configError(
+      "PDF_OCR_CFG_MISSING_AGENT_ROOT",
       `PDF OCR agent misconfigured: agent root does not exist (${parsed.agentRoot}).`
     );
   }
@@ -126,7 +207,8 @@ export const getPdfOcrAgentConfig = () => {
 
   for (const [label, scriptPath] of requiredScripts) {
     if (!existsSync(scriptPath)) {
-      throw new Error(
+      throw configError(
+        "PDF_OCR_CFG_MISSING_SCRIPT_PATH",
         `PDF OCR agent misconfigured: ${label} does not exist (${scriptPath}).`
       );
     }
@@ -135,7 +217,7 @@ export const getPdfOcrAgentConfig = () => {
   return parsed;
 };
 
-export const getPdfOcrAgentHealth = () => {
+export const getPdfOcrAgentHealth = async () => {
   const config = baseConfigSchema.parse(resolveRawConfig());
   const agentRootExists = existsSync(config.agentRoot);
   const openPdfAgentScriptExists = existsSync(config.openPdfAgentScriptPath);
@@ -143,7 +225,45 @@ export const getPdfOcrAgentHealth = () => {
   const classifyScriptExists = existsSync(config.classifyScriptPath);
   const enhanceScriptExists = existsSync(config.enhanceScriptPath);
   const writeOutputScriptExists = existsSync(config.writeOutputScriptPath);
+
   const hasMistralApiKey = config.mistralApiKey.length > 0;
+  const hasMoonshotApiKey = config.moonshotApiKey.length > 0;
+  const hasVisionCompareModel = config.visionCompareModel.length > 0;
+  const hasValidVisionCompareModel =
+    config.visionCompareModel === CANONICAL_VISION_COMPARE_MODEL;
+  const hasVisionJudgeModel = config.visionJudgeModel.length > 0;
+
+  const pdftoppm = await probePdftoppmDependency();
+  const compareRuntime =
+    hasVisionCompareModel && hasValidVisionCompareModel
+      ? getVisionCompareRuntime({
+          model: config.visionCompareModel,
+        })
+      : {
+          model: config.visionCompareModel,
+          endpointSource: "hard-locked-canonical",
+          errorCode: hasVisionCompareModel
+            ? "PDF_OCR_CFG_INVALID_VISION_COMPARE_MODEL"
+            : "PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL",
+        };
+  const judgeRuntime = getVisionJudgeRuntime({
+    model: config.visionJudgeModel,
+  });
+
+  const errorCodes = [];
+  if (!hasMistralApiKey) errorCodes.push("PDF_OCR_CFG_MISSING_MISTRAL_API_KEY");
+  if (!hasMoonshotApiKey) errorCodes.push("PDF_OCR_CFG_MISSING_MOONSHOT_API_KEY");
+  if (!hasVisionCompareModel)
+    errorCodes.push("PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL");
+  if (hasVisionCompareModel && !hasValidVisionCompareModel) {
+    errorCodes.push("PDF_OCR_CFG_INVALID_VISION_COMPARE_MODEL");
+  }
+  if (!hasVisionJudgeModel)
+    errorCodes.push("PDF_OCR_CFG_MISSING_VISION_JUDGE_MODEL");
+  if (!pdftoppm.available && pdftoppm.errorCode) {
+    errorCodes.push(pdftoppm.errorCode);
+  }
+
   const configured =
     config.enabled &&
     agentRootExists &&
@@ -151,12 +271,30 @@ export const getPdfOcrAgentHealth = () => {
     ocrScriptExists &&
     classifyScriptExists &&
     writeOutputScriptExists &&
-    hasMistralApiKey;
+    hasMistralApiKey &&
+    hasMoonshotApiKey &&
+    hasVisionCompareModel &&
+    hasValidVisionCompareModel &&
+    hasVisionJudgeModel &&
+    pdftoppm.available;
 
   return {
     enabled: config.enabled,
     configured,
+    strictValidation: true,
     hasMistralApiKey,
+    hasMoonshotApiKey,
+    hasVisionCompareModel,
+    hasValidVisionCompareModel,
+    hasVisionJudgeModel,
+    visionCompareModel: config.visionCompareModel,
+    visionJudgeModel: config.visionJudgeModel,
+    visionCompareTimeoutMs: config.visionCompareTimeoutMs,
+    visionJudgeTimeoutMs: config.visionJudgeTimeoutMs,
+    visionRenderDpi: config.visionRenderDpi,
+    externalReferencePath: config.externalReferencePath,
+    openAgentVerifyFootprint: config.openAgentVerifyFootprint,
+    openAgentEnableMcpStage: config.openAgentEnableMcpStage,
     agentRoot: config.agentRoot,
     agentRootExists,
     openPdfAgentScriptPath: config.openPdfAgentScriptPath,
@@ -173,5 +311,13 @@ export const getPdfOcrAgentHealth = () => {
     enableEnhancement: config.enableEnhancement,
     timeoutMs: config.timeoutMs,
     pages: config.pages,
+    dependencies: {
+      pdftoppm,
+    },
+    providers: {
+      compare: compareRuntime,
+      judge: judgeRuntime,
+    },
+    errorCodes,
   };
 };

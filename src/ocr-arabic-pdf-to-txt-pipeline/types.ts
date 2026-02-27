@@ -100,14 +100,17 @@ export interface NormalizationOptions {
 
 // ─── خيارات معالجة الملف ────────────────────────────────────
 
+/** صيغ إخراج النص من مرحلة الاستخراج */
+export type ExtractionOutputFormat = "txt" | "txt-raw" | "md";
+
 /** خيارات معالجة ملف PDF واحد */
 export interface ProcessFileOptions {
   /** مسار ملف PDF المُدخل */
   inputPath: string;
   /** مسار ملف الإخراج (اختياري — يُولّد تلقائياً) */
   outputPath?: string;
-  /** صيغة الإخراج */
-  outputFormat?: "txt" | "md";
+  /** صيغة الإخراج (txt-raw = نص خام قبل تنسيق الصفحات) */
+  outputFormat?: ExtractionOutputFormat;
   /** نطاق الصفحات (مثال: "0-9" أو "all") */
   pages?: string;
   /** تفعيل تحسين LLM */

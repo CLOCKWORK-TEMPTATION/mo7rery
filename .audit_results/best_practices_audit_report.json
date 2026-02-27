@@ -1,0 +1,77 @@
+{
+  "report_metadata": {
+    "audit_date": "2026-02-27T08:25:00Z",
+    "report_version": "1.0",
+    "scope": "src/",
+    "tools_used": ["puppeteer", "eslint", "custom-script"]
+  },
+  "executive_summary": {
+    "best_practice_adoption_score": "0%",
+    "function_application_score": "0%",
+    "compliance_score": "0%",
+    "weighted_compliance": "98%",
+    "final_score": "19%",
+    "rating": "Poor",
+    "total_files_scanned": 150,
+    "total_dependencies": 37,
+    "total_docs_cached": 5,
+    "total_patterns_found": 1,
+    "total_functions_evaluated": 1,
+    "functions_fully_applied": 0,
+    "functions_partially_applied": 0,
+    "functions_not_applied": 1,
+    "total_violations": 1,
+    "total_warnings": 0,
+    "critical_count": 0,
+    "high_count": 0,
+    "medium_count": 1,
+    "low_count": 0,
+    "top_3_risks": [
+      "VIO-001: Missing Mistral configuration"
+    ]
+  },
+  "detailed_results": {
+    "violations": "→ مرجع: .audit_results/violations.json",
+    "code_patterns": "→ مرجع: .audit_results/code_patterns.json",
+    "dependencies": "→ مرجع: .audit_results/extracted_dependencies.json"
+  },
+  "best_practice_application_per_function": [
+    {
+      "file": "src/ocr-arabic-pdf-to-txt-pipeline/agent.ts",
+      "function_or_block": "initializeMistral",
+      "dependency": "@mistralai/mistralai",
+      "application_status": "not_applied",
+      "expected_practices": ["timeout", "retry"],
+      "applied_practices": [],
+      "missing_practices": ["timeout", "retry"],
+      "evidence": {
+        "code_line_range": "40-50",
+        "doc_sections": ["Best Practices"]
+      }
+    }
+  ],
+  "risk_matrix": [
+    {
+      "violation_id": "VIO-001",
+      "impact": "medium",
+      "likelihood": "medium",
+      "risk_level": "medium"
+    }
+  ],
+  "remediation_plan": {
+    "immediate": [],
+    "short_term": [],
+    "planned": [
+      {
+        "id": "VIO-001",
+        "action": "Add timeout and retry logic to Mistral API client",
+        "effort": "30 mins"
+      }
+    ],
+    "improvement": []
+  },
+  "checkpoint_summary": {
+    "all_gates_passed": true,
+    "details": "→ مرجع: .audit_results/checkpoint_log.txt"
+  }
+}

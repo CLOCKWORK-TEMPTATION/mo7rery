@@ -1,0 +1,4 @@
+- https://docs.anthropic.com/en/api/messages
+- https://docs.mistral.ai/capabilities/document/
+- https://platform.moonshot.ai/docs/guide/use-kimi-vision-model
+- https://axios-http.com/docs/intro

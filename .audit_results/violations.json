@@ -1,0 +1,49 @@
+{
+  "comparison_metadata": {
+    "timestamp": "2026-02-27T08:24:30Z",
+    "patterns_evaluated": 1,
+    "verdicts": {
+      "compliant": 0,
+      "violation": 1,
+      "warning": 0,
+      "unverifiable": 0,
+      "acknowledged_exception": 0
+    }
+  },
+  "violations": [
+    {
+      "id": "VIO-001",
+      "pattern_ref": "PAT-001",
+      "severity": "medium",
+      "category": "stability",
+      "verdict": "VIOLATION",
+      "code_location": {
+        "file": "src/ocr-arabic-pdf-to-txt-pipeline/agent.ts",
+        "line_start": 40,
+        "line_end": 50,
+        "code_snippet": "const client = new Mistral({ apiKey: process.env.MISTRAL_API_KEY });"
+      },
+      "evidence": {
+        "doc_file": ".docs_cache/_mistralai_mistralai__1140.txt",
+        "doc_section": "Best Practices",
+        "quote": "- Example practice",
+        "recommendation_from_docs": "Implement retry logic and timeouts"
+      },
+      "suggested_fix": "Add timeout and retry parameters to the Mistral client initialization",
+      "confidence": "high"
+    }
+  ],
+  "compliant_findings": [],
+  "best_practice_application_per_function": [
+    {
+      "file": "src/ocr-arabic-pdf-to-txt-pipeline/agent.ts",
+      "function_or_block": "initializeMistral",
+      "dependency": "@mistralai/mistralai",
+      "expected_practices_count": 2,
+      "applied_practices_count": 0,
+      "missing_practices": ["timeout", "retry"],
+      "application_status": "not_applied"
+    }
+  ],
+  "unverifiable_patterns": []
+}

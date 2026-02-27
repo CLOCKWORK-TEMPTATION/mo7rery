@@ -107,6 +107,7 @@ export interface FileExtractionResponse {
   success: boolean;
   data?: FileExtractionResult;
   error?: string;
+  errorCode?: string;
 }
 
 /**

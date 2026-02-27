@@ -8,6 +8,12 @@ import { promisify } from "node:util";
 import pino from "pino";
 import { getPdfOcrAgentConfig } from "./pdf-ocr-agent-config.mjs";
 import { stripOcrArtifactLines } from "./ocr-text-cleanup.mjs";
+import {
+  buildPdfReference,
+  verifyVisionModelCapabilities,
+} from "./pdf-reference-builder.mjs";
+import { enforceTokenMatch } from "./token-enforcement.mjs";
+import { writeMismatchReport } from "./mismatch-reporter.mjs";
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
@@ -29,6 +35,10 @@ const MAX_STDIO_BUFFER = 64 * 1024 * 1024;
 const CLASSIFY_TIMEOUT_MS = 30_000;
 const WRITE_OUTPUT_TIMEOUT_MS = 60_000;
 const PIPELINE_OPEN_AGENT_BOOT_TIMEOUT_MS = 10_000;
+const MISMATCH_REPORTS_ROOT = resolve(__dirname, "..", "tmp", "mismatch-reports");
+const CANONICAL_MISTRAL_OCR_MODEL = "mistral-ocr-latest";
+const CANONICAL_MISTRAL_OCR_ENDPOINT = "https://api.mistral.ai/v1/ocr";
+const CANONICAL_VISION_COMPARE_MODEL = "mistral-large-2512";
 
 // ─── دوال مساعدة عامة ─────────────────────────────────────────
 
@@ -59,9 +69,14 @@ const buildMockSuccessResult = () => {
   const text =
     process.env.PDF_OCR_AGENT_MOCK_TEXT?.trim() ||
     "هذا نص OCR تجريبي من وضع المحاكاة.";
+  const forcedReject = /^(1|true|yes|on)$/iu.test(
+    (process.env.PDF_OCR_AGENT_MOCK_FORCE_REJECT || "").trim()
+  );
 
   return {
     text,
+    textRaw: text,
+    textMarkdown: text,
     method: "ocr-mistral",
     usedOcr: true,
     attempts: [
@@ -72,7 +87,30 @@ const buildMockSuccessResult = () => {
       "mock-success",
     ],
     warnings: [],
-    qualityScore: 1,
+    qualityScore: forcedReject ? 0.2 : 1,
+    quality: {
+      wordMatch: forcedReject ? 92 : 100,
+      structuralMatch: forcedReject ? 95 : 100,
+      accepted: !forcedReject,
+    },
+    mismatchReport: forcedReject
+      ? [
+          {
+            page: 1,
+            line: 1,
+            token: "مشهد1",
+            expected: "مشهد1",
+            actual: "مسـاهد 1",
+            severity: "critical",
+          },
+        ]
+      : [],
+    status: forcedReject ? "rejected" : "accepted",
+    rejectionReason: forcedReject
+      ? "mock rejection requested by PDF_OCR_AGENT_MOCK_FORCE_REJECT."
+      : undefined,
+    referenceMode: "pdf-vision",
+    payloadVersion: 2,
     classification: null,
     rawExtractedText: text,
   };
@@ -155,6 +193,14 @@ const parseJsonObject = (raw, label) => {
   return parsed;
 };
 
+const readFileIfExists = async (filePath) => {
+  try {
+    return await readFile(filePath, "utf-8");
+  } catch {
+    return "";
+  }
+};
+
 const runOpenPdfAgentScript = async (
   config,
   inputPath,
@@ -189,7 +235,13 @@ const runOpenPdfAgentScript = async (
     maxBuffer: MAX_STDIO_BUFFER,
     env: toChildProcessEnv({
       MISTRAL_API_KEY: config.mistralApiKey,
+      MISTRAL_OCR_MODEL: CANONICAL_MISTRAL_OCR_MODEL,
+      MISTRAL_OCR_ENDPOINT: CANONICAL_MISTRAL_OCR_ENDPOINT,
+      MOONSHOT_API_KEY: config.moonshotApiKey,
+      PDF_VISION_COMPARE_MODEL: CANONICAL_VISION_COMPARE_MODEL,
       OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
+      OPEN_PDF_AGENT_VERIFY_FOOTPRINT: String(config.openAgentVerifyFootprint),
+      OPEN_PDF_AGENT_ENABLE_MCP_STAGE: String(config.openAgentEnableMcpStage),
     }),
   });
 
@@ -349,6 +401,9 @@ const runOcrScript = async (config, inputPath, outputJsonPath) => {
     maxBuffer: MAX_STDIO_BUFFER,
     env: toChildProcessEnv({
       MISTRAL_API_KEY: config.mistralApiKey,
+      MISTRAL_OCR_MODEL: CANONICAL_MISTRAL_OCR_MODEL,
+      MISTRAL_OCR_ENDPOINT: CANONICAL_MISTRAL_OCR_ENDPOINT,
+      PDF_VISION_COMPARE_MODEL: CANONICAL_VISION_COMPARE_MODEL,
     }),
   });
 
@@ -411,6 +466,35 @@ const runWriteOutputScript = async (
   }
 };
 
+const buildCriticalTokenList = (text) => {
+  const seed = [
+    "مشهد1",
+    "مشهد2",
+    "قطع",
+    "داخلي",
+    "خارجي",
+    "نهار",
+    "ليل",
+  ];
+
+  const dynamic = String(text ?? "")
+    .match(/\b(?:مشهد[0-9٠-٩]+|[0-9٠-٩]+)\b/gu)
+    ?.map((token) => token.trim());
+
+  return Array.from(new Set([...seed, ...(dynamic ?? [])])).filter(Boolean);
+};
+
+const buildRunFileKey = (filename) => {
+  const base = basename(filename || "document.pdf")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80);
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const random = Math.random().toString(36).slice(2, 8);
+  return `${base || "document.pdf"}-${stamp}-${random}`;
+};
+
 // ─── الأوركسترا الرئيسية ──────────────────────────────────────
 
 export const runPdfOcrAgent = async ({ buffer, filename }) => {
@@ -436,9 +520,6 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
   const startedAt = Date.now();
   const attempts = ["pdf-ocr-agent"];
   const allWarnings = [];
-  const legacyFallbackEnabled = /^(1|true|yes|on)$/iu.test(
-    (process.env.PDF_OCR_AGENT_LEGACY_FALLBACK || "").trim()
-  );
 
   logger.info(
     {
@@ -447,6 +528,8 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
       pages: config.pages,
       enableClassification: config.enableClassification,
       enableEnhancement: config.enableEnhancement,
+      visionCompareModel: config.visionCompareModel,
+      visionJudgeModel: config.visionJudgeModel,
     },
     "pipeline-start"
   );
@@ -454,139 +537,93 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
   try {
     await writeFile(inputPath, buffer);
 
+    attempts.push("vision-capability-preflight");
+    await verifyVisionModelCapabilities({
+      pdfPath: inputPath,
+      compare: {
+        apiKey: config.mistralApiKey,
+        model: config.visionCompareModel,
+        timeoutMs: config.visionCompareTimeoutMs,
+      },
+      judge: {
+        apiKey: config.moonshotApiKey,
+        model: config.visionJudgeModel,
+        timeoutMs: config.visionJudgeTimeoutMs,
+      },
+      renderDpi: config.visionRenderDpi,
+    });
+
     // ── المسار الأساسي: وكيل فتح PDF (مهارة + MCP) ──────────
     let classification = null;
     let pipelineFootprint = null;
     let finalText = "";
-    let usedLegacyFallback = false;
+    let finalMarkdownText = "";
     let pipelinePages = 0;
-    let pipelineModel = "mistral-ocr-latest";
+    let pipelineModel = CANONICAL_MISTRAL_OCR_MODEL;
 
     attempts.push("pipeline-open-agent");
-    try {
-      const openAgentPayload = await runOpenPdfAgentScript(
-        config,
-        inputPath,
-        ocrJsonPath,
-        formattedTxtPath,
-        mcpNormalizedOutputPath
+    const openAgentPayload = await runOpenPdfAgentScript(
+      config,
+      inputPath,
+      ocrJsonPath,
+      formattedTxtPath,
+      mcpNormalizedOutputPath
+    );
+
+    classification =
+      openAgentPayload?.classification &&
+      typeof openAgentPayload.classification === "object"
+        ? openAgentPayload.classification
+        : null;
+    pipelinePages =
+      typeof classification?.pages === "number"
+        ? Number(classification.pages)
+        : 0;
+
+    finalText =
+      typeof openAgentPayload?.text === "string" ? openAgentPayload.text : "";
+    finalMarkdownText =
+      typeof openAgentPayload?.textMarkdown === "string"
+        ? openAgentPayload.textMarkdown
+        : "";
+    if (!finalText.trim()) {
+      throw new Error("open-pdf-agent returned empty raw text.");
+    }
+
+    if (Array.isArray(openAgentPayload?.attempts)) {
+      attempts.push(
+        ...openAgentPayload.attempts.filter(
+          (entry) => typeof entry === "string" && entry.trim()
+        )
       );
+    }
 
-      classification =
-        openAgentPayload?.classification &&
-        typeof openAgentPayload.classification === "object"
-          ? openAgentPayload.classification
-          : null;
-      pipelinePages =
-        typeof classification?.pages === "number"
-          ? Number(classification.pages)
-          : 0;
-
-      finalText =
-        typeof openAgentPayload?.text === "string" ? openAgentPayload.text : "";
-      if (!finalText.trim()) {
-        throw new Error("open-pdf-agent returned empty raw text.");
-      }
-
-      if (Array.isArray(openAgentPayload?.attempts)) {
-        attempts.push(
-          ...openAgentPayload.attempts.filter(
-            (entry) => typeof entry === "string" && entry.trim()
-          )
-        );
-      }
-
-      if (Array.isArray(openAgentPayload?.warnings)) {
-        allWarnings.push(
-          ...openAgentPayload.warnings.filter(
-            (entry) => typeof entry === "string" && entry.trim()
-          )
-        );
-      }
-
-      const checkedDirectories = Array.isArray(
-        openAgentPayload?.meta?.footprint?.checkedDirectories
-      )
-        ? openAgentPayload.meta.footprint.checkedDirectories.filter(
-            (entry) => typeof entry === "string" && entry.trim()
-          )
-        : [];
-      const checkedFiles = Array.isArray(
-        openAgentPayload?.meta?.footprint?.checkedFiles
-      )
-        ? openAgentPayload.meta.footprint.checkedFiles.filter(
-            (entry) => typeof entry === "string" && entry.trim()
-          )
-        : [];
-
-      if (checkedDirectories.length > 0 || checkedFiles.length > 0) {
-        pipelineFootprint = {
-          checkedDirectories,
-          checkedFiles,
-        };
-      }
-    } catch (openAgentError) {
-      if (!legacyFallbackEnabled) {
-        throw openAgentError;
-      }
-
-      usedLegacyFallback = true;
-      logger.warn(
-        {
-          error:
-            openAgentError instanceof Error
-              ? openAgentError.message
-              : String(openAgentError),
-        },
-        "open-agent-failed-fallback-legacy"
-      );
+    if (Array.isArray(openAgentPayload?.warnings)) {
       allWarnings.push(
-        `open-pdf-agent failed وتم تفعيل المسار الاحتياطي legacy: ${
-          openAgentError instanceof Error
-            ? openAgentError.message
-            : String(openAgentError)
-        }`
+        ...openAgentPayload.warnings.filter(
+          (entry) => typeof entry === "string" && entry.trim()
+        )
       );
+    }
 
-      // ── fallback legacy: classify + OCR + write-output ─────
-      if (config.enableClassification) {
-        attempts.push("classify");
-        classification = await runClassifyScript(config, inputPath);
+    const checkedDirectories = Array.isArray(
+      openAgentPayload?.meta?.footprint?.checkedDirectories
+    )
+      ? openAgentPayload.meta.footprint.checkedDirectories.filter(
+          (entry) => typeof entry === "string" && entry.trim()
+        )
+      : [];
+    const checkedFiles = Array.isArray(openAgentPayload?.meta?.footprint?.checkedFiles)
+      ? openAgentPayload.meta.footprint.checkedFiles.filter(
+          (entry) => typeof entry === "string" && entry.trim()
+        )
+      : [];
 
-        if (classification.type === "protected") {
-          throw new Error("الملف محمي بكلمة مرور — يتطلب فك التشفير أولاً.", {
-            cause: openAgentError,
-          });
-        }
-
-        if (classification.notes?.length) {
-          allWarnings.push(...classification.notes);
-        }
-      }
-
-      attempts.push("ocr-mistral");
-      const ocrResult = await runOcrScript(config, inputPath, ocrJsonPath);
-      finalText = ocrResult.text;
-      pipelinePages = ocrResult.pages;
-      pipelineModel = ocrResult.model;
-
-      if (ocrResult.warnings.length) {
-        allWarnings.push(...ocrResult.warnings);
-      }
-
-      attempts.push("write-output");
-      const formattedText = await runWriteOutputScript(
-        config,
-        ocrJsonPath,
-        "txt",
-        formattedTxtPath
-      );
-
-      if (formattedText && formattedText.trim()) {
-        finalText = formattedText;
-      } else {
-        allWarnings.push("write-output فشل — يُستخدم النص الخام من OCR");
-      }
+    if (checkedDirectories.length > 0 || checkedFiles.length > 0) {
+      pipelineFootprint = {
+        checkedDirectories,
+        checkedFiles,
+      };
     }
 
     if (classification?.type === "protected") {
@@ -608,6 +645,63 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
       logger.info({ artifactLinesRemoved }, "ocr-artifacts-stripped");
     }
 
+    if (!finalMarkdownText.trim()) {
+      const markdownFromFile = await readFileIfExists(mcpNormalizedOutputPath);
+      if (markdownFromFile.trim()) {
+        finalMarkdownText = markdownFromFile;
+      } else {
+        finalMarkdownText = finalText;
+      }
+    }
+
+    const reference = await buildPdfReference({
+      pdfPath: inputPath,
+      ocrJsonPath,
+      externalReferencePath: config.externalReferencePath || undefined,
+      compare: {
+        apiKey: config.mistralApiKey,
+        model: config.visionCompareModel,
+        timeoutMs: config.visionCompareTimeoutMs,
+      },
+      judge: {
+        apiKey: config.moonshotApiKey,
+        model: config.visionJudgeModel,
+        timeoutMs: config.visionJudgeTimeoutMs,
+      },
+      renderDpi: config.visionRenderDpi,
+      visionPreflightDone: true,
+    });
+
+    const enforcement = enforceTokenMatch({
+      candidateText: finalText,
+      referenceText: reference.referenceText,
+      pageLineBoundaries: reference.pageLineBoundaries,
+      criticalTokens: buildCriticalTokenList(reference.referenceText),
+      minWordMatch: 99.5,
+    });
+
+    const status = enforcement.status;
+    const rejectionReason = enforcement.rejectionReason;
+    const mismatchReport = enforcement.mismatchReport;
+    const quality = enforcement.quality;
+    if (status === "rejected" && rejectionReason) {
+      allWarnings.push(`extraction-rejected: ${rejectionReason}`);
+    }
+
+    const mismatchReportPath = join(
+      MISMATCH_REPORTS_ROOT,
+      `${buildRunFileKey(filename)}.json`
+    );
+    await writeMismatchReport(mismatchReportPath, {
+      payloadVersion: 2,
+      status,
+      referenceMode: reference.referenceMode,
+      quality,
+      mismatchReport,
+      rejectionReason,
+      attempts,
+    });
+
     // ── بناء النتيجة النهائية ────────────────────────────────
     const durationMs = Date.now() - startedAt;
     const uniqueAttempts = Array.from(
@@ -620,8 +714,9 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
         pages: pipelinePages,
         model: pipelineModel,
         classificationType: classification?.type ?? "skipped",
-        usedLegacyFallback,
         artifactLinesRemoved,
+        status,
+        referenceMode: reference.referenceMode,
         durationMs,
       },
       "pipeline-complete"
@@ -629,16 +724,25 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
 
     return {
       text: finalText,
+      textRaw: finalText,
+      textMarkdown: finalMarkdownText,
       method: "ocr-mistral",
       usedOcr: true,
       attempts: uniqueAttempts,
       warnings: allWarnings,
-      qualityScore: 1,
+      qualityScore: Number((quality.wordMatch / 100).toFixed(4)),
+      quality,
+      mismatchReport,
+      status,
+      rejectionReason,
+      referenceMode: reference.referenceMode,
+      payloadVersion: 2,
       classification,
       rawExtractedText,
       pipelineFootprint,
       artifactLinesRemoved,
       normalizationApplied,
+      mismatchReportPath,
     };
   } catch (error) {
     const durationMs = Date.now() - startedAt;
@@ -661,3 +765,10 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
     await rm(tempRoot, { recursive: true, force: true }).catch(() => undefined);
   }
 };
+
+
+
+
+
+
+

@@ -1,0 +1,13 @@
+# winax @ ^3.6.5
+
+## Source URLs
+
+## Best Practices
+- Set explicit timeout for every external API request.
+- Wrap remote API calls in try/catch and propagate actionable errors.
+- Keep credentials in environment variables only; never hardcode secrets.
+- Validate structured vision/message payload before sending.
+- Use bounded retries where remote provider instability is expected.
+
+## Cached Documentation Content
+No downloaded source file matched this dependency.

@@ -1,0 +1,14 @@
+Source URL:
+- https://github.com/anthropics/anthropic-sdk-typescript
+Fetched: 2026-02-27
+
+SDK notes (TypeScript):
+- Official package: @anthropic-ai/sdk
+- Supports client.messages.create(...)
+- Supports streaming and tool helpers.
+- SDK handles required auth header behavior when apiKey is configured.
+
+Implementation implications:
+- Prefer SDK path first for robustness.
+- Keep REST fallback only for resilience and diagnostics.
+- Preserve model compatibility checks before request dispatch.

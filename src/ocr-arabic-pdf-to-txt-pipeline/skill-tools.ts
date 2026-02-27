@@ -174,6 +174,7 @@ export const skillWriteOutput = tool({
   description: `تحويل نتائج OCR (ملف JSON) إلى ملف نصي بصيغة TXT أو Markdown.
 
 صيغة TXT: نص خام مع فواصل صفحات بسيطة
+صيغة TXT-RAW: نص OCR خام قبل تنسيق الصفحات (بدون ===== أو "الصفحة N")
 صيغة MD: نص مُنسَّق مع بيانات وصفية وفهرس وروابط صور
 
 المدخل: ملف JSON ناتج من أداة skill_ocr_mistral`,
@@ -181,9 +182,11 @@ export const skillWriteOutput = tool({
   inputSchema: z.object({
     input: z.string().describe("المسار المطلق لملف JSON الناتج من OCR"),
     format: z
-      .enum(["txt", "md"])
+      .enum(["txt", "txt-raw", "md"])
       .default("md")
-      .describe("صيغة المخرج: txt (نص خام) أو md (Markdown)"),
+      .describe(
+        "صيغة المخرج: txt (legacy بفواصل صفحات) أو txt-raw (قبل التنسيق) أو md (Markdown)"
+      ),
     output: z.string().describe("المسار المطلق لملف المخرج"),
   }),
 

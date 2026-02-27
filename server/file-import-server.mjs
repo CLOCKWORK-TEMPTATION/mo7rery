@@ -11,6 +11,7 @@ import { config as loadEnv } from "dotenv";
 import {
   AgentReviewValidationError,
   getAnthropicReviewModel,
+  getAnthropicReviewRuntime,
   requestAnthropicReview,
   validateAgentReviewRequestBody,
 } from "./agent-review.mjs";
@@ -123,6 +124,15 @@ const normalizeText = (value) =>
   )
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+const extractErrorCode = (error, message) => {
+  if (typeof error?.errorCode === "string" && error.errorCode.trim()) {
+    return error.errorCode.trim();
+  }
+
+  const match = String(message ?? "").match(/\[([A-Z0-9_]+)\]/u);
+  return match?.[1] || undefined;
+};
 
 const sendJson = (res, statusCode, payload) => {
   res.writeHead(statusCode, {
@@ -417,6 +427,14 @@ const normalizeExtractionResponseData = (result, fileType) => {
 
   return {
     text,
+    textRaw:
+      typeof result.textRaw === "string"
+        ? result.textRaw
+        : typeof result.rawExtractedText === "string"
+          ? result.rawExtractedText
+          : text,
+    textMarkdown:
+      typeof result.textMarkdown === "string" ? result.textMarkdown : undefined,
     rawExtractedText:
       typeof result.rawExtractedText === "string"
         ? result.rawExtractedText
@@ -459,6 +477,44 @@ const normalizeExtractionResponseData = (result, fileType) => {
       typeof result.payloadVersion === "number" &&
       Number.isInteger(result.payloadVersion)
         ? result.payloadVersion
+        : undefined,
+    referenceMode:
+      typeof result.referenceMode === "string"
+        ? result.referenceMode
+        : undefined,
+    status: typeof result.status === "string" ? result.status : undefined,
+    rejectionReason:
+      typeof result.rejectionReason === "string"
+        ? result.rejectionReason
+        : undefined,
+    quality:
+      isObjectRecord(result.quality) &&
+      typeof result.quality.wordMatch === "number" &&
+      typeof result.quality.structuralMatch === "number" &&
+      typeof result.quality.accepted === "boolean"
+        ? {
+            wordMatch: result.quality.wordMatch,
+            structuralMatch: result.quality.structuralMatch,
+            accepted: result.quality.accepted,
+          }
+        : undefined,
+    mismatchReport: Array.isArray(result.mismatchReport)
+      ? result.mismatchReport
+          .filter(
+            (entry) =>
+              isObjectRecord(entry) &&
+              typeof entry.page === "number" &&
+              typeof entry.line === "number" &&
+              typeof entry.token === "string" &&
+              typeof entry.expected === "string" &&
+              typeof entry.actual === "string" &&
+              (entry.severity === "critical" || entry.severity === "normal")
+          )
+          .slice(0, 10_000)
+      : undefined,
+    mismatchReportPath:
+      typeof result.mismatchReportPath === "string"
+        ? result.mismatchReportPath
         : undefined,
     classification: isObjectRecord(result.classification)
       ? {
@@ -931,9 +987,11 @@ const handleExtract = async (req, res) => {
       : error instanceof RequestValidationError
         ? error.statusCode
         : 500;
+    const errorCode = extractErrorCode(error, message);
     const payload = {
       success: false,
       error: message,
+      ...(errorCode ? { errorCode } : {}),
     };
     if (error instanceof ExecFileClassifiedError) {
       payload.classifiedError = error.classifiedError;
@@ -985,7 +1043,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/health") {
-    const ocrAgent = getPdfOcrAgentHealth();
+    const ocrAgent = await getPdfOcrAgentHealth();
+    const reviewRuntime = getAnthropicReviewRuntime();
     sendJson(res, 200, {
       ok: true,
       service: "file-import-backend",
@@ -998,6 +1057,13 @@ const server = http.createServer(async (req, res) => {
       ocrConfigured: ocrAgent.configured,
       ocrAgent,
       reviewModel: getAnthropicReviewModel(),
+      reviewProvider: reviewRuntime.provider,
+      reviewModelRequested: reviewRuntime.requestedModel,
+      reviewModelResolved: reviewRuntime.resolvedModel,
+      reviewModelFallbackApplied: reviewRuntime.fallbackApplied,
+      reviewModelFallbackReason: reviewRuntime.fallbackReason,
+      reviewApiBaseUrl: reviewRuntime.baseUrl,
+      reviewApiVersion: reviewRuntime.apiVersion,
     });
     return;
   }
@@ -1060,3 +1126,6 @@ server.listen(PORT, HOST, () => {
     }
   }
 });
+
+
+

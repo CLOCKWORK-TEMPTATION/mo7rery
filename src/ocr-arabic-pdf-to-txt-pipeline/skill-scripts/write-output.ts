@@ -29,7 +29,7 @@ interface OcrResult {
   processing_time_seconds: number;
 }
 
-type OutputFormat = "txt" | "md";
+type OutputFormat = "txt" | "txt-raw" | "md";
 
 // ─── تحليل المعاملات ──────────────────────────────────────────
 
@@ -44,13 +44,14 @@ function parseArgs(): { input: string; format: OutputFormat; output: string } {
     else if (args[i] === "--format" && args[i + 1]) {
       const f = args[++i].toLowerCase();
       if (f === "md" || f === "markdown") format = "md";
+      else if (f === "txt-raw") format = "txt-raw";
       else format = "txt";
     } else if (args[i] === "--output" && args[i + 1]) output = args[++i];
   }
 
   if (!input || !output) {
     console.error(
-      "الاستخدام: npx tsx write-output.ts --input <json> --format <txt|md> --output <ملف>"
+      "الاستخدام: npx tsx write-output.ts --input <json> --format <txt|txt-raw|md> --output <ملف>"
     );
     process.exit(1);
   }
@@ -77,6 +78,14 @@ function generateTxt(data: OcrResult): string {
   }
 
   return lines.join("\n");
+}
+
+/** كتابة مخرج نصي خام قبل أي تنسيق صفحات */
+function generateTxtRaw(data: OcrResult): string {
+  return data.pages
+    .map((page) => page.markdown.trim())
+    .filter((pageText) => pageText.length > 0)
+    .join("\n\n");
 }
 
 /** كتابة مخرج Markdown مع بنية وبيانات وصفية */
@@ -150,7 +159,12 @@ function main(): void {
   }
 
   // توليد المخرج
-  const content = format === "md" ? generateMarkdown(data) : generateTxt(data);
+  const content =
+    format === "md"
+      ? generateMarkdown(data)
+      : format === "txt-raw"
+        ? generateTxtRaw(data)
+        : generateTxt(data);
 
   // كتابة الملف
   writeFileSync(output, content, "utf-8");

@@ -1,0 +1,55 @@
+{
+  "scan_metadata": {
+    "timestamp": "2026-02-27T08:24:00Z",
+    "total_files_scanned": 150,
+    "total_files_with_patterns": 5,
+    "scan_scope": ["src/"]
+  },
+  "import_map": [
+    {
+      "dependency": "@mistralai/mistralai",
+      "version": "1.14.0",
+      "importing_files": [
+        {
+          "file": "src/ocr-arabic-pdf-to-txt-pipeline/agent.ts",
+          "line": 10,
+          "import_type": "named",
+          "imported_symbols": ["Mistral"]
+        }
+      ]
+    }
+  ],
+  "patterns": [
+    {
+      "id": "PAT-001",
+      "category": "api_call",
+      "dependency": "@mistralai/mistralai",
+      "file": "src/ocr-arabic-pdf-to-txt-pipeline/agent.ts",
+      "line_start": 40,
+      "line_end": 50,
+      "code_snippet": "const client = new Mistral({ apiKey: process.env.MISTRAL_API_KEY });",
+      "function_or_block": "initializeMistral",
+      "expected_best_practices": ["timeout", "retry"],
+      "applied_best_practices": [],
+      "missing_best_practices": ["timeout", "retry"],
+      "best_practice_application_status": "not_applied",
+      "observations": ["Missing explicit timeout configuration"],
+      "related_doc_sections": ["Best Practices"]
+    }
+  ],
+  "function_best_practice_matrix": [
+    {
+      "file": "src/ocr-arabic-pdf-to-txt-pipeline/agent.ts",
+      "function_or_block": "initializeMistral",
+      "dependency": "@mistralai/mistralai",
+      "expected_practices_count": 2,
+      "applied_practices_count": 0,
+      "missing_practices": ["timeout", "retry"],
+      "application_status": "not_applied",
+      "evidence": {
+        "code_line_range": "40-50",
+        "doc_sections": ["Best Practices"]
+      }
+    }
+  ]
+}

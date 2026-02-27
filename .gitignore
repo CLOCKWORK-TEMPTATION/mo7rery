@@ -167,6 +167,9 @@ temp-sample*
 
 # Test artifacts
 test-results/
+tests/
+tmp/
+docs/
 playwright-report/
 coverage/
 

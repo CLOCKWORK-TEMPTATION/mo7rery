@@ -1,0 +1,20 @@
+Source URLs:
+- https://platform.moonshot.ai/docs/guide/use-kimi-vision-model
+- https://platform.moonshot.ai/docs/guide/kimi-k2-5-quickstart
+Fetched: 2026-02-27
+
+Kimi/K2.5 vision+chat requirements:
+- API base: https://api.moonshot.ai/v1
+- Chat endpoint: /chat/completions
+- Vision inputs must be message.content as array of parts, not JSON-stringified text.
+- Supported image input: base64 image_url or uploaded file IDs.
+- URL-formatted remote images are not supported.
+- For kimi-k2.5 parameter behavior differs:
+  - thinking default enabled; can be disabled via {"type":"disabled"}
+  - temperature/top_p/n/presence_penalty/frequency_penalty are constrained; non-default values can error.
+- Recommended to keep defaults for k2.5 parameters.
+
+Implementation implications:
+- Do not force temperature=0 for kimi-k2.5.
+- Send vision content in structured array blocks.
+- Keep a controllable thinking mode flag with safe default.

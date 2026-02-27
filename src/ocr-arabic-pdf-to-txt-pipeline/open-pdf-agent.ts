@@ -53,6 +53,14 @@ const writeStderr = (message: string): void => {
   process.stderr.write(`${message}\n`);
 };
 
+const isFalseLike = (value: string): boolean =>
+  /^(0|false|no|off)$/iu.test(value.trim());
+
+const isEnabledByDefault = (raw: string | undefined): boolean => {
+  if (typeof raw !== "string") return true;
+  return !isFalseLike(raw);
+};
+
 const parseArgs = (argv: string[]): OpenPdfAgentArgs => {
   const args = new Map<string, string>();
 
@@ -222,13 +230,29 @@ const runMcpStage = async (
   mcpServerPath: string,
   rawTxtPath: string,
   normalizedMdOutputPath: string
-): Promise<{ summary: string | null }> => {
+): Promise<{
+  summary: string | null;
+  llmEnabled: boolean;
+  llmModel: string | null;
+  llmReferencePath: string | null;
+}> => {
+  const llmReferencePathRaw =
+    process.env["OPEN_PDF_AGENT_LLM_REFERENCE_PATH"] ?? "";
+  const llmReferencePath = llmReferencePathRaw.trim() || null;
+  const llmModelRaw = process.env["OPEN_PDF_AGENT_LLM_MODEL"] ?? "";
+  const llmModel = llmModelRaw.trim() || "kimi-k2.5";
+  const forceLlmReviewRaw =
+    process.env["OPEN_PDF_AGENT_ENABLE_MCP_LLM_REVIEW"] ?? "";
+  const forceLlmReview = /^(1|true|yes|on)$/iu.test(forceLlmReviewRaw.trim());
+  const llmEnabled = Boolean(llmReferencePath) || forceLlmReview;
+
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: ["--import", "tsx", mcpServerPath],
     env: {
       ...process.env,
       MISTRAL_API_KEY: process.env["MISTRAL_API_KEY"] ?? "",
+      MOONSHOT_API_KEY: process.env["MOONSHOT_API_KEY"] ?? "",
       OPENAI_API_KEY: process.env["OPENAI_API_KEY"] ?? "",
     },
   });
@@ -256,9 +280,11 @@ const runMcpStage = async (
     )({
       inputPath: rawTxtPath,
       outputPath: normalizedMdOutputPath,
-      normalizeOutput: false,
+      normalizeOutput: true,
       saveRawMarkdown: false,
-      useLlm: false,
+      useLlm: llmEnabled,
+      llmModel,
+      ...(llmReferencePath ? { llmReferencePath } : {}),
       llmStrict: false,
       useBatchOcr: false,
     });
@@ -276,6 +302,9 @@ const runMcpStage = async (
         firstText && typeof firstText["text"] === "string"
           ? firstText["text"]
           : null,
+      llmEnabled,
+      llmModel: llmEnabled ? llmModel : null,
+      llmReferencePath: llmEnabled ? llmReferencePath : null,
     };
   } finally {
     await client.close();
@@ -296,8 +325,21 @@ const main = async (): Promise<void> => {
   const attempts = ["pipeline-open-agent"];
   const warnings: string[] = [];
 
-  const footprint = await verifyPipelineFootprint(agentRoot, mcpServerPath);
-  attempts.push("pipeline-footprint-verified");
+  const verifyFootprintEnabled = isEnabledByDefault(
+    process.env["OPEN_PDF_AGENT_VERIFY_FOOTPRINT"] ?? "false"
+  );
+  const mcpStageEnabled = isEnabledByDefault(
+    process.env["OPEN_PDF_AGENT_ENABLE_MCP_STAGE"] ?? "true"
+  );
+
+  let footprint: { checkedDirectories: string[]; checkedFiles: string[] } | null =
+    null;
+  if (verifyFootprintEnabled) {
+    footprint = await verifyPipelineFootprint(agentRoot, mcpServerPath);
+    attempts.push("pipeline-footprint-verified");
+  } else {
+    attempts.push("pipeline-footprint-skipped");
+  }
 
   const localClassificationRaw = await runTool(
     classifyPdfTool,
@@ -342,7 +384,7 @@ const main = async (): Promise<void> => {
     skillWriteOutput,
     {
       input: outputJsonPath,
-      format: "txt",
+      format: "txt-raw",
       output: outputTxtPath,
     },
     "skill_write_output"
@@ -356,25 +398,54 @@ const main = async (): Promise<void> => {
     throw new Error("النص الخام الناتج من OCR فارغ.");
   }
 
-  const mcpStage = await runMcpStage(
-    mcpServerPath,
-    outputTxtPath,
-    outputMcpMdPath
-  );
-  attempts.push("mcp-convert_document_to_markdown");
+  let mcpStage: {
+    summary: string | null;
+    llmEnabled: boolean;
+    llmModel: string | null;
+    llmReferencePath: string | null;
+  } = {
+    summary: null,
+    llmEnabled: false,
+    llmModel: null,
+    llmReferencePath: null,
+  };
+  let markdownText = rawText;
+
+  if (mcpStageEnabled) {
+    mcpStage = await runMcpStage(mcpServerPath, outputTxtPath, outputMcpMdPath);
+    attempts.push("mcp-convert_document_to_markdown");
+    try {
+      const markdownFromMcp = await readFile(outputMcpMdPath, "utf-8");
+      if (markdownFromMcp.trim()) {
+        markdownText = markdownFromMcp;
+      }
+    } catch {
+      warnings.push("MCP stage completed but markdown output file was not found.");
+    }
+  } else {
+    attempts.push("mcp-stage-skipped");
+  }
 
   const payload = {
     success: true,
     text: rawText,
+    textRaw: rawText,
+    textMarkdown: markdownText,
     classification,
     warnings,
     attempts,
     meta: {
+      textStage: "pre-format",
+      textFormat: "txt-raw",
       footprint,
+      mcpStageEnabled,
       mcp: {
         serverPath: mcpServerPath,
         outputPath: outputMcpMdPath,
         summary: mcpStage.summary,
+        llmEnabled: mcpStage.llmEnabled,
+        llmModel: mcpStage.llmModel,
+        llmReferencePath: mcpStage.llmReferencePath,
       },
     },
   };

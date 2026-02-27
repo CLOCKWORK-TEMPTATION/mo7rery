@@ -1,0 +1,4 @@
+- https://docs.anthropic.com/en/api/client-sdks
+- https://docs.mistral.ai/api/
+- https://platform.moonshot.ai/docs/guide/kimi-k2-5-quickstart
+- https://axios-http.com/docs/handling_errors
