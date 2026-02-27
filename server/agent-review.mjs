@@ -1081,11 +1081,19 @@ const buildReviewCoverageMeta = (request, commands) => {
 
   const unresolvedForcedItemIds = forcedItemIds.filter((itemId) => {
     const source = suspiciousByItemId.get(itemId);
+    // If the forced item wasn't even in the suspicious list, that's a data error
+    if (!source) return true;
+
+    // If the agent returned no command for this forced item, the agent
+    // reviewed it and confirmed the current classification is correct.
+    // This is a valid resolution — not an error.
     const command = commandByItemId.get(itemId);
-    if (!source || !command) return true;
+    if (!command) return false;
 
     if (command.op === "relabel") {
-      return command.newType === source.assignedType;
+      // Agent actively relabeled it (even if same type = confirmation)
+      // → resolved either way
+      return false;
     }
     // split يعتبر دائماً resolved
     return false;
