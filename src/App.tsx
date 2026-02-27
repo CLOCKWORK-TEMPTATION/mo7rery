@@ -47,6 +47,7 @@ import {
   BookOpen,
   Settings,
   Clapperboard,
+  CheckCircle,
 } from "lucide-react";
 import {
   AppDock,
@@ -127,6 +128,7 @@ type MenuActionId =
   | "export-pdfa"
   | "export-fdx"
   | "export-fountain"
+  | "export-classified"
   | "undo"
   | "redo"
   | "copy"
@@ -148,7 +150,7 @@ type MenuActionId =
   | `format:${string}`
   | InsertActionId;
 
-type ExportFormat = "docx" | "html" | "pdf" | "pdfa" | "fdx" | "fountain";
+type ExportFormat = "docx" | "html" | "pdf" | "pdfa" | "fdx" | "fountain" | "classified";
 
 /**
  * @description ربط أرقام لوحة المفاتيح (0-7) بأنواع عناصر السيناريو
@@ -335,6 +337,7 @@ const MENU_SECTIONS: readonly AppShellMenuSection[] = [
       { label: "تصدير HTML", actionId: "export-html" },
       { label: "تصدير FDX (Final Draft)", actionId: "export-fdx" },
       { label: "تصدير Fountain", actionId: "export-fountain" },
+      { label: "موافقة واعتماد النص (تصدير TXT)", actionId: "export-classified" },
     ],
   },
   {
@@ -372,6 +375,11 @@ const MENU_SECTIONS: readonly AppShellMenuSection[] = [
 /** قائمة أزرار شريط Dock العائم — مرتبة حسب المجموعة: وسائط، أدوات، إجراءات، تنسيق، معلومات */
 const DOCK_BUTTONS: readonly AppDockButtonItem[] = [
   // وسائط وتصدير
+  {
+    actionId: "export-classified",
+    icon: CheckCircle,
+    title: "موافقة واعتماد النص (تصدير TXT)",
+  },
   {
     actionId: "quick-cycle-format",
     icon: Clapperboard,
@@ -1071,6 +1079,7 @@ export function App(): React.JSX.Element {
         pdfa: "PDF/A",
         fdx: "FDX",
         fountain: "Fountain",
+        classified: "النص المصنف",
       };
 
       if (format === "docx") {
@@ -1116,6 +1125,16 @@ export function App(): React.JSX.Element {
         toast({
           title: "تم التصدير",
           description: `تم تصدير الملف بصيغة ${labelByFormat[format]}.`,
+        });
+        return;
+      }
+
+      if (format === "classified") {
+        const { exportAsClassified } = await import("./utils/exporters");
+        exportAsClassified({ fileNameBase: fileBase, blocks });
+        toast({
+          title: "تم اعتماد النص",
+          description: "تم تصدير الملف كملف نصي مصنف (TXT).",
         });
         return;
       }
@@ -1201,6 +1220,9 @@ export function App(): React.JSX.Element {
         break;
       case "export-fountain":
         await runExport("fountain", "screenplay-export");
+        break;
+      case "export-classified":
+        await runExport("classified", "النص_المصنف");
         break;
       case "undo":
       case "redo":
@@ -1446,6 +1468,16 @@ export function App(): React.JSX.Element {
           <span>15</span>
         </div>
       </div>
+
+      <button
+        type="button"
+        className="w-full rounded-lg border border-white/10 bg-[var(--brand-teal)]/20 px-3 py-2 text-xs font-bold text-[var(--brand-teal)] transition-colors hover:bg-[var(--brand-teal)] hover:text-white"
+        onClick={() => {
+          void runExport("classified", "النص_المصنف");
+        }}
+      >
+        موافقة واعتماد النص (تصدير)
+      </button>
 
       <button
         type="button"
