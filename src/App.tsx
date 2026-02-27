@@ -124,6 +124,9 @@ type MenuActionId =
   | "print-file"
   | "export-html"
   | "export-pdf"
+  | "export-pdfa"
+  | "export-fdx"
+  | "export-fountain"
   | "undo"
   | "redo"
   | "copy"
@@ -145,7 +148,7 @@ type MenuActionId =
   | `format:${string}`
   | InsertActionId;
 
-type ExportFormat = "docx" | "html" | "pdf";
+type ExportFormat = "docx" | "html" | "pdf" | "pdfa" | "fdx" | "fountain";
 
 /**
  * @description ربط أرقام لوحة المفاتيح (0-7) بأنواع عناصر السيناريو
@@ -327,8 +330,11 @@ const MENU_SECTIONS: readonly AppShellMenuSection[] = [
       { label: "إدراج ملف...", actionId: "insert-file" },
       { label: "حفظ", actionId: "save-file" },
       { label: "طباعة", actionId: "print-file" },
-      { label: "تصدير HTML", actionId: "export-html" },
       { label: "تصدير PDF", actionId: "export-pdf" },
+      { label: "تصدير PDF/A (أرشيفي)", actionId: "export-pdfa" },
+      { label: "تصدير HTML", actionId: "export-html" },
+      { label: "تصدير FDX (Final Draft)", actionId: "export-fdx" },
+      { label: "تصدير Fountain", actionId: "export-fountain" },
     ],
   },
   {
@@ -1056,11 +1062,19 @@ export function App(): React.JSX.Element {
     }
 
     try {
-      const { exportAsHtml, exportAsPdf, exportToDocx } =
-        await import("./utils/exporters");
+      const blocks = area.getBlocks();
+
+      const labelByFormat: Record<ExportFormat, string> = {
+        docx: "DOCX",
+        html: "HTML",
+        pdf: "PDF",
+        pdfa: "PDF/A",
+        fdx: "FDX",
+        fountain: "Fountain",
+      };
 
       if (format === "docx") {
-        const blocks = area.getBlocks();
+        const { exportToDocx } = await import("./utils/exporters");
         const resolvedFileName = ensureDocxFilename(
           fileBase ?? "screenplay.docx"
         );
@@ -1072,13 +1086,49 @@ export function App(): React.JSX.Element {
         return;
       }
 
+      if (format === "fdx") {
+        const { exportAsFdx } = await import("./utils/exporters");
+        exportAsFdx({ html, fileNameBase: fileBase, blocks });
+        toast({
+          title: "تم التصدير",
+          description: `تم تصدير الملف بصيغة ${labelByFormat[format]}.`,
+        });
+        return;
+      }
+
+      if (format === "fountain") {
+        const { exportAsFountain } = await import("./utils/exporters");
+        exportAsFountain({ html, fileNameBase: fileBase, blocks });
+        toast({
+          title: "تم التصدير",
+          description: `تم تصدير الملف بصيغة ${labelByFormat[format]}.`,
+        });
+        return;
+      }
+
+      if (format === "pdfa") {
+        const { exportAsPdfA } = await import("./utils/exporters");
+        await exportAsPdfA({
+          html,
+          fileNameBase: fileBase,
+          title: "تصدير محرر السيناريو",
+        });
+        toast({
+          title: "تم التصدير",
+          description: `تم تصدير الملف بصيغة ${labelByFormat[format]}.`,
+        });
+        return;
+      }
+
       if (format === "html") {
+        const { exportAsHtml } = await import("./utils/exporters");
         exportAsHtml({
           html,
           fileNameBase: fileBase,
           title: "تصدير محرر السيناريو",
         });
       } else {
+        const { exportAsPdf } = await import("./utils/exporters");
         await exportAsPdf({
           html,
           fileNameBase: fileBase,
@@ -1086,11 +1136,6 @@ export function App(): React.JSX.Element {
         });
       }
 
-      const labelByFormat: Record<ExportFormat, string> = {
-        docx: "DOCX",
-        html: "HTML",
-        pdf: "PDF",
-      };
       toast({
         title: "تم التصدير",
         description: `تم تصدير الملف بصيغة ${labelByFormat[format]}.`,
@@ -1147,6 +1192,15 @@ export function App(): React.JSX.Element {
         break;
       case "export-pdf":
         await runExport("pdf", "screenplay-export");
+        break;
+      case "export-pdfa":
+        await runExport("pdfa", "screenplay-export");
+        break;
+      case "export-fdx":
+        await runExport("fdx", "screenplay-export");
+        break;
+      case "export-fountain":
+        await runExport("fountain", "screenplay-export");
         break;
       case "undo":
       case "redo":
