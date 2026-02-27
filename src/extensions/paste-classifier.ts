@@ -1255,6 +1255,11 @@ const requestAgentReview = async (
       const retryable = aborted || network;
       const remainingAfterAttempt = deadlineAt - Date.now();
 
+      // تصنيف الخطأ حسب نوعه الفعلي لتسهيل الـ debugging
+      const isAgentStatusError =
+        error instanceof Error &&
+        error.message.startsWith("Agent review status is ");
+
       if (aborted) {
         agentReviewLogger.warn("request-aborted", {
           sessionId: request.sessionId,
@@ -1267,6 +1272,14 @@ const requestAgentReview = async (
           sessionId: request.sessionId,
           attempt,
           error: error.message,
+          remainingAfterAttempt,
+        });
+      } else if (isAgentStatusError) {
+        // الباكإند رجع حالة خطأ معروفة — مش خطأ غير متوقع
+        agentReviewLogger.error("request-agent-status-error", {
+          sessionId: request.sessionId,
+          attempt,
+          error: (error as Error).message,
           remainingAfterAttempt,
         });
       } else {
