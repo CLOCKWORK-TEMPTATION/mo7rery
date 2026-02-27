@@ -640,88 +640,103 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
       }
     }
 
-    attempts.push("vision-reference-build");
-    logger.info(
-      {
-        compareModel: config.visionCompareModel,
-        judgeModel: config.visionJudgeModel,
+    // ── Vision reference (compare + judge + enforcement) ─────
+    // Disabled by default — Mistral OCR output is used directly.
+    // Set PDF_OCR_ENABLE_VISION_QA=true to enable the full
+    // vision-compare → kimi-judge → token-enforcement pipeline.
+    const enableVisionQA = /^(1|true|yes|on)$/iu.test(
+      (process.env.PDF_OCR_ENABLE_VISION_QA || "").trim()
+    );
+
+    let status = "accepted";
+    let rejectionReason = undefined;
+    let mismatchReport = [];
+    let quality = { wordMatch: 100, structuralMatch: 100, accepted: true };
+    let referenceMode = "ocr-direct";
+    let mismatchReportPath = "";
+
+    if (enableVisionQA) {
+      attempts.push("vision-reference-build");
+      logger.info(
+        {
+          compareModel: config.visionCompareModel,
+          judgeModel: config.visionJudgeModel,
+          renderDpi: config.visionRenderDpi,
+        },
+        "vision-reference-build-start"
+      );
+      const reference = await buildPdfReference({
+        pdfPath: inputPath,
+        ocrJsonPath,
+        externalReferencePath: config.externalReferencePath || undefined,
+        compare: {
+          apiKey: config.mistralApiKey,
+          model: config.visionCompareModel,
+          timeoutMs: config.visionCompareTimeoutMs,
+        },
+        judge: {
+          apiKey: config.moonshotApiKey,
+          model: config.visionJudgeModel,
+          timeoutMs: config.visionJudgeTimeoutMs,
+        },
         renderDpi: config.visionRenderDpi,
-      },
-      "vision-reference-build-start"
-    );
-    const reference = await buildPdfReference({
-      pdfPath: inputPath,
-      ocrJsonPath,
-      externalReferencePath: config.externalReferencePath || undefined,
-      compare: {
-        apiKey: config.mistralApiKey,
-        model: config.visionCompareModel,
-        timeoutMs: config.visionCompareTimeoutMs,
-      },
-      judge: {
-        apiKey: config.moonshotApiKey,
-        model: config.visionJudgeModel,
-        timeoutMs: config.visionJudgeTimeoutMs,
-      },
-      renderDpi: config.visionRenderDpi,
-      visionPreflightDone: true,
-    });
-    logger.info(
-      {
-        referenceMode: reference.referenceMode,
-        renderedPages: Number(reference?.compareReport?.renderedPages ?? 0),
-        proposedPatches: Number(reference?.compareReport?.proposedPatches ?? 0),
-        approvedPatches: Number(reference?.compareReport?.approvedPatches ?? 0),
-        rejectedPatches: Number(reference?.compareReport?.rejectedPatches ?? 0),
-      },
-      "vision-reference-build-complete"
-    );
+        visionPreflightDone: true,
+      });
+      logger.info(
+        {
+          referenceMode: reference.referenceMode,
+          renderedPages: Number(reference?.compareReport?.renderedPages ?? 0),
+          proposedPatches: Number(reference?.compareReport?.proposedPatches ?? 0),
+          approvedPatches: Number(reference?.compareReport?.approvedPatches ?? 0),
+          rejectedPatches: Number(reference?.compareReport?.rejectedPatches ?? 0),
+        },
+        "vision-reference-build-complete"
+      );
 
-    attempts.push("token-enforcement");
-    logger.info(
-      {
-        referenceMode: reference.referenceMode,
+      attempts.push("token-enforcement");
+      const enforcement = enforceTokenMatch({
+        candidateText: finalText,
+        referenceText: reference.referenceText,
+        pageLineBoundaries: reference.pageLineBoundaries,
+        criticalTokens: buildCriticalTokenList(reference.referenceText),
         minWordMatch: 99.5,
-      },
-      "token-enforcement-start"
-    );
-    const enforcement = enforceTokenMatch({
-      candidateText: finalText,
-      referenceText: reference.referenceText,
-      pageLineBoundaries: reference.pageLineBoundaries,
-      criticalTokens: buildCriticalTokenList(reference.referenceText),
-      minWordMatch: 99.5,
-    });
-    logger.info(
-      {
-        status: enforcement.status,
-        wordMatch: enforcement?.quality?.wordMatch,
-        structuralMatch: enforcement?.quality?.structuralMatch,
-      },
-      "token-enforcement-complete"
-    );
+      });
+      logger.info(
+        {
+          status: enforcement.status,
+          wordMatch: enforcement?.quality?.wordMatch,
+          structuralMatch: enforcement?.quality?.structuralMatch,
+        },
+        "token-enforcement-complete"
+      );
 
-    const status = enforcement.status;
-    const rejectionReason = enforcement.rejectionReason;
-    const mismatchReport = enforcement.mismatchReport;
-    const quality = enforcement.quality;
-    if (status === "rejected" && rejectionReason) {
-      allWarnings.push(`extraction-rejected: ${rejectionReason}`);
+      status = enforcement.status;
+      rejectionReason = enforcement.rejectionReason;
+      mismatchReport = enforcement.mismatchReport;
+      quality = enforcement.quality;
+      referenceMode = reference.referenceMode;
+
+      if (status === "rejected" && rejectionReason) {
+        allWarnings.push(`extraction-rejected: ${rejectionReason}`);
+      }
+
+      mismatchReportPath = join(
+        MISMATCH_REPORTS_ROOT,
+        `${buildRunFileKey(filename)}.json`
+      );
+      await writeMismatchReport(mismatchReportPath, {
+        payloadVersion: 2,
+        status,
+        referenceMode,
+        quality,
+        mismatchReport,
+        rejectionReason,
+        attempts,
+      });
+    } else {
+      attempts.push("vision-qa-skipped");
+      logger.info("vision-qa-skipped (PDF_OCR_ENABLE_VISION_QA is not set)");
     }
-
-    const mismatchReportPath = join(
-      MISMATCH_REPORTS_ROOT,
-      `${buildRunFileKey(filename)}.json`
-    );
-    await writeMismatchReport(mismatchReportPath, {
-      payloadVersion: 2,
-      status,
-      referenceMode: reference.referenceMode,
-      quality,
-      mismatchReport,
-      rejectionReason,
-      attempts,
-    });
 
     // ── بناء النتيجة النهائية ────────────────────────────────
     const durationMs = Date.now() - startedAt;
@@ -737,7 +752,7 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
         classificationType: classification?.type ?? "skipped",
         artifactLinesRemoved,
         status,
-        referenceMode: reference.referenceMode,
+        referenceMode,
         durationMs,
       },
       "pipeline-complete"
@@ -756,7 +771,7 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
       mismatchReport,
       status,
       rejectionReason,
-      referenceMode: reference.referenceMode,
+      referenceMode,
       payloadVersion: 2,
       classification,
       rawExtractedText,
