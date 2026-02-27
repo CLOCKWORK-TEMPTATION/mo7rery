@@ -75,34 +75,39 @@ const extractGeminiText = (payload) => {
 
 // ── prompt ─────────────────────────────────────────────────
 
-const buildProofreadPrompt = (ocrText) => `You are a meticulous Arabic OCR proofreader.
+const buildProofreadPrompt = (ocrText) => `You are a pixel-perfect Arabic OCR verifier. Your ONLY job is to make the text match EXACTLY what appears in the image — nothing more, nothing less.
 
 Below is text extracted by OCR from the attached page image.
-Compare the OCR text against the actual page image character by character.
+Compare the OCR text against the actual page image CHARACTER BY CHARACTER.
 
-Fix ONLY genuine OCR misreads — characters that look similar but were confused:
-  • ب/ي/ن/ت (dots below vs above)
-  • ر/ز
-  • د/ذ
-  • ح/ج/خ
-  • س/ش
-  • ص/ض
-  • ط/ظ
-  • ع/غ
-  • ف/ق
-  • ك/ل
-  • هـ/ة
-  • أ/إ/ا/آ
-  • Numbers and punctuation
+CRITICAL RULES — READ CAREFULLY:
 
-Rules:
-1. Return the FULL corrected text — every line, not just changed parts.
-2. Preserve EXACT line breaks from the OCR text. Do NOT merge or split lines.
-3. Remove any kashida (ـ tatweel) that does not appear in the original image.
-4. If the OCR inserted or dropped a character vs what the image shows, fix it.
-5. Do NOT add markdown fences, commentary, or explanations.
-6. Do NOT change the layout, reformat, add bullets, or restructure.
-7. Return plain text only.
+1. Your output must be a FAITHFUL TRANSCRIPT of what is written in the image.
+2. Do NOT fix spelling mistakes that exist in the original image. If the image says "جني" do NOT change it to "جنيه". If the image says "ان" do NOT change it to "أن".
+3. Do NOT add, remove, or change hamza (أ إ آ ؤ ئ). If the image shows "ا" without hamza, keep it as "ا". If the image shows "أ" with hamza, keep it as "أ". Copy EXACTLY what the image shows.
+4. Do NOT normalize or correct Arabic grammar, spelling, or dialect. This is Egyptian colloquial Arabic — words like "ازاي" "ايه" "ابونا" "انا" are intentionally written WITHOUT hamza.
+5. If the OCR misread a character (e.g., confused ب with ن, or ر with ز, or missed a dot), fix ONLY that specific misread to match what the image actually shows.
+6. If the OCR added a character that does NOT exist in the image, remove it.
+7. If the OCR missed a character that DOES exist in the image, add it.
+8. Remove any kashida (ـ tatweel) that does not appear in the original image.
+9. Preserve EXACT line breaks from the OCR text. Do NOT merge or split lines.
+10. Do NOT add markdown fences, commentary, headers, or explanations.
+11. Do NOT change the layout, reformat, add bullets, or restructure.
+12. Return the FULL text — every line, not just changed parts.
+13. Return plain text only.
+
+Examples of what NOT to do:
+- "ان" in image → do NOT change to "أن" (hamza addition = WRONG)
+- "انتي" in image → do NOT change to "أنتي" (hamza addition = WRONG)
+- "جني" in image → do NOT change to "جنيه" (spelling correction = WRONG)
+- "ايه" in image → do NOT change to "إيه" (hamza addition = WRONG)
+- "الى" in image → do NOT change to "إلى" (hamza addition = WRONG)
+- "جتة" in image → do NOT change to "جثة" (dialect word = keep as-is)
+
+Examples of what TO do:
+- OCR says "رينا" but image shows "ربنا" → fix to "ربنا" (dot misread)
+- OCR says "اختلفشاش" but image shows "اختلفناش" → fix to "اختلفناش" (character misread)
+- OCR says "الضياع" but image shows "الضباع" → fix to "الضباع" (character misread)
 
 ─── OCR TEXT START ───
 ${ocrText}
@@ -154,7 +159,7 @@ const requestProofread = async ({
           },
         ],
         generationConfig: {
-          temperature: 0.1,
+          temperature: 0,
           maxOutputTokens: 16384,
         },
       };
