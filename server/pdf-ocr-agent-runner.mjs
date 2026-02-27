@@ -15,6 +15,7 @@ import {
 import { runVisionProofread } from "./pdf-vision-proofread.mjs";
 import { enforceTokenMatch } from "./token-enforcement.mjs";
 import { writeMismatchReport } from "./mismatch-reporter.mjs";
+import { saveProofreadAsDocx } from "./proofread-docx-writer.mjs";
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
@@ -749,6 +750,34 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
     } else {
       attempts.push("vision-proofread-no-key");
       logger.warn("vision-proofread-skipped (GEMINI_API_KEY missing)");
+    }
+
+    // ── حفظ نسخ DOCX من النص المُراجع (للتجربة) ───────────
+    // يُولّد نسختين: خام (raw) + مُنسّق (formatted)
+    // الملفات تُحفظ في server/proofread-output/
+    try {
+      const docxResult = await saveProofreadAsDocx(finalText, filename);
+      if (docxResult.rawPath) {
+        attempts.push("docx-export");
+        logger.info(
+          {
+            rawPath: docxResult.rawPath,
+            formattedPath: docxResult.formattedPath,
+          },
+          "proofread-docx-exported"
+        );
+      }
+    } catch (docxError) {
+      // غير حرجة — لو فشلت الكتابة نكمل عادي
+      logger.warn(
+        {
+          error:
+            docxError instanceof Error
+              ? docxError.message
+              : String(docxError),
+        },
+        "proofread-docx-export-failed"
+      );
     }
 
     // ── Vision reference (compare + judge + enforcement) ─────
