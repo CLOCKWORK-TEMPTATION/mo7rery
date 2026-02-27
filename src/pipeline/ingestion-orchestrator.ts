@@ -360,10 +360,8 @@ async function handleRawTextPath(
   const snapshot = createImportSnapshotWithMethods(importOpId, classified);
 
   // ── الخطوة 2: عرض فوري (Render-First) ──
-  const itemsWithIds = classified.map((item) => ({
-    ...item,
-    _itemId: crypto.randomUUID(),
-  }));
+  // classified أصلاً يحتوي _itemId من classifyLines() — نستخدمه مباشرة
+  // بدون إعادة توليد عشان يبقى متطابق مع الـ snapshot
 
   // إدراج فوري في المحرر
   const editorInsertion = await import("./editor-insertion").catch(() => ({
@@ -371,7 +369,7 @@ async function handleRawTextPath(
   }));
   await editorInsertion.insertClassifiedItems(
     view,
-    itemsWithIds as ClassifiedItem[],
+    classified as ClassifiedItem[],
     {
       from: options.from,
       to: options.to,
@@ -380,7 +378,7 @@ async function handleRawTextPath(
 
   orchestratorLogger.info("raw-text-rendered", {
     importOpId,
-    itemCount: itemsWithIds.length,
+    itemCount: classified.length,
     latencyMs: performance.now() - startTime,
   });
 
@@ -389,9 +387,9 @@ async function handleRawTextPath(
 
   // تحويل العناصر لصيغة SuspiciousItemForPacket
   const { prepareItemForPacket } = await import("./packet-budget");
-  const suspiciousItems = itemsWithIds.map((item, index) =>
+  const suspiciousItems = classified.map((item, index) =>
     prepareItemForPacket(
-      item._itemId,
+      item._itemId ?? "",
       item.text,
       0.5, // suspicionScore افتراضي
       index < 5, // أول 5 عناصر يعتبرون forced
@@ -405,7 +403,7 @@ async function handleRawTextPath(
     orchestratorLogger.info("no-suspicious-items", { importOpId });
     telemetry.recordIngestionComplete(importOpId, {
       trustLevel: "raw_text",
-      itemsProcessed: itemsWithIds.length,
+      itemsProcessed: classified.length,
       commandsApplied: 0,
       latencyMs: performance.now() - startTime,
     });
@@ -414,7 +412,7 @@ async function handleRawTextPath(
       success: true,
       importOpId,
       trustLevel: "raw_text",
-      itemsProcessed: itemsWithIds.length,
+      itemsProcessed: classified.length,
       commandsApplied: 0,
       errors: [],
     };
@@ -426,7 +424,7 @@ async function handleRawTextPath(
   // ── الخطوة 5: إرجاع النتيجة فورًا (لا ننتظر الوكيل) ──
   telemetry.recordIngestionComplete(importOpId, {
     trustLevel: "raw_text",
-    itemsProcessed: itemsWithIds.length,
+    itemsProcessed: classified.length,
     commandsApplied: 0,
     latencyMs: performance.now() - startTime,
     agentReviewInitiated: true,
@@ -436,7 +434,7 @@ async function handleRawTextPath(
     success: true,
     importOpId,
     trustLevel: "raw_text",
-    itemsProcessed: itemsWithIds.length,
+    itemsProcessed: classified.length,
     commandsApplied: 0,
     errors: [],
   };
