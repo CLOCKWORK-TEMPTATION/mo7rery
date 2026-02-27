@@ -6,9 +6,8 @@ import { basename, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import {
   runVisionCompare,
-  runVisionComparePreflight,
 } from "./pdf-vision-compare.mjs";
-import { runVisionJudge, runVisionJudgePreflight } from "./pdf-vision-judge.mjs";
+import { runVisionJudge } from "./pdf-vision-judge.mjs";
 
 const execFileAsync = promisify(execFile);
 const PDFTOPPM_BINARY = process.platform === "win32" ? "pdftoppm.exe" : "pdftoppm";
@@ -217,33 +216,8 @@ const buildPageLineBoundaries = (pages) => {
   return boundaries;
 };
 
-export const verifyVisionModelCapabilities = async ({
-  pdfPath,
-  compare,
-  judge,
-  renderDpi = 300,
-}) => {
-  const rendered = await renderFirstPdfPage({ pdfPath, dpi: renderDpi });
-  try {
-    await runVisionComparePreflight({
-      apiKey: compare.apiKey,
-      model: compare.model,
-      imagePath: rendered.imagePath,
-      timeoutMs: compare.timeoutMs,
-    });
-
-    await runVisionJudgePreflight({
-      apiKey: judge.apiKey,
-      model: judge.model,
-      imagePath: rendered.imagePath,
-      timeoutMs: judge.timeoutMs,
-    });
-  } finally {
-    await rm(rendered.renderRoot, { recursive: true, force: true }).catch(
-      () => undefined
-    );
-  }
-};
+// verifyVisionModelCapabilities removed — preflight is no longer needed.
+// Models are verified implicitly during the actual compare/judge runs.
 
 export const buildPdfReference = async ({
   pdfPath,
@@ -289,7 +263,7 @@ export const buildPdfReference = async ({
     model: judge.model,
     comparePages: compareResult.pages,
     timeoutMs: judge.timeoutMs,
-    skipPreflight: Boolean(visionPreflightDone),
+    skipPreflight: true,
   });
 
   const patchedPages = compareResult.pages.map((item) => ({

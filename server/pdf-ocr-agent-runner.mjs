@@ -10,7 +10,6 @@ import { getPdfOcrAgentConfig } from "./pdf-ocr-agent-config.mjs";
 import { stripOcrArtifactLines } from "./ocr-text-cleanup.mjs";
 import {
   buildPdfReference,
-  verifyVisionModelCapabilities,
 } from "./pdf-reference-builder.mjs";
 import { enforceTokenMatch } from "./token-enforcement.mjs";
 import { writeMismatchReport } from "./mismatch-reporter.mjs";
@@ -38,7 +37,7 @@ const PIPELINE_OPEN_AGENT_BOOT_TIMEOUT_MS = 10_000;
 const MISMATCH_REPORTS_ROOT = resolve(__dirname, "..", "tmp", "mismatch-reports");
 const CANONICAL_MISTRAL_OCR_MODEL = "mistral-ocr-latest";
 const CANONICAL_MISTRAL_OCR_ENDPOINT = "https://api.mistral.ai/v1/ocr";
-const CANONICAL_VISION_COMPARE_MODEL = "mistral-large-2512";
+const CANONICAL_VISION_COMPARE_MODEL = "mistral-large-latest";
 
 // ─── دوال مساعدة عامة ─────────────────────────────────────────
 
@@ -537,21 +536,8 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
   try {
     await writeFile(inputPath, buffer);
 
-    attempts.push("vision-capability-preflight");
-    await verifyVisionModelCapabilities({
-      pdfPath: inputPath,
-      compare: {
-        apiKey: config.mistralApiKey,
-        model: config.visionCompareModel,
-        timeoutMs: config.visionCompareTimeoutMs,
-      },
-      judge: {
-        apiKey: config.moonshotApiKey,
-        model: config.visionJudgeModel,
-        timeoutMs: config.visionJudgeTimeoutMs,
-      },
-      renderDpi: config.visionRenderDpi,
-    });
+    // Vision preflight removed — saves ~48s of redundant API calls.
+    // The models are verified implicitly when buildPdfReference runs.
 
     // ── المسار الأساسي: وكيل فتح PDF (مهارة + MCP) ──────────
     let classification = null;

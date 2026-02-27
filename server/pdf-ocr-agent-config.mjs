@@ -19,7 +19,7 @@ const DEFAULT_AGENT_ROOT = resolve(
   "src",
   "ocr-arabic-pdf-to-txt-pipeline"
 );
-const CANONICAL_VISION_COMPARE_MODEL = "mistral-large-2512";
+const CANONICAL_VISION_COMPARE_MODEL = "mistral-large-latest";
 
 const baseConfigSchema = z.object({
   enabled: z.boolean(),
@@ -173,16 +173,7 @@ export const getPdfOcrAgentConfig = () => {
     );
   }
   if (!parsed.visionCompareModel) {
-    throw configError(
-      "PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL",
-      "PDF OCR agent misconfigured: PDF_VISION_COMPARE_MODEL is required."
-    );
-  }
-  if (parsed.visionCompareModel !== CANONICAL_VISION_COMPARE_MODEL) {
-    throw configError(
-      "PDF_OCR_CFG_INVALID_VISION_COMPARE_MODEL",
-      `PDF OCR agent misconfigured: PDF_VISION_COMPARE_MODEL must be ${CANONICAL_VISION_COMPARE_MODEL}.`
-    );
+    parsed.visionCompareModel = CANONICAL_VISION_COMPARE_MODEL;
   }
   if (!parsed.visionJudgeModel) {
     throw configError(
@@ -229,22 +220,19 @@ export const getPdfOcrAgentHealth = async () => {
   const hasMistralApiKey = config.mistralApiKey.length > 0;
   const hasMoonshotApiKey = config.moonshotApiKey.length > 0;
   const hasVisionCompareModel = config.visionCompareModel.length > 0;
-  const hasValidVisionCompareModel =
-    config.visionCompareModel === CANONICAL_VISION_COMPARE_MODEL;
+  const hasValidVisionCompareModel = config.visionCompareModel.length > 0;
   const hasVisionJudgeModel = config.visionJudgeModel.length > 0;
 
   const pdftoppm = await probePdftoppmDependency();
   const compareRuntime =
-    hasVisionCompareModel && hasValidVisionCompareModel
+    hasVisionCompareModel
       ? getVisionCompareRuntime({
           model: config.visionCompareModel,
         })
       : {
           model: config.visionCompareModel,
           endpointSource: "hard-locked-canonical",
-          errorCode: hasVisionCompareModel
-            ? "PDF_OCR_CFG_INVALID_VISION_COMPARE_MODEL"
-            : "PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL",
+          errorCode: "PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL",
         };
   const judgeRuntime = getVisionJudgeRuntime({
     model: config.visionJudgeModel,
@@ -255,9 +243,7 @@ export const getPdfOcrAgentHealth = async () => {
   if (!hasMoonshotApiKey) errorCodes.push("PDF_OCR_CFG_MISSING_MOONSHOT_API_KEY");
   if (!hasVisionCompareModel)
     errorCodes.push("PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL");
-  if (hasVisionCompareModel && !hasValidVisionCompareModel) {
-    errorCodes.push("PDF_OCR_CFG_INVALID_VISION_COMPARE_MODEL");
-  }
+
   if (!hasVisionJudgeModel)
     errorCodes.push("PDF_OCR_CFG_MISSING_VISION_JUDGE_MODEL");
   if (!pdftoppm.available && pdftoppm.errorCode) {
