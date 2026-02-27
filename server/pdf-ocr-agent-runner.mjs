@@ -10,7 +10,6 @@ import { getPdfOcrAgentConfig } from "./pdf-ocr-agent-config.mjs";
 import { stripOcrArtifactLines } from "./ocr-text-cleanup.mjs";
 import {
   buildPdfReference,
-  verifyVisionModelCapabilities,
 } from "./pdf-reference-builder.mjs";
 import { enforceTokenMatch } from "./token-enforcement.mjs";
 import { writeMismatchReport } from "./mismatch-reporter.mjs";
@@ -537,36 +536,8 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
   try {
     await writeFile(inputPath, buffer);
 
-    attempts.push("vision-capability-preflight");
-    logger.info(
-      {
-        compareModel: config.visionCompareModel,
-        judgeModel: config.visionJudgeModel,
-        renderDpi: config.visionRenderDpi,
-      },
-      "vision-capability-preflight-start"
-    );
-    await verifyVisionModelCapabilities({
-      pdfPath: inputPath,
-      compare: {
-        apiKey: config.mistralApiKey,
-        model: config.visionCompareModel,
-        timeoutMs: config.visionCompareTimeoutMs,
-      },
-      judge: {
-        apiKey: config.moonshotApiKey,
-        model: config.visionJudgeModel,
-        timeoutMs: config.visionJudgeTimeoutMs,
-      },
-      renderDpi: config.visionRenderDpi,
-    });
-    logger.info(
-      {
-        compareModel: config.visionCompareModel,
-        judgeModel: config.visionJudgeModel,
-      },
-      "vision-capability-preflight-complete"
-    );
+    // Vision preflight removed — saves ~48s of redundant API calls.
+    // The models are verified implicitly when buildPdfReference runs.
 
     // ── المسار الأساسي: وكيل فتح PDF (مهارة + MCP) ──────────
     let classification = null;
