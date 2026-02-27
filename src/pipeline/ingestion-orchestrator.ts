@@ -37,6 +37,11 @@ import {
 import { telemetry } from "./telemetry";
 import { requestAgentReview } from "../extensions/Arabic-Screenplay-Classifier-Agent";
 import { classifyLines } from "../extensions/paste-classifier";
+import { PostClassificationReviewer } from "../extensions/classification-core";
+import type {
+  ClassifiedLine,
+  ClassificationMethod,
+} from "../extensions/classification-types";
 import { logger } from "../utils/logger";
 import type { AgentCommand } from "../types/agent-review";
 import type { LineType } from "../types/screenplay";
@@ -382,20 +387,48 @@ async function handleRawTextPath(
     latencyMs: performance.now() - startTime,
   });
 
-  // ── الخطوة 3: بناء حزمة المراجعة في الخلفية ──
-  const config = { ...DEFAULT_PACKET_CONFIG, ...options.packetBudget };
+  // ── الخطوة 3: تحليل الشبهة عبر PostClassificationReviewer ──
+  const reviewInput: ClassifiedLine[] = classified.map((item, index) => ({
+    lineIndex: index,
+    text: item.text,
+    assignedType: item.type,
+    originalConfidence: item.confidence,
+    classificationMethod: item.classificationMethod as ClassificationMethod,
+    sourceHintType: item.sourceHintType,
+    sourceProfile: item.sourceProfile,
+  }));
 
-  // تحويل العناصر لصيغة SuspiciousItemForPacket
+  const reviewer = new PostClassificationReviewer();
+  const reviewPacket = reviewer.review(reviewInput);
+
+  orchestratorLogger.info("post-classification-review", {
+    importOpId,
+    totalReviewed: reviewPacket.totalReviewed,
+    totalSuspicious: reviewPacket.totalSuspicious,
+    suspicionRate: reviewPacket.suspicionRate,
+  });
+
+  // بناء حزمة المراجعة من العناصر المشبوهة فعلاً
+  const config = { ...DEFAULT_PACKET_CONFIG, ...options.packetBudget };
   const { prepareItemForPacket } = await import("./packet-budget");
-  const suspiciousItems = classified.map((item, index) =>
-    prepareItemForPacket(
-      item._itemId ?? "",
-      item.text,
-      0.5, // suspicionScore افتراضي
-      index < 5, // أول 5 عناصر يعتبرون forced
-      config
-    )
-  );
+
+  const suspiciousItems = reviewPacket.suspiciousLines
+    .map((suspicious) => {
+      const item = classified[suspicious.line.lineIndex];
+      if (!item || !item._itemId) return null;
+
+      const isForced = suspicious.routingBand === "agent-forced";
+      const score = suspicious.escalationScore / 100;
+
+      return prepareItemForPacket(
+        item._itemId,
+        item.text,
+        score,
+        isForced,
+        config
+      );
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 
   const packet = buildPacketWithBudget(suspiciousItems, config);
 
