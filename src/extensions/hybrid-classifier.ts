@@ -23,7 +23,7 @@
  *
  * يُستهلك في {@link PasteClassifier} → `classifyLines()`.
  */
-import { isBasmalaLine } from "./basmala";
+import { isStandaloneBasmalaLine } from "./basmala";
 import type {
   ClassificationContext,
   ClassificationMethod,
@@ -64,7 +64,7 @@ export class HybridClassifier {
     context: ClassificationContext,
     memory: ContextMemorySnapshot
   ): HybridResult {
-    if (isBasmalaLine(line)) {
+    if (isStandaloneBasmalaLine(line)) {
       return { type: "basmala", confidence: 99, classificationMethod: "regex" };
     }
 

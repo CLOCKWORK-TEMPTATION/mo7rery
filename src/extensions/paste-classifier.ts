@@ -13,7 +13,7 @@ import {
   convertHindiToArabic,
   detectDialect,
 } from "./arabic-patterns";
-import { isBasmalaLine } from "./basmala";
+import { isStandaloneBasmalaLine } from "./basmala";
 import {
   ensureCharacterTrailingColon,
   isCharacterLine,
@@ -475,7 +475,7 @@ export const classifyLines = (
 
     const context = buildContext(classified.map((item) => item.type));
 
-    if (isBasmalaLine(normalizedForClassification)) {
+    if (isStandaloneBasmalaLine(normalizedForClassification)) {
       push({
         type: "basmala",
         text: trimmed,

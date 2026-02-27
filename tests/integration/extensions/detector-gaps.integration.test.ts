@@ -259,6 +259,32 @@ describe("detector-gaps — ثغرة 7: BASMALA مصنفة غلط", () => {
   });
 });
 
+describe("detector-gaps — ثغرة basmala-overreach", () => {
+  it("يمسك basmala مع delimiter حواري (:)", () => {
+    logTestStep("basmala-overreach-colon");
+    const lines: ClassifiedLine[] = [
+      buildLine(0, "basmala", "بوسي : بسم الله الرحمن الرحيم"),
+    ];
+    expectSuspicious(lines, 0, /delimiter|حواري/);
+  });
+
+  it("يمسك basmala طويلة جداً (> 6 كلمات)", () => {
+    logTestStep("basmala-overreach-long");
+    const lines: ClassifiedLine[] = [
+      buildLine(0, "basmala", "قال أحمد بصوت عالي بسم الله الرحمن الرحيم ثم جلس"),
+    ];
+    expectSuspicious(lines, 0, /أطول|كلمات/);
+  });
+
+  it("مش بيمسك basmala مستقلة صحيحة", () => {
+    logTestStep("basmala-overreach-correct");
+    const lines: ClassifiedLine[] = [
+      buildLine(0, "basmala", "بسم الله الرحمن الرحيم", 99, "regex"),
+    ];
+    expectNotSuspicious(lines, 0);
+  });
+});
+
 describe("detector-gaps — سيناريو شامل", () => {
   it("يمسك أغلب الأخطاء في سيناريو واقعي مختلط", () => {
     logTestStep("full-scenario");

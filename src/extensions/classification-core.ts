@@ -441,6 +441,30 @@ const createContentTypeMismatchDetector = (): SuspicionDetector => ({
       };
     }
 
+    if (
+      type === "basmala" &&
+      (features.normalized.includes(":") || features.normalized.includes("："))
+    ) {
+      return {
+        detectorId: "content-type-mismatch",
+        suspicionScore: 94,
+        reason: 'مصنّف "basmala" لكن السطر فيه delimiter حواري (:) — أرجح character + dialogue',
+        suggestedType: "dialogue",
+      };
+    }
+
+    if (
+      type === "basmala" &&
+      features.wordCount > 6
+    ) {
+      return {
+        detectorId: "content-type-mismatch",
+        suspicionScore: 85,
+        reason: `مصنّف "basmala" لكنه ${features.wordCount} كلمات — أطول من البسملة المعتادة`,
+        suggestedType: null,
+      };
+    }
+
     return null;
   },
 });
