@@ -67,6 +67,14 @@ export const resolveBlocksForExport = (
   return htmlToScreenplayBlocks(content);
 };
 
+/**
+ * تنسيقات DOCX لكل عنصر سيناريو — مطابقة للمحرر.
+ *
+ * التغييرات عن النسخة القديمة:
+ * - transition: CENTER (كان LEFT — غلط)
+ * - scene-header-3: bold (كان ناقص)
+ * - dialogue: CENTER مع indentation (يطابق المحرر 4.1in centered)
+ */
 export const getDocxPresetForFormat = (
   formatId: ScreenplayBlock["formatId"]
 ): DocxParagraphPreset => {
@@ -86,17 +94,20 @@ export const getDocxPresetForFormat = (
       };
     case "scene-header-2":
       return {
-        alignment: "right",
+        alignment: "left",
+        bold: true,
         spacingAfterPt: 4,
       };
     case "scene-header-3":
       return {
         alignment: "center",
+        bold: true,
         spacingAfterPt: 4,
       };
     case "scene-header-top-line":
       return {
         alignment: "right",
+        bold: true,
         spacingAfterPt: 6,
       };
     case "character":
@@ -108,7 +119,7 @@ export const getDocxPresetForFormat = (
       };
     case "dialogue":
       return {
-        alignment: "right",
+        alignment: "center",
         spacingAfterPt: 6,
         indentStartTwip: 960,
         indentEndTwip: 720,
@@ -121,7 +132,7 @@ export const getDocxPresetForFormat = (
       };
     case "transition":
       return {
-        alignment: "left",
+        alignment: "center",
         bold: true,
         spacingBeforePt: 6,
         spacingAfterPt: 6,
@@ -139,6 +150,20 @@ export const getDocxPresetForFormat = (
   }
 };
 
+/**
+ * يبني HTML كامل بتنسيقات مطابقة للمحرر.
+ *
+ * التنسيق مبني على:
+ * - editor-format-styles.ts (CSS variables)
+ * - page.css (spacing rules)
+ * - PDF المرجعي (الوصية_الاولى_مصنف.pdf)
+ *
+ * الخط: AzarMehrMonospaced-San (نفس المحرر)
+ * scene-header-top-line: flex layout (header-1 يمين، header-2 شمال)
+ * transition: center + bold
+ * dialogue: centered، عرض محدود، مع padding
+ * character: centered، bold
+ */
 export const buildFullHtmlDocument = (
   bodyHtml: string,
   title = "تصدير محرر السيناريو"
@@ -149,70 +174,147 @@ export const buildFullHtmlDocument = (
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${title}</title>
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
       margin: 0 auto;
       width: min(794px, 100%);
       padding: 28px;
       direction: rtl;
       text-align: right;
-      font-family: 'Cairo', system-ui, sans-serif;
-      line-height: 1.8;
-      color: #0f172a;
+      font-family: 'AzarMehrMonospaced-San', 'Courier New', monospace;
+      font-size: 12pt;
+      line-height: 15pt;
+      color: #000000;
       background: #ffffff;
-      box-sizing: border-box;
     }
+
     [data-type] {
       white-space: pre-wrap;
+      margin-bottom: 0;
     }
+
+    /* ── البسملة ── */
     [data-type="basmala"] {
       text-align: center;
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 12pt;
     }
+
+    /* ── سطر عنوان المشهد (flex: header-1 يمين، header-2 شمال) ── */
     [data-type="scene-header-top-line"] {
-      text-align: right;
-      margin: 0 0 12px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      width: 100%;
+      margin-top: 12pt;
+      margin-bottom: 0;
     }
+
+    /* ── عنوان المشهد 1 (رقم المشهد) ── */
     [data-type="scene-header-1"] {
-      text-align: right;
       font-weight: 700;
-      margin-top: 8px;
-      margin-bottom: 6px;
+      flex: 0 0 auto;
     }
-    [data-type="scene-header-2"] {
+    /* عندما يكون مستقل (خارج top-line) */
+    div > [data-type="scene-header-1"] {
       text-align: right;
-      margin-bottom: 4px;
+      margin-top: 12pt;
+      margin-bottom: 0;
     }
+
+    /* ── عنوان المشهد 2 (الزمن والمكان) ── */
+    [data-type="scene-header-2"] {
+      font-weight: 700;
+      flex: 0 0 auto;
+    }
+    div > [data-type="scene-header-2"] {
+      text-align: left;
+      margin-bottom: 0;
+    }
+
+    /* ── عنوان المشهد 3 (المكان التفصيلي) ── */
     [data-type="scene-header-3"] {
       text-align: center;
-      margin-bottom: 4px;
+      font-weight: 700;
+      margin-bottom: 0;
     }
+
+    /* ── الحدث/الفعل ── */
     [data-type="action"] {
       text-align: justify;
-      margin-bottom: 6px;
+      text-align-last: right;
+      margin-top: 12pt;
+      margin-bottom: 0;
     }
+
+    /* ── الشخصية ── */
     [data-type="character"] {
       text-align: center;
       font-weight: 700;
-      margin-top: 8px;
-      margin-bottom: 2px;
+      width: 4.1in;
+      margin: 8pt auto 2pt auto;
     }
+
+    /* ── الحوار ── */
     [data-type="dialogue"] {
-      text-align: right;
-      margin-bottom: 6px;
-      padding-right: 48px;
-      padding-left: 36px;
+      text-align: center;
+      width: 4.1in;
+      margin: 0 auto;
+      padding: 0.25em 1em 0 1.5em;
     }
+
+    /* ── بين الأقواس ── */
     [data-type="parenthetical"] {
       text-align: center;
       font-style: italic;
-      margin-bottom: 4px;
+      margin: 0 auto;
     }
+
+    /* ── الانتقال ── */
     [data-type="transition"] {
-      text-align: left;
+      text-align: center;
       font-weight: 700;
-      margin-top: 6px;
-      margin-bottom: 6px;
+      margin-top: 12pt;
+      margin-bottom: 12pt;
+    }
+
+    /* ── قواعد التباعد السياقية (مثل المحرر) ── */
+    [data-type="character"] + [data-type="dialogue"],
+    [data-type="character"] + [data-type="parenthetical"] {
+      margin-top: 0;
+    }
+    [data-type="parenthetical"] + [data-type="dialogue"] {
+      margin-top: 0;
+    }
+    [data-type="scene-header-top-line"] + [data-type="scene-header-3"] {
+      margin-top: 0;
+    }
+    [data-type="dialogue"] + [data-type="character"] {
+      margin-top: 12pt;
+    }
+    [data-type="dialogue"] + [data-type="action"],
+    [data-type="dialogue"] + [data-type="transition"] {
+      margin-top: 12pt;
+    }
+    [data-type="transition"] + [data-type="scene-header-top-line"] {
+      margin-top: 12pt;
+    }
+    [data-type="scene-header-3"] + [data-type="action"] {
+      margin-top: 12pt;
+    }
+
+    /* ── حماية فصل الشخصية عن حوارها عند تقسيم الصفحات ── */
+    [data-type="character"] {
+      break-after: avoid;
+    }
+    [data-type="character"] + [data-type="dialogue"],
+    [data-type="character"] + [data-type="parenthetical"] {
+      break-before: avoid;
+    }
+
+    @media print {
+      body { padding: 0; width: 100%; }
     }
   </style>
 </head>
