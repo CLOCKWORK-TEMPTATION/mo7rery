@@ -18,8 +18,11 @@ const NON_ANTHROPIC_MODEL_RE =
   /^(mistral|pixtral|kimi|moonshot|gpt|o\d|gemini|deepseek|llama|qwen)/iu;
 
 // حساب max_tokens ديناميكي بناءً على عدد السطور المشبوهة
-const BASE_OUTPUT_TOKENS = 500;
-const TOKENS_PER_SUSPICIOUS_LINE = 400;
+// يجب أن تغطي الميزانية: تحليل كل سطر (6 خطوات تحليل مفصلة) + إخراج JSON النهائي
+// BASE = ثابت لهيكل الاستجابة + هامش أمان
+// PER_LINE = تحليل مفصل (~600 توكن) + أمر JSON (~200 توكن)
+const BASE_OUTPUT_TOKENS = 1024;
+const TOKENS_PER_SUSPICIOUS_LINE = 800;
 const PRACTICAL_MAX_OUTPUT = 64000;
 
 // ─── Retry & backoff settings for overload (529) ───
@@ -1229,7 +1232,11 @@ const createReviewResponseWithCoverage = (
 const tryCallAnthropicOnce = async (params, reviewRuntime, anthropicApiKey) => {
   try {
     const message = await tryCreateMessageWithSdk(params);
-    return { source: "sdk", content: message.content };
+    return {
+      source: "sdk",
+      content: message.content,
+      stopReason: message.stop_reason ?? null,
+    };
   } catch (sdkError) {
     logger.warn({ err: sdkError }, "فشل SDK في المراجعة، تجربة REST fallback");
     // لو الـ SDK فشل بـ overload، نحاول REST مرة واحدة
@@ -1248,7 +1255,11 @@ const tryCallAnthropicOnce = async (params, reviewRuntime, anthropicApiKey) => {
     const responseContent = Array.isArray(response?.data?.content)
       ? response.data.content
       : [];
-    return { source: "rest", content: responseContent };
+    const stopReason =
+      typeof response?.data?.stop_reason === "string"
+        ? response.data.stop_reason
+        : null;
+    return { source: "rest", content: responseContent, stopReason };
   }
 };
 
@@ -1331,14 +1342,20 @@ export const reviewSuspiciousLinesWithClaude = async (request) => {
     };
   }
 
-  const maxTokens = Math.min(
-    PRACTICAL_MAX_OUTPUT,
-    Math.max(
-      1200,
-      BASE_OUTPUT_TOKENS +
-        request.suspiciousLines.length * TOKENS_PER_SUSPICIOUS_LINE
-    )
-  );
+  const computeMaxTokens = (boostFactor = 1) =>
+    Math.min(
+      PRACTICAL_MAX_OUTPUT,
+      Math.max(
+        1200,
+        Math.ceil(
+          (BASE_OUTPUT_TOKENS +
+            request.suspiciousLines.length * TOKENS_PER_SUSPICIOUS_LINE) *
+            boostFactor
+        )
+      )
+    );
+
+  let maxTokens = computeMaxTokens(1);
 
   // ─── الاستراتيجية: primary model → retry with backoff → fallback model ───
   const modelsToTry = [reviewModel];
@@ -1351,10 +1368,10 @@ export const reviewSuspiciousLinesWithClaude = async (request) => {
   let lastProviderStatus = null;
 
   for (const currentModel of modelsToTry) {
-    const params = buildAnthropicMessageParams(request, maxTokens, currentModel);
     const isFallback = currentModel !== reviewModel;
 
     for (let attempt = 1; attempt <= OVERLOAD_MAX_RETRIES; attempt += 1) {
+      const params = buildAnthropicMessageParams(request, maxTokens, currentModel);
       try {
         const result = await tryCallAnthropicOnce(
           params,
@@ -1363,6 +1380,31 @@ export const reviewSuspiciousLinesWithClaude = async (request) => {
         );
         const text = extractTextFromAnthropicBlocks(result.content);
         const commands = parseReviewCommands(text);
+
+        // ─── كشف اقتطاع الاستجابة بسبب max_tokens ───
+        // إذا انتهى الوكيل بسبب max_tokens و لم يُرجع أي أوامر صالحة،
+        // فهذا يعني أن التحليل استنزف الميزانية قبل كتابة JSON.
+        // نعيد المحاولة بميزانية أعلى (× 2) مع نفس الموديل.
+        if (
+          result.stopReason === "max_tokens" &&
+          commands.length === 0 &&
+          attempt < OVERLOAD_MAX_RETRIES
+        ) {
+          const boostedBudget = computeMaxTokens(2);
+          logger.warn(
+            {
+              model: currentModel,
+              attempt,
+              stopReason: result.stopReason,
+              previousMaxTokens: maxTokens,
+              boostedMaxTokens: boostedBudget,
+            },
+            `الاستجابة اقتُطعت (stop_reason=max_tokens) بدون أوامر — إعادة المحاولة بميزانية أعلى`
+          );
+          maxTokens = boostedBudget;
+          continue;
+        }
+
         const suffix = isFallback ? " (fallback model)" : "";
         const sourceLabel = result.source === "rest" ? " (REST)" : "";
         if (isFallback) {
