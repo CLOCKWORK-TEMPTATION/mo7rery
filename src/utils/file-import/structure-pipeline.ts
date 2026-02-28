@@ -116,19 +116,32 @@ const isSceneHeader2Only = (line: string): boolean => {
   return SCENE_TIME_RE.test(normalized) && SCENE_LOCATION_RE.test(normalized);
 };
 
-const isSceneHeaderTopLine = (line: string): boolean => {
+/**
+ * يُقسّم سطر رأس مشهد مُركَّب (يحتوي رقم + زمن/مكان) إلى كتلتَي تصنيف مستقلتين.
+ *
+ * يُستدعى من {@link buildStructuredBlocksFromText} قبل المُصنّف حتى يبقى
+ * ناتج التصنيف 8 أنواع فقط (بدون scene-header-top-line).
+ *
+ * @param line - السطر المُطبَّع
+ * @returns كائن بالنصين أو null إذا لم يكن السطر مُركَّباً
+ */
+const splitCombinedSceneHeader = (
+  line: string
+): { header1: string; header2: string } | null => {
   const normalized = normalizeLine(stripTrailingColon(line));
-  if (!SCENE_NUMBER_EXACT_RE.test(normalized)) return false;
+  if (!SCENE_NUMBER_EXACT_RE.test(normalized)) return null;
 
   const numberPrefixMatch = normalized.match(/^(?:مشهد|scene)\s*[0-9٠-٩]+/iu);
-  if (!numberPrefixMatch) return false;
+  if (!numberPrefixMatch) return null;
 
   const remainder = normalized.slice(numberPrefixMatch[0].length).trim();
-  if (!remainder) return false;
+  if (!remainder) return null;
 
   const hasTime = SCENE_TIME_RE.test(remainder);
   const hasLocation = SCENE_LOCATION_RE.test(remainder);
-  return hasTime && hasLocation;
+  if (!hasTime || !hasLocation) return null;
+
+  return { header1: numberPrefixMatch[0].trim(), header2: remainder };
 };
 
 const isSceneHeader3Standalone = (line: string): boolean => {
@@ -223,12 +236,6 @@ const classifyLineLabelOnly = (
     state.expectedSceneHeader = null;
   }
 
-  if (isSceneHeaderTopLine(line)) {
-    state.expectedSceneHeader = "scene-header-3";
-    state.expectingDialogueAfterCue = false;
-    return "scene-header-top-line";
-  }
-
   if (isSceneHeader1Only(line)) {
     state.expectedSceneHeader = "scene-header-2";
     state.expectingDialogueAfterCue = false;
@@ -271,10 +278,25 @@ const classifyLineLabelOnly = (
     return "dialogue";
   }
 
+  if (state.previousFormat === "character") {
+    state.expectedSceneHeader = null;
+    return "dialogue";
+  }
+
   if (
-    state.previousFormat === "character" ||
-    state.previousFormat === "dialogue"
+    state.previousFormat === "dialogue" ||
+    state.previousFormat === "parenthetical"
   ) {
+    const normalizedForAction = normalizeLine(line);
+    if (
+      isActionVerbStart(normalizedForAction) ||
+      matchesActionStartPattern(normalizedForAction) ||
+      hasActionVerbStructure(normalizedForAction)
+    ) {
+      state.expectedSceneHeader = null;
+      state.expectingDialogueAfterCue = false;
+      return "action";
+    }
     state.expectedSceneHeader = null;
     return "dialogue";
   }
@@ -349,13 +371,21 @@ export const buildStructuredBlocksFromText = (
     previousFormat: null,
   };
 
-  const blocks: ScreenplayBlock[] = normalizedLines.map((line) => {
+  const blocks: ScreenplayBlock[] = normalizedLines.flatMap((line) => {
+    const split = splitCombinedSceneHeader(line);
+    if (split) {
+      state.expectedSceneHeader = "scene-header-3";
+      state.expectingDialogueAfterCue = false;
+      state.previousFormat = "scene-header-2";
+      return [
+        { formatId: "scene-header-1" as BlockFormatId, text: split.header1 },
+        { formatId: "scene-header-2" as BlockFormatId, text: split.header2 },
+      ];
+    }
+
     const formatId = classifyLineLabelOnly(line, state);
     state.previousFormat = formatId;
-    return {
-      formatId,
-      text: line,
-    };
+    return [{ formatId, text: line }];
   });
 
   return {

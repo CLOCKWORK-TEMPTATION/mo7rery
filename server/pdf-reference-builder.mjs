@@ -1,21 +1,23 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import process from "node:process";
 import { basename, join, resolve } from "node:path";
 import { promisify } from "node:util";
-import {
-  runVisionCompare,
-} from "./pdf-vision-compare.mjs";
+import { runVisionCompare } from "./pdf-vision-compare.mjs";
 import { runVisionJudge } from "./pdf-vision-judge.mjs";
 
 const log = (tag, data) => {
   const ts = new Date().toISOString();
-  console.log(`[${ts}] [pdf-ref] ${tag}`, data != null ? JSON.stringify(data) : "");
+  console.warn(
+    `[${ts}] [pdf-ref] ${tag}`,
+    data != null ? JSON.stringify(data) : ""
+  );
 };
 
 const execFileAsync = promisify(execFile);
-const PDFTOPPM_BINARY = process.platform === "win32" ? "pdftoppm.exe" : "pdftoppm";
+const PDFTOPPM_BINARY =
+  process.platform === "win32" ? "pdftoppm.exe" : "pdftoppm";
 const PDFTOPPM_CHECK_TIMEOUT_MS = 10_000;
 const PDFTOPPM_CHECK_BUFFER = 8 * 1024 * 1024;
 
@@ -78,7 +80,10 @@ export const probePdftoppmDependency = async () => {
       available: false,
       command,
       errorCode: "PDF_OCR_PDF_RENDERER_UNUSABLE",
-      errorMessage: buildUnusableRendererMessage(command, toErrorMessage(error)),
+      errorMessage: buildUnusableRendererMessage(
+        command,
+        toErrorMessage(error)
+      ),
     };
   }
 };
@@ -89,7 +94,9 @@ const tokenize = (line) => {
 };
 
 const normalizeText = (text) =>
-  String(text ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  String(text ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
 
 const parseOcrPages = (raw) => {
   const payload = JSON.parse(String(raw ?? "{}"));
@@ -156,7 +163,7 @@ export const renderPdfPages = async ({ pdfPath, dpi }) => {
   return sorted.map((name) => join(renderRoot, name));
 };
 
-const renderFirstPdfPage = async ({ pdfPath, dpi }) => {
+const _renderFirstPdfPage = async ({ pdfPath, dpi }) => {
   const pdftoppmCommand = await ensurePdftoppmAvailable();
   const renderRoot = await mkdtemp(join(tmpdir(), "mo7rer-pdf-vision-probe-"));
   const prefix = join(renderRoot, "probe");
@@ -234,10 +241,13 @@ export const buildPdfReference = async ({
   compare,
   judge,
   renderDpi = 300,
-  visionPreflightDone = false,
+  visionPreflightDone: _visionPreflightDone = false,
 }) => {
   if (externalReferencePath) {
-    const referenceText = await readFile(resolve(externalReferencePath), "utf-8");
+    const referenceText = await readFile(
+      resolve(externalReferencePath),
+      "utf-8"
+    );
     return {
       referenceMode: "external",
       referenceText,
@@ -257,13 +267,18 @@ export const buildPdfReference = async ({
   const ocrJsonRaw = await readFile(ocrJsonPath, "utf-8");
   const ocrPages = parseOcrPages(ocrJsonRaw);
   if (ocrPages.length === 0) {
-    throw new Error("Cannot build pdf-vision reference: OCR pages are missing.");
+    throw new Error(
+      "Cannot build pdf-vision reference: OCR pages are missing."
+    );
   }
   log("ocr-pages-parsed", { count: ocrPages.length });
 
   const pageImages = await renderPdfPages({ pdfPath, dpi: renderDpi });
 
-  log("vision-compare-start", { pages: pageImages.length, model: compare.model });
+  log("vision-compare-start", {
+    pages: pageImages.length,
+    model: compare.model,
+  });
   const tCompare = Date.now();
   const compareResult = await runVisionCompare({
     apiKey: compare.apiKey,
@@ -272,9 +287,15 @@ export const buildPdfReference = async ({
     ocrPages,
     timeoutMs: compare.timeoutMs,
   });
-  log("vision-compare-done", { patches: compareResult.proposedPatchCount, ms: Date.now() - tCompare });
+  log("vision-compare-done", {
+    patches: compareResult.proposedPatchCount,
+    ms: Date.now() - tCompare,
+  });
 
-  log("vision-judge-start", { pages: compareResult.pages.length, model: judge.model });
+  log("vision-judge-start", {
+    pages: compareResult.pages.length,
+    model: judge.model,
+  });
   const tJudge = Date.now();
   const judgeResult = await runVisionJudge({
     apiKey: judge.apiKey,
@@ -283,7 +304,11 @@ export const buildPdfReference = async ({
     timeoutMs: judge.timeoutMs,
     skipPreflight: true,
   });
-  log("vision-judge-done", { approved: judgeResult.approvedPatches.length, rejected: judgeResult.rejectedPatches.length, ms: Date.now() - tJudge });
+  log("vision-judge-done", {
+    approved: judgeResult.approvedPatches.length,
+    rejected: judgeResult.rejectedPatches.length,
+    ms: Date.now() - tJudge,
+  });
 
   const patchedPages = compareResult.pages.map((item) => ({
     page: item.page,
@@ -304,7 +329,13 @@ export const buildPdfReference = async ({
     .join("\n\n")
     .trim();
 
-  log("build-ref-done", { totalMs: Date.now() - tTotal, renderedPages: pageImages.length, proposed: compareResult.proposedPatchCount, approved: judgeResult.approvedPatches.length, rejected: judgeResult.rejectedPatches.length });
+  log("build-ref-done", {
+    totalMs: Date.now() - tTotal,
+    renderedPages: pageImages.length,
+    proposed: compareResult.proposedPatchCount,
+    approved: judgeResult.approvedPatches.length,
+    rejected: judgeResult.rejectedPatches.length,
+  });
 
   return {
     referenceMode: "pdf-vision",

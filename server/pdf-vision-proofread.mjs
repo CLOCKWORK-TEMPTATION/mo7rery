@@ -25,7 +25,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 const log = (tag, data) => {
   const ts = new Date().toISOString();
-  console.log(
+  console.warn(
     `[${ts}] [vision-proofread] ${tag}`,
     data != null ? JSON.stringify(data) : ""
   );
@@ -75,7 +75,9 @@ const extractGeminiText = (payload) => {
 
 // ── prompt ─────────────────────────────────────────────────
 
-const buildProofreadPrompt = (ocrText) => `You are a pixel-perfect Arabic OCR verifier. Your ONLY job is to make the text match EXACTLY what appears in the image — nothing more, nothing less.
+const buildProofreadPrompt = (
+  ocrText
+) => `You are a pixel-perfect Arabic OCR verifier. Your ONLY job is to make the text match EXACTLY what appears in the image — nothing more, nothing less.
 
 Below is text extracted by OCR from the attached page image.
 Compare the OCR text against the actual page image CHARACTER BY CHARACTER.
@@ -189,7 +191,12 @@ const requestProofread = async ({
         if (isRetryableStatus(res.status) && attempt < maxRetries) {
           attempt += 1;
           const backoff = retryBaseDelayMs * 2 ** Math.max(0, attempt - 1);
-          log("api-retry", { page: _pageLabel, attempt, backoffMs: backoff, status: res.status });
+          log("api-retry", {
+            page: _pageLabel,
+            attempt,
+            backoffMs: backoff,
+            status: res.status,
+          });
           await sleep(backoff);
           continue;
         }
@@ -201,7 +208,11 @@ const requestProofread = async ({
         // Check for safety block or other issues
         const blockReason = payload?.candidates?.[0]?.finishReason;
         const safetyRatings = payload?.candidates?.[0]?.safetyRatings;
-        log("api-empty-response", { page: _pageLabel, blockReason, safetyRatings });
+        log("api-empty-response", {
+          page: _pageLabel,
+          blockReason,
+          safetyRatings,
+        });
         throw new Error(
           `vision-proofread returned empty text for page ${_pageLabel} (finishReason: ${blockReason ?? "unknown"})`
         );
@@ -219,7 +230,12 @@ const requestProofread = async ({
       if (attempt >= maxRetries) break;
       attempt += 1;
       const backoff = retryBaseDelayMs * 2 ** Math.max(0, attempt - 1);
-      log("api-retry-on-error", { page: _pageLabel, attempt, backoffMs: backoff, error: error?.message });
+      log("api-retry-on-error", {
+        page: _pageLabel,
+        attempt,
+        backoffMs: backoff,
+        error: error?.message,
+      });
       await sleep(backoff);
     } finally {
       clearTimeout(timer);

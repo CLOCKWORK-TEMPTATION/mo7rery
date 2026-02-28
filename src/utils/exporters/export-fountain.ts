@@ -10,11 +10,15 @@ import {
 /**
  * يبني نص Fountain من كتل السيناريو.
  *
- * ملاحظات RTL/عربي:
+ * قواعد Fountain للعربي:
  * - `@` prefix لأسماء الشخصيات (العربية ليس فيها UPPERCASE)
  * - `.` prefix لعناوين المشاهد (لا تبدأ بـ INT./EXT.)
- * - `> text <` للنص المركزي (بسملة)
- * - `> text` للانتقالات المفروضة
+ * - `> text <` للنص المركزي (بسملة، انتقال)
+ * - بين الأقواس: (نص) بين شخصية وحوار
+ *
+ * قواعد الترتيب:
+ * - شخصية → حوار (أو بين أقواس → حوار)
+ * - حوار → شخصية أو أكشن أو انتقال (مش حوار تاني إلا لو نفس الشخصية)
  */
 const buildFountainString = (blocks: ScreenplayBlock[]): string => {
   const lines: string[] = [];
@@ -29,6 +33,10 @@ const buildFountainString = (blocks: ScreenplayBlock[]): string => {
         lines.push("", `> ${text} <`, "");
         break;
 
+      case "scene-header-top-line":
+        // wrapper فقط — نتخطاه
+        break;
+
       case "scene-header-1": {
         // دمج scene-header-1 + scene-header-2 المتتاليين
         const next = blocks[i + 1];
@@ -40,13 +48,21 @@ const buildFountainString = (blocks: ScreenplayBlock[]): string => {
           }
           i += 1;
         }
+        // لو في scene-header-3 بعدهم
+        const afterNext = blocks[i + 1];
+        if (afterNext && afterNext.formatId === "scene-header-3") {
+          const h3Text = normalizeText(afterNext.text);
+          if (h3Text) {
+            heading = `${heading}\n${h3Text}`;
+          }
+          i += 1;
+        }
         lines.push("", `.${heading}`, "");
         break;
       }
 
       case "scene-header-2":
       case "scene-header-3":
-      case "scene-header-top-line":
         lines.push("", `.${text}`, "");
         break;
 
@@ -63,14 +79,13 @@ const buildFountainString = (blocks: ScreenplayBlock[]): string => {
         break;
 
       case "parenthetical": {
-        // تأكد إن النص محاط بأقواس
         const cleaned = text.replace(/^\(|\)$/g, "");
         lines.push(`(${cleaned})`);
         break;
       }
 
       case "transition":
-        lines.push("", `> ${text}`, "");
+        lines.push("", `> ${text} <`, "");
         break;
 
       default:
@@ -80,7 +95,12 @@ const buildFountainString = (blocks: ScreenplayBlock[]): string => {
   }
 
   // تنظيف الأسطر الفارغة المتتالية (3+ → 2)
-  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+  return (
+    lines
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim() + "\n"
+  );
 };
 
 export const exportAsFountain = (request: BlockExportRequest): void => {

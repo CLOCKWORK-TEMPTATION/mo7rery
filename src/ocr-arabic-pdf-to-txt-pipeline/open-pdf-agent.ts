@@ -21,10 +21,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 
 import { buildAgentConfig } from "./config.js";
 import { classifyPdfTool } from "./tools.js";
-import {
-  skillOcrMistral,
-  skillWriteOutput,
-} from "./skill-tools.js";
+import { skillOcrMistral, skillWriteOutput } from "./skill-tools.js";
 import type { ClassificationResult } from "./types.js";
 
 type JsonRecord = Record<string, unknown>;
@@ -331,8 +328,10 @@ const main = async (): Promise<void> => {
     process.env["OPEN_PDF_AGENT_ENABLE_MCP_STAGE"] ?? "true"
   );
 
-  let footprint: { checkedDirectories: string[]; checkedFiles: string[] } | null =
-    null;
+  let footprint: {
+    checkedDirectories: string[];
+    checkedFiles: string[];
+  } | null = null;
   if (verifyFootprintEnabled) {
     footprint = await verifyPipelineFootprint(agentRoot, mcpServerPath);
     attempts.push("pipeline-footprint-verified");
@@ -411,7 +410,9 @@ const main = async (): Promise<void> => {
         markdownText = markdownFromMcp;
       }
     } catch {
-      warnings.push("MCP stage completed but markdown output file was not found.");
+      warnings.push(
+        "MCP stage completed but markdown output file was not found."
+      );
     }
   } else {
     attempts.push("mcp-stage-skipped");

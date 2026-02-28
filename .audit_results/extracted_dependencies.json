@@ -42,12 +42,8 @@
       "name": "dotenv",
       "version": "17.3.1",
       "type": "dependencies",
-      "docs_urls": [
-        "https://github.com/motdotla/dotenv"
-      ]
+      "docs_urls": ["https://github.com/motdotla/dotenv"]
     }
   ],
-  "source_files": [
-    "package.json"
-  ]
+  "source_files": ["package.json"]
 }

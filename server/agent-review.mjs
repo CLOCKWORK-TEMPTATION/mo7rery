@@ -530,7 +530,7 @@ const getAnthropicClient = () => {
   anthropicClientSingleton = new Anthropic({
     apiKey: keyValidation.apiKey,
     baseURL: runtime.baseUrl,
-    maxRetries: 0,  // نتحكم في retry بنفسنا في reviewSuspiciousLinesWithClaude
+    maxRetries: 0, // نتحكم في retry بنفسنا في reviewSuspiciousLinesWithClaude
     timeout: DEFAULT_TIMEOUT_MS,
   });
   return anthropicClientSingleton;
@@ -1240,18 +1240,14 @@ const tryCallAnthropicOnce = async (params, reviewRuntime, anthropicApiKey) => {
   } catch (sdkError) {
     logger.warn({ err: sdkError }, "فشل SDK في المراجعة، تجربة REST fallback");
     // لو الـ SDK فشل بـ overload، نحاول REST مرة واحدة
-    const response = await axios.post(
-      reviewRuntime.messagesEndpoint,
-      params,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicApiKey,
-          "anthropic-version": reviewRuntime.apiVersion,
-        },
-        timeout: DEFAULT_TIMEOUT_MS,
-      }
-    );
+    const response = await axios.post(reviewRuntime.messagesEndpoint, params, {
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": anthropicApiKey,
+        "anthropic-version": reviewRuntime.apiVersion,
+      },
+      timeout: DEFAULT_TIMEOUT_MS,
+    });
     const responseContent = Array.isArray(response?.data?.content)
       ? response.data.content
       : [];
@@ -1371,7 +1367,11 @@ export const reviewSuspiciousLinesWithClaude = async (request) => {
     const isFallback = currentModel !== reviewModel;
 
     for (let attempt = 1; attempt <= OVERLOAD_MAX_RETRIES; attempt += 1) {
-      const params = buildAnthropicMessageParams(request, maxTokens, currentModel);
+      const params = buildAnthropicMessageParams(
+        request,
+        maxTokens,
+        currentModel
+      );
       try {
         const result = await tryCallAnthropicOnce(
           params,
@@ -1423,8 +1423,7 @@ export const reviewSuspiciousLinesWithClaude = async (request) => {
         );
       } catch (err) {
         lastError = err;
-        const overload =
-          isOverloadError(err) || isOverloadAxiosError(err);
+        const overload = isOverloadError(err) || isOverloadAxiosError(err);
         const providerInfo = resolveProviderErrorInfo(err);
         lastProviderStatus = providerInfo.status;
 
@@ -1479,9 +1478,7 @@ export const reviewSuspiciousLinesWithClaude = async (request) => {
     requestId,
     commands: [],
     message: `فشل الوكيل: ${providerInfo.message}${
-      providerInfo.requestId
-        ? ` (request_id=${providerInfo.requestId})`
-        : ""
+      providerInfo.requestId ? ` (request_id=${providerInfo.requestId})` : ""
     }`,
     latencyMs: Date.now() - startedAt,
     meta: emptyMeta,

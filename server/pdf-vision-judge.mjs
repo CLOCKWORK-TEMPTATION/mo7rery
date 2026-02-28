@@ -4,7 +4,10 @@ import { resolveMoonshotChatRuntime } from "./provider-api-runtime.mjs";
 
 const log = (tag, data) => {
   const ts = new Date().toISOString();
-  console.log(`[${ts}] [vision-judge] ${tag}`, data != null ? JSON.stringify(data) : "");
+  console.warn(
+    `[${ts}] [vision-judge] ${tag}`,
+    data != null ? JSON.stringify(data) : ""
+  );
 };
 
 const DEFAULT_TIMEOUT_MS = 180_000;
@@ -127,7 +130,15 @@ const requestKimiJudge = async ({
   let attempt = 0;
   let lastError;
 
-  log("api-call-start", { page: _pageLabel, model: runtime.model, isK2_5: runtime.isK2_5, thinking: runtime.thinkingType, endpoint: url, patches: patches.length, timeoutMs });
+  log("api-call-start", {
+    page: _pageLabel,
+    model: runtime.model,
+    isK2_5: runtime.isK2_5,
+    thinking: runtime.thinkingType,
+    endpoint: url,
+    patches: patches.length,
+    timeoutMs,
+  });
   const t0 = Date.now();
 
   const prompt = [
@@ -214,10 +225,19 @@ const requestKimiJudge = async ({
       const root = parseJsonObject(raw, "kimi-judge-http");
       const choices = Array.isArray(root?.choices) ? root.choices : [];
       const firstChoice = choices[0] ?? {};
-      const content = extractAssistantMessageText(firstChoice?.message?.content);
+      const content = extractAssistantMessageText(
+        firstChoice?.message?.content
+      );
       const parsed = parseJsonObject(content, "kimi-judge-content");
-      const decisions = Array.isArray(parsed?.decisions) ? parsed.decisions : [];
-      log("api-call-done", { page: _pageLabel, ms: Date.now() - t0, attempt, decisions: decisions.length });
+      const decisions = Array.isArray(parsed?.decisions)
+        ? parsed.decisions
+        : [];
+      log("api-call-done", {
+        page: _pageLabel,
+        ms: Date.now() - t0,
+        attempt,
+        decisions: decisions.length,
+      });
       return decisions;
     } catch (error) {
       lastError = error;
@@ -229,8 +249,14 @@ const requestKimiJudge = async ({
     }
   }
 
-  log("api-call-failed", { page: _pageLabel, ms: Date.now() - t0, error: toErrorMessage(lastError) });
-  throw new Error(`kimi-judge failed after retries: ${toErrorMessage(lastError)}`);
+  log("api-call-failed", {
+    page: _pageLabel,
+    ms: Date.now() - t0,
+    error: toErrorMessage(lastError),
+  });
+  throw new Error(
+    `kimi-judge failed after retries: ${toErrorMessage(lastError)}`
+  );
 };
 
 export const runVisionJudgePreflight = async ({
@@ -268,7 +294,9 @@ export const runVisionJudgePreflight = async ({
 };
 
 const processJudgePage = async ({ page, apiKey, model, timeoutMs }) => {
-  const allPatches = Array.isArray(page.proposedPatches) ? page.proposedPatches : [];
+  const allPatches = Array.isArray(page.proposedPatches)
+    ? page.proposedPatches
+    : [];
   if (allPatches.length === 0) {
     log("page-skip", { page: page.page, reason: "no-patches" });
     return { approved: [], rejected: [] };
@@ -314,7 +342,8 @@ const processJudgePage = async ({ page, apiKey, model, timeoutMs }) => {
               ? item.reason.trim()
               : "no-reason",
           confidence:
-            typeof item.confidence === "number" && Number.isFinite(item.confidence)
+            typeof item.confidence === "number" &&
+            Number.isFinite(item.confidence)
               ? item.confidence
               : 0,
         },
@@ -359,7 +388,12 @@ const processJudgePage = async ({ page, apiKey, model, timeoutMs }) => {
     });
   }
 
-  log("page-done", { page: page.page, approved: approved.length, rejected: rejected.length, ms: Date.now() - t0 });
+  log("page-done", {
+    page: page.page,
+    approved: approved.length,
+    rejected: rejected.length,
+    ms: Date.now() - t0,
+  });
   return { approved, rejected };
 };
 
@@ -378,7 +412,7 @@ export const runVisionJudge = async ({
   model,
   comparePages,
   timeoutMs = DEFAULT_TIMEOUT_MS,
-  skipPreflight = false,
+  skipPreflight: _skipPreflight = false,
 }) => {
   if (!Array.isArray(comparePages) || comparePages.length === 0) {
     throw new Error("vision judge requires compare pages.");
@@ -387,7 +421,8 @@ export const runVisionJudge = async ({
   // Preflight removed — skip always (called separately if needed)
 
   const pagesWithPatches = comparePages.filter(
-    (page) => Array.isArray(page.proposedPatches) && page.proposedPatches.length > 0
+    (page) =>
+      Array.isArray(page.proposedPatches) && page.proposedPatches.length > 0
   );
 
   const pageResults = await runParallelBatches(

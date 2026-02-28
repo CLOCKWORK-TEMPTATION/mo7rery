@@ -69,6 +69,8 @@ export const CLASSIFICATION_SEQUENCE_VIOLATION_SEVERITY: ReadonlyMap<
   number
 > = new Map([
   ["character→character", 95],
+  ["character→action", 80],
+  ["character→transition", 80],
   ["parenthetical→action", 90],
   ["parenthetical→character", 90],
   ["parenthetical→transition", 90],

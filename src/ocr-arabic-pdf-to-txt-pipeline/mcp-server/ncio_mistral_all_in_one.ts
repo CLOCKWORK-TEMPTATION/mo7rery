@@ -1204,13 +1204,18 @@ class OCRPreprocessor {
       return text;
     }
 
-    const sceneNumber = normalizeHindiDigitsToWestern(sceneMatch[1] ?? "").trim();
+    const sceneNumber = normalizeHindiDigitsToWestern(
+      sceneMatch[1] ?? ""
+    ).trim();
     if (!sceneNumber) {
       return text;
     }
 
     // إزالة رقم الصفحة المفرد في البداية إذا كان منفصلاً عن المحتوى.
-    if (sceneLineIndex !== firstIndex && /^[٠١٢٣٤٥٦٧٨٩0-9]+$/u.test(lines[firstIndex].trim())) {
+    if (
+      sceneLineIndex !== firstIndex &&
+      /^[٠١٢٣٤٥٦٧٨٩0-9]+$/u.test(lines[firstIndex].trim())
+    ) {
       lines.splice(firstIndex, 1);
       sceneLineIndex -= 1;
     }
@@ -1343,8 +1348,10 @@ export class LLMPostProcessor {
     const effectiveReference = referenceText ?? (await this.getReferenceText());
     const preprocessed = this.preprocessor.preprocess(markdownText);
 
-    const userPrompt = LLMPostProcessor.USER_TEMPLATE
-      .replace("{reference_text}", effectiveReference || "N/A")
+    const userPrompt = LLMPostProcessor.USER_TEMPLATE.replace(
+      "{reference_text}",
+      effectiveReference || "N/A"
+    )
       .replace("{markdown_text}", preprocessed.text)
       .replace(
         "{preprocess_notes}",
@@ -2428,7 +2435,10 @@ export class PDFToTextConverter {
 
     let best = repairedInitial;
     let bestScore = this.calculateMatchScore(referenceText, best);
-    let bestSemanticScore = QualityChecker.calculateSimilarity(referenceText, best);
+    let bestSemanticScore = QualityChecker.calculateSimilarity(
+      referenceText,
+      best
+    );
     log("INFO", "نسبة التطابق قبل LLM: %.2f%%", bestScore);
     log("INFO", "نسبة التطابق الدلالي قبل LLM: %s%%", bestSemanticScore);
 

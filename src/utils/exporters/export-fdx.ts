@@ -17,6 +17,13 @@ type FdxParagraphType =
   | "Transition"
   | "General";
 
+/**
+ * تحويل formatId → FDX Paragraph Type.
+ *
+ * ملاحظة مهمة: FDX بيطبّق التنسيق تلقائيًا بناءً على Paragraph Type.
+ * يعني Character هيبقى centered bold تلقائيًا في Final Draft.
+ * لكن بنضيف Style attributes كمان للتوافق مع محررات تانية.
+ */
 const mapFormatIdToFdxType = (
   formatId: ScreenplayBlock["formatId"]
 ): FdxParagraphType => {
@@ -43,15 +50,43 @@ const mapFormatIdToFdxType = (
   }
 };
 
+/**
+ * تحديد FDX Text Style بناءً على formatId.
+ * Final Draft يستخدم: Bold, Italic, Underline, Bold+Italic, إلخ
+ */
+const getFdxTextStyle = (formatId: ScreenplayBlock["formatId"]): string => {
+  switch (formatId) {
+    case "basmala":
+    case "scene-header-1":
+    case "scene-header-2":
+    case "scene-header-3":
+    case "scene-header-top-line":
+    case "character":
+    case "transition":
+      return "Bold";
+    case "parenthetical":
+      return "Italic";
+    default:
+      return "";
+  }
+};
+
 interface FdxParagraph {
   "@_Type": FdxParagraphType;
-  Text: string;
+  Text:
+    | { "#text": string; "@_Style"?: string }
+    | { "#text": string; "@_Style"?: string }[];
   SceneProperties?: { "@_Title": string };
 }
 
 /**
  * يبني مصفوفة فقرات FDX من كتل السيناريو.
- * يدمج scene-header-1 + scene-header-2 المتتاليين في Scene Heading واحد.
+ *
+ * قواعد الدمج:
+ * - scene-header-1 + scene-header-2 المتتاليين → Scene Heading واحد (مشهد1 - نهار - داخلي)
+ * - basmala → General مع Style="Bold"
+ * - parenthetical → نص محاط بأقواس
+ * - شخصية بعدها حوار دائمًا (لا يتغير ترتيب FDX)
  */
 const buildFdxParagraphs = (blocks: ScreenplayBlock[]): FdxParagraph[] => {
   const paragraphs: FdxParagraph[] = [];
@@ -60,6 +95,11 @@ const buildFdxParagraphs = (blocks: ScreenplayBlock[]): FdxParagraph[] => {
     const block = blocks[i];
     const text = normalizeText(block.text);
     if (!text) continue;
+
+    // scene-header-top-line: wrapper فقط — نتخطاه
+    if (block.formatId === "scene-header-top-line") {
+      continue;
+    }
 
     // دمج scene-header-1 + scene-header-2 المتتاليين
     if (block.formatId === "scene-header-1") {
@@ -72,17 +112,39 @@ const buildFdxParagraphs = (blocks: ScreenplayBlock[]): FdxParagraph[] => {
         }
         i += 1;
       }
+      // لو في scene-header-3 بعدهم — نضيفه كفقرة منفصلة
+      const afterNext = blocks[i + 1];
+      if (afterNext && afterNext.formatId === "scene-header-3") {
+        const h3Text = normalizeText(afterNext.text);
+        if (h3Text) {
+          combinedText = `${combinedText}\n${h3Text}`;
+        }
+        i += 1;
+      }
       paragraphs.push({
         "@_Type": "Scene Heading",
-        Text: combinedText,
+        Text: { "#text": combinedText, "@_Style": "Bold" },
         SceneProperties: { "@_Title": combinedText },
       });
       continue;
     }
 
+    // scene-header-2 أو scene-header-3 مستقلين (نادر)
+    if (
+      block.formatId === "scene-header-2" ||
+      block.formatId === "scene-header-3"
+    ) {
+      paragraphs.push({
+        "@_Type": "Scene Heading",
+        Text: { "#text": text, "@_Style": "Bold" },
+      });
+      continue;
+    }
+
+    const style = getFdxTextStyle(block.formatId);
     paragraphs.push({
       "@_Type": mapFormatIdToFdxType(block.formatId),
-      Text: text,
+      Text: style ? { "#text": text, "@_Style": style } : { "#text": text },
     });
   }
 

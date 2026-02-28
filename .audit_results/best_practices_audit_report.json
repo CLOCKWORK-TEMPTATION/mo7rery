@@ -26,9 +26,7 @@
     "high_count": 0,
     "medium_count": 1,
     "low_count": 0,
-    "top_3_risks": [
-      "VIO-001: Missing Mistral configuration"
-    ]
+    "top_3_risks": ["VIO-001: Missing Mistral configuration"]
   },
   "detailed_results": {
     "violations": "→ مرجع: .audit_results/violations.json",

@@ -10,6 +10,7 @@ import { getPdfOcrAgentConfig } from "./pdf-ocr-agent-config.mjs";
 import { stripOcrArtifactLines } from "./ocr-text-cleanup.mjs";
 import {
   buildPdfReference,
+  probePdftoppmDependency,
   renderPdfPages,
 } from "./pdf-reference-builder.mjs";
 import { runVisionProofread } from "./pdf-vision-proofread.mjs";
@@ -37,7 +38,12 @@ const MAX_STDIO_BUFFER = 64 * 1024 * 1024;
 const CLASSIFY_TIMEOUT_MS = 30_000;
 const WRITE_OUTPUT_TIMEOUT_MS = 60_000;
 const PIPELINE_OPEN_AGENT_BOOT_TIMEOUT_MS = 10_000;
-const MISMATCH_REPORTS_ROOT = resolve(__dirname, "..", "tmp", "mismatch-reports");
+const MISMATCH_REPORTS_ROOT = resolve(
+  __dirname,
+  "..",
+  "tmp",
+  "mismatch-reports"
+);
 const CANONICAL_MISTRAL_OCR_MODEL = "mistral-ocr-latest";
 const CANONICAL_MISTRAL_OCR_ENDPOINT = "https://api.mistral.ai/v1/ocr";
 const CANONICAL_VISION_COMPARE_MODEL = "mistral-large-latest";
@@ -277,7 +283,7 @@ const runOpenPdfAgentScript = async (
 
 // ─── خطوة 1: تصنيف PDF (classify-pdf.ts) ──────────────────────
 
-const runClassifyScript = async (config, pdfPath) => {
+const _runClassifyScript = async (config, pdfPath) => {
   logger.info(
     { script: config.classifyScriptPath, file: pdfPath },
     "classify-start"
@@ -393,7 +399,7 @@ const parseOcrPayload = (raw) => {
   };
 };
 
-const runOcrScript = async (config, inputPath, outputJsonPath) => {
+const _runOcrScript = async (config, inputPath, outputJsonPath) => {
   logger.info({ script: config.ocrScriptPath, file: inputPath }, "ocr-start");
 
   const args = buildOcrArguments(config, inputPath, outputJsonPath);
@@ -420,7 +426,7 @@ const runOcrScript = async (config, inputPath, outputJsonPath) => {
 
 // ─── خطوة 3: تنسيق المخرجات (write-output.ts) ────────────────
 
-const runWriteOutputScript = async (
+const _runWriteOutputScript = async (
   config,
   ocrJsonPath,
   format,
@@ -469,15 +475,7 @@ const runWriteOutputScript = async (
 };
 
 const buildCriticalTokenList = (text) => {
-  const seed = [
-    "مشهد1",
-    "مشهد2",
-    "قطع",
-    "داخلي",
-    "خارجي",
-    "نهار",
-    "ليل",
-  ];
+  const seed = ["مشهد1", "مشهد2", "قطع", "داخلي", "خارجي", "نهار", "ليل"];
 
   const dynamic = String(text ?? "")
     .match(/\b(?:مشهد[0-9٠-٩]+|[0-9٠-٩]+)\b/gu)
@@ -511,6 +509,14 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
   }
   if (mockMode === "failure") {
     throw new Error("PDF OCR agent mocked failure.");
+  }
+
+  // Pre-flight: ensure pdftoppm is available before starting the pipeline
+  const pdftoppmProbe = await probePdftoppmDependency();
+  if (!pdftoppmProbe.available) {
+    throw new Error(
+      `[${pdftoppmProbe.errorCode}] ${pdftoppmProbe.errorMessage}`
+    );
   }
 
   const tempRoot = await mkdtemp(join(tmpdir(), "mo7rer-pdf-ocr-"));
@@ -550,7 +556,7 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
     let finalText = "";
     let finalMarkdownText = "";
     let pipelinePages = 0;
-    let pipelineModel = CANONICAL_MISTRAL_OCR_MODEL;
+    const pipelineModel = CANONICAL_MISTRAL_OCR_MODEL;
 
     attempts.push("pipeline-open-agent");
     const openAgentPayload = await runOpenPdfAgentScript(
@@ -604,7 +610,9 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
           (entry) => typeof entry === "string" && entry.trim()
         )
       : [];
-    const checkedFiles = Array.isArray(openAgentPayload?.meta?.footprint?.checkedFiles)
+    const checkedFiles = Array.isArray(
+      openAgentPayload?.meta?.footprint?.checkedFiles
+    )
       ? openAgentPayload.meta.footprint.checkedFiles.filter(
           (entry) => typeof entry === "string" && entry.trim()
         )
@@ -714,13 +722,20 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
               "vision-proofread-complete"
             );
           } else {
-            allWarnings.push("vision-proofread returned empty text — keeping original OCR output");
+            allWarnings.push(
+              "vision-proofread returned empty text — keeping original OCR output"
+            );
             logger.warn("vision-proofread-empty-result");
           }
         } else {
-          allWarnings.push("vision-proofread skipped: no OCR pages or no rendered images");
+          allWarnings.push(
+            "vision-proofread skipped: no OCR pages or no rendered images"
+          );
           logger.warn(
-            { ocrPages: ocrPagesForProofread.length, images: proofreadPageImages.length },
+            {
+              ocrPages: ocrPagesForProofread.length,
+              images: proofreadPageImages.length,
+            },
             "vision-proofread-skipped-no-data"
           );
         }
@@ -746,7 +761,9 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
       }
     } else if (!config.enableVisionProofread) {
       attempts.push("vision-proofread-disabled");
-      logger.info("vision-proofread-disabled (PDF_OCR_ENABLE_VISION_PROOFREAD is not set)");
+      logger.info(
+        "vision-proofread-disabled (PDF_OCR_ENABLE_VISION_PROOFREAD is not set)"
+      );
     } else {
       attempts.push("vision-proofread-no-key");
       logger.warn("vision-proofread-skipped (GEMINI_API_KEY missing)");
@@ -772,9 +789,7 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
       logger.warn(
         {
           error:
-            docxError instanceof Error
-              ? docxError.message
-              : String(docxError),
+            docxError instanceof Error ? docxError.message : String(docxError),
         },
         "proofread-docx-export-failed"
       );
@@ -826,9 +841,15 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
         {
           referenceMode: reference.referenceMode,
           renderedPages: Number(reference?.compareReport?.renderedPages ?? 0),
-          proposedPatches: Number(reference?.compareReport?.proposedPatches ?? 0),
-          approvedPatches: Number(reference?.compareReport?.approvedPatches ?? 0),
-          rejectedPatches: Number(reference?.compareReport?.rejectedPatches ?? 0),
+          proposedPatches: Number(
+            reference?.compareReport?.proposedPatches ?? 0
+          ),
+          approvedPatches: Number(
+            reference?.compareReport?.approvedPatches ?? 0
+          ),
+          rejectedPatches: Number(
+            reference?.compareReport?.rejectedPatches ?? 0
+          ),
         },
         "vision-reference-build-complete"
       );
@@ -941,7 +962,3 @@ export const runPdfOcrAgent = async ({ buffer, filename }) => {
     await rm(tempRoot, { recursive: true, force: true }).catch(() => undefined);
   }
 };
-
-
-
-

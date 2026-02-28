@@ -151,7 +151,8 @@ const parseBackendExtractionResult = (
   if (!body.success || !body.data) {
     const code = toNonEmptyString(body.errorCode);
     const message =
-      toNonEmptyString(body.error) || "Backend extraction failed without details.";
+      toNonEmptyString(body.error) ||
+      "Backend extraction failed without details.";
     const fullMessage = code ? `${message} [${code}]` : message;
     const extractionError = createErrorWithCause(fullMessage, {
       errorCode: code,
@@ -271,7 +272,10 @@ const executeBackendExtractionRequest = async (
   const responseText = await response.text();
 
   if (!response.ok) {
-    const parsedError = extractBackendErrorMessage(responseText, response.status);
+    const parsedError = extractBackendErrorMessage(
+      responseText,
+      response.status
+    );
     const error = createErrorWithCause(parsedError.message, {
       statusCode: response.status,
       errorCode: parsedError.errorCode,
@@ -451,4 +455,3 @@ export const extractFileWithBackend = async (
     globalThis.clearTimeout(timeoutId);
   }
 };
-

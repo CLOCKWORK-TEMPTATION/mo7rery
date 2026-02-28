@@ -73,7 +73,9 @@ export const exportAsClassified = ({
   blocks,
 }: ExportAsClassifiedOptions): void => {
   const textContent = generateClassifiedText(blocks);
-  const safeName = (sanitizeExportFileBaseName(fileNameBase ?? "النص_المصنف") || "النص_المصنف") + ".txt";
+  const safeName =
+    (sanitizeExportFileBaseName(fileNameBase ?? "النص_المصنف") ||
+      "النص_المصنف") + ".txt";
 
   const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);

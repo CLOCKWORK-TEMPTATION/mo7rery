@@ -41,7 +41,9 @@ const buildCriticalMatchers = (criticalTokens = []) => {
       const normalized = String(token ?? "").trim();
       if (!normalized) return false;
       if (set.has(normalized)) return true;
-      return CRITICAL_DEFAULT_PATTERNS.some((pattern) => pattern.test(normalized));
+      return CRITICAL_DEFAULT_PATTERNS.some((pattern) =>
+        pattern.test(normalized)
+      );
     },
   };
 };
@@ -113,8 +115,13 @@ export const enforceTokenMatch = ({
   }
 
   const wordMatch =
-    totalReferenceWords === 0 ? 100 : toPercent(matchedWords / totalReferenceWords);
-  const structuralMatch = computeStructuralMatch(referenceLines, candidateLines);
+    totalReferenceWords === 0
+      ? 100
+      : toPercent(matchedWords / totalReferenceWords);
+  const structuralMatch = computeStructuralMatch(
+    referenceLines,
+    candidateLines
+  );
   const criticalCount = mismatchReport.filter(
     (item) => item.severity === "critical"
   ).length;

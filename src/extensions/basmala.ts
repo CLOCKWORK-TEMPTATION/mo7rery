@@ -4,7 +4,8 @@
  * عنصر البسملة (Basmala) — "بسم الله الرحمن الرحيم".
  *
  * يُصدّر:
- * - {@link isBasmalaLine} — كاشف أسطر البسملة (4 تعبيرات نمطية مُركّبة)
+ * - {@link isBasmalaLine} — كاشف واسع (signature) لوجود كلمات البسملة في السطر
+ * - {@link isStandaloneBasmalaLine} — كاشف صارم: السطر كله بسملة مستقلة بدون prefix حواري
  * - {@link Basmala} — عقدة Tiptap للبسملة
  *
  * سلوك Enter: الانتقال إلى {@link SceneHeaderTopLine} (رأس مشهد).
@@ -39,6 +40,48 @@ export const isBasmalaLine = (text: string): boolean => {
     BASMALA_ALLAH_RE.test(normalized) &&
     (BASMALA_RAHMAN_RE.test(normalized) || BASMALA_RAHIM_RE.test(normalized))
   );
+};
+
+/**
+ * الحرف الموحد للبسملة في Unicode (﷽)
+ */
+const BASMALA_SINGLE_CHAR = "\uFDFD";
+
+/**
+ * Regex صارم: السطر كله بسملة مستقلة — بدون prefix حواري أو اسم شخصية.
+ * يقبل: "بسم الله الرحمن الرحيم" (مع/بدون تشكيل ومسافات متغيرة)
+ * يرفض: "بوسي : بسم الله الرحمن الرحيم" أو "قال: بسم الله"
+ */
+const STANDALONE_BASMALA_RE =
+  /^\s*(?:﷽|بسم[\u064B-\u0652]*\s+الله[\u064B-\u0652]*\s+الرحمن[\u064B-\u0652]*\s+الرحيم[\u064B-\u0652]*)\s*$/;
+
+/**
+ * كاشف صارم: السطر كله بسملة مستقلة بدون أي prefix.
+ * يرفض أي سطر فيه delimiter حواري (`:`) قبل "بسم"، أو كلمات زائدة.
+ *
+ * @param text - النص الخام للسطر
+ * @returns `true` فقط إذا كان السطر بسملة مستقلة بالكامل
+ */
+export const isStandaloneBasmalaLine = (text: string): boolean => {
+  const cleaned = (text ?? "")
+    .replace(/[{}()\x5B\x5D﴾﴿]/g, "")
+    .replace(/[\u200f\u200e\ufeff]/g, "")
+    .trim();
+
+  if (!cleaned) return false;
+
+  if (cleaned === BASMALA_SINGLE_CHAR) return true;
+
+  const colonIndex = cleaned.indexOf(":");
+  const colonFullWidth = cleaned.indexOf("：");
+  if (colonIndex !== -1 || colonFullWidth !== -1) return false;
+
+  const normalized = normalizeLine(cleaned);
+  if (!normalized) return false;
+
+  const withoutDiacritics = normalized.replace(/[\u064B-\u0652\u0670]/g, "");
+
+  return STANDALONE_BASMALA_RE.test(withoutDiacritics);
 };
 
 /**

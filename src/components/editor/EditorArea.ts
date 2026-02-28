@@ -27,6 +27,7 @@ import {
   htmlToScreenplayBlocks,
   type ScreenplayBlock,
 } from "../../utils/file-import";
+import { maybeReconstructUnstructured } from "../../pipeline/unstructured";
 import {
   FILMLANE_CLIPBOARD_MIME,
   type ClipboardOrigin,
@@ -318,6 +319,22 @@ export class EditorArea implements EditorHandle {
   ): Promise<void> => {
     // ضمان تفعيل دورة القياس في امتداد الصفحات قبل/بعد إدراج النص.
     this.editor.commands.focus(mode === "replace" ? "start" : "end");
+
+    const unstructured = maybeReconstructUnstructured(text, {
+      threshold: 0.7,
+      replaceBullets: true,
+    });
+
+    if (unstructured.applied) {
+      const existingHints = context?.structuredHints ?? [];
+      const mergedHints = unstructured.structuredBlocks.concat(existingHints);
+
+      text = unstructured.structuredText;
+      context = {
+        ...(context ?? {}),
+        structuredHints: mergedHints,
+      };
+    }
 
     const state = this.editor.view.state;
     const replaceAllFrom = 0;

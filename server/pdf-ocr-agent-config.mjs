@@ -19,8 +19,6 @@ const DEFAULT_AGENT_ROOT = resolve(
   "src",
   "ocr-arabic-pdf-to-txt-pipeline"
 );
-const CANONICAL_VISION_COMPARE_MODEL = "mistral-large-latest";
-
 const baseConfigSchema = z.object({
   enabled: z.boolean(),
   agentRoot: z.string().min(1),
@@ -41,9 +39,21 @@ const baseConfigSchema = z.object({
   visionCompareModel: z.string(),
   visionJudgeModel: z.string(),
   visionProofreadModel: z.string(),
-  visionCompareTimeoutMs: z.number().int().min(1_000).max(10 * 60 * 1_000),
-  visionJudgeTimeoutMs: z.number().int().min(1_000).max(10 * 60 * 1_000),
-  visionProofreadTimeoutMs: z.number().int().min(1_000).max(10 * 60 * 1_000),
+  visionCompareTimeoutMs: z
+    .number()
+    .int()
+    .min(1_000)
+    .max(10 * 60 * 1_000),
+  visionJudgeTimeoutMs: z
+    .number()
+    .int()
+    .min(1_000)
+    .max(10 * 60 * 1_000),
+  visionProofreadTimeoutMs: z
+    .number()
+    .int()
+    .min(1_000)
+    .max(10 * 60 * 1_000),
   visionRenderDpi: z.number().int().min(96).max(600),
   externalReferencePath: z.string(),
   openAgentVerifyFootprint: z.boolean(),
@@ -125,13 +135,20 @@ const resolveRawConfig = () => {
     geminiApiKey: process.env.GEMINI_API_KEY?.trim() || "",
     visionCompareModel: process.env.PDF_VISION_COMPARE_MODEL?.trim() || "",
     visionJudgeModel: process.env.PDF_VISION_JUDGE_MODEL?.trim() || "",
-    visionProofreadModel: process.env.PDF_VISION_PROOFREAD_MODEL?.trim() || "gemini-2.5-flash",
+    visionProofreadModel:
+      process.env.PDF_VISION_PROOFREAD_MODEL?.trim() || "gemini-2.5-flash",
     visionCompareTimeoutMs: toNumber(
       process.env.PDF_VISION_COMPARE_TIMEOUT_MS,
       180_000
     ),
-    visionJudgeTimeoutMs: toNumber(process.env.PDF_VISION_JUDGE_TIMEOUT_MS, 180_000),
-    visionProofreadTimeoutMs: toNumber(process.env.PDF_VISION_PROOFREAD_TIMEOUT_MS, 180_000),
+    visionJudgeTimeoutMs: toNumber(
+      process.env.PDF_VISION_JUDGE_TIMEOUT_MS,
+      180_000
+    ),
+    visionProofreadTimeoutMs: toNumber(
+      process.env.PDF_VISION_PROOFREAD_TIMEOUT_MS,
+      180_000
+    ),
     visionRenderDpi: toNumber(process.env.PDF_VISION_RENDER_DPI, 300),
     externalReferencePath:
       process.env.PDF_OCR_EXTERNAL_REFERENCE_PATH?.trim() || "",
@@ -183,7 +200,10 @@ export const getPdfOcrAgentConfig = () => {
     );
   }
   if (!parsed.visionCompareModel) {
-    parsed.visionCompareModel = CANONICAL_VISION_COMPARE_MODEL;
+    throw configError(
+      "PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL",
+      "PDF OCR agent misconfigured: PDF_VISION_COMPARE_MODEL is required."
+    );
   }
   if (!parsed.visionJudgeModel) {
     throw configError(
@@ -251,23 +271,23 @@ export const getPdfOcrAgentHealth = async () => {
   const hasVisionJudgeModel = config.visionJudgeModel.length > 0;
 
   const pdftoppm = await probePdftoppmDependency();
-  const compareRuntime =
-    hasVisionCompareModel
-      ? getVisionCompareRuntime({
-          model: config.visionCompareModel,
-        })
-      : {
-          model: config.visionCompareModel,
-          endpointSource: "hard-locked-canonical",
-          errorCode: "PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL",
-        };
+  const compareRuntime = hasVisionCompareModel
+    ? getVisionCompareRuntime({
+        model: config.visionCompareModel,
+      })
+    : {
+        model: config.visionCompareModel,
+        endpointSource: "hard-locked-canonical",
+        errorCode: "PDF_OCR_CFG_MISSING_VISION_COMPARE_MODEL",
+      };
   const judgeRuntime = getVisionJudgeRuntime({
     model: config.visionJudgeModel,
   });
 
   const errorCodes = [];
   if (!hasMistralApiKey) errorCodes.push("PDF_OCR_CFG_MISSING_MISTRAL_API_KEY");
-  if (!hasMoonshotApiKey) errorCodes.push("PDF_OCR_CFG_MISSING_MOONSHOT_API_KEY");
+  if (!hasMoonshotApiKey)
+    errorCodes.push("PDF_OCR_CFG_MISSING_MOONSHOT_API_KEY");
   if (config.enableVisionProofread && !hasGeminiApiKey)
     errorCodes.push("PDF_OCR_CFG_MISSING_GEMINI_API_KEY");
   if (!hasVisionCompareModel)

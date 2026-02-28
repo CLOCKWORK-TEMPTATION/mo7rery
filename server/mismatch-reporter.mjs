@@ -45,5 +45,9 @@ export const writeMismatchReport = async (filePath, payload) => {
   };
 
   await mkdir(dirname(filePath), { recursive: true });
-  await writeFile(filePath, `${JSON.stringify(serialized, null, 2)}\n`, "utf-8");
+  await writeFile(
+    filePath,
+    `${JSON.stringify(serialized, null, 2)}\n`,
+    "utf-8"
+  );
 };
