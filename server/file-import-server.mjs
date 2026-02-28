@@ -1,4 +1,6 @@
 import http from "node:http";
+import express from "express";
+import rateLimit from "express-rate-limit";
 import process from "node:process";
 import { execFile, execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -1111,69 +1113,77 @@ const handleExportPdfA = async (req, res) => {
   }
 };
 
-const server = http.createServer(async (req, res) => {
-  if (!req.url) {
-    sendJson(res, 404, { success: false, error: "Not found." });
-    return;
-  }
+const app = express();
 
-  const url = new URL(req.url, `http://${HOST}:${PORT}`);
-
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "POST, OPTIONS, GET");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") {
-    res.writeHead(204, corsHeaders);
-    res.end();
-    return;
+    res.sendStatus(204);
+  } else {
+    next();
   }
+});
 
-  if (req.method === "GET" && url.pathname === "/health") {
-    const ocrAgent = await getPdfOcrAgentHealth();
-    const reviewRuntime = getAnthropicReviewRuntime();
-    sendJson(res, 200, {
-      ok: true,
-      service: "file-import-backend",
-      antiwordPath: process.env.ANTIWORD_PATH || DEFAULT_ANTIWORD_PATH,
-      antiwordHome: process.env.ANTIWORDHOME || DEFAULT_ANTIWORD_HOME,
-      antiwordBinaryAvailable: ANTIWORD_PREFLIGHT.binaryAvailable,
-      antiwordHomeExists: ANTIWORD_PREFLIGHT.antiwordHomeExists,
-      antiwordWarnings: FILE_IMPORT_PREFLIGHT_WARNINGS,
-      docxConverterScriptPath: DOCX_TO_DOC_SCRIPT_PATH,
-      docxConverterScriptExists: DOCX_TO_DOC_SCRIPT_EXISTS,
-      agentReviewConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
-      ocrConfigured: ocrAgent.configured,
-      ocrAgent,
-      reviewModel: getAnthropicReviewModel(),
-      reviewProvider: reviewRuntime.provider,
-      reviewModelRequested: reviewRuntime.requestedModel,
-      reviewModelResolved: reviewRuntime.resolvedModel,
-      reviewModelFallbackApplied: reviewRuntime.fallbackApplied,
-      reviewModelFallbackReason: reviewRuntime.fallbackReason,
-      reviewApiBaseUrl: reviewRuntime.baseUrl,
-      reviewApiVersion: reviewRuntime.apiVersion,
-    });
-    return;
+const extractLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    sendJson(res, options.statusCode, { success: false, error: options.message });
   }
+});
 
-  if (
-    req.method === "POST" &&
-    (url.pathname === "/api/file-extract" ||
-      url.pathname === "/api/files/extract")
-  ) {
-    await handleExtract(req, res);
-    return;
+const reviewLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    sendJson(res, options.statusCode, { success: false, error: options.message });
   }
+});
 
-  if (req.method === "POST" && url.pathname === "/api/agent/review") {
-    await handleAgentReview(req, res);
-    return;
-  }
+app.get("/health", async (req, res) => {
+  const ocrAgent = await getPdfOcrAgentHealth();
+  const reviewRuntime = getAnthropicReviewRuntime();
+  res.status(200).json({
+    status: "ok",
+    ok: true,
+    service: "file-import-backend",
+    antiwordPath: process.env.ANTIWORD_PATH || DEFAULT_ANTIWORD_PATH,
+    antiwordHome: process.env.ANTIWORDHOME || DEFAULT_ANTIWORD_HOME,
+    antiwordBinaryAvailable: ANTIWORD_PREFLIGHT.binaryAvailable,
+    antiwordHomeExists: ANTIWORD_PREFLIGHT.antiwordHomeExists,
+    antiwordWarnings: FILE_IMPORT_PREFLIGHT_WARNINGS,
+    docxConverterScriptPath: DOCX_TO_DOC_SCRIPT_PATH,
+    docxConverterScriptExists: DOCX_TO_DOC_SCRIPT_EXISTS,
+    agentReviewConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
+    ocrConfigured: ocrAgent.configured,
+    ocrAgent,
+    reviewModel: getAnthropicReviewModel(),
+    reviewProvider: reviewRuntime.provider,
+    reviewModelRequested: reviewRuntime.requestedModel,
+    reviewModelResolved: reviewRuntime.resolvedModel,
+    reviewModelFallbackApplied: reviewRuntime.fallbackApplied,
+    reviewModelFallbackReason: reviewRuntime.fallbackReason,
+    reviewApiBaseUrl: reviewRuntime.baseUrl,
+    reviewApiVersion: reviewRuntime.apiVersion,
+  });
+});
 
-  if (req.method === "POST" && url.pathname === "/api/export/pdfa") {
-    await handleExportPdfA(req, res);
-    return;
-  }
+app.post("/api/file-extract", extractLimiter, handleExtract);
+app.post("/api/files/extract", extractLimiter, handleExtract);
+app.post("/api/agent/review", reviewLimiter, handleAgentReview);
+app.post("/api/export/pdfa", handleExportPdfA);
 
+app.use((req, res) => {
   sendJson(res, 404, { success: false, error: "Route not found." });
 });
+
+const server = http.createServer(app);
 
 server.on("error", (error) => {
   const code = typeof error?.code === "string" ? error.code : "";
@@ -1216,6 +1226,3 @@ server.listen(PORT, HOST, () => {
     }
   }
 });
-
-
-

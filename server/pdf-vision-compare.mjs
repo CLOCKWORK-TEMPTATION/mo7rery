@@ -1,12 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
-import {
-  resolveMistralChatRuntime,
-} from "./provider-api-runtime.mjs";
+import { resolveMistralChatRuntime } from "./provider-api-runtime.mjs";
 
 const log = (tag, data) => {
   const ts = new Date().toISOString();
-  console.log(`[${ts}] [vision-compare] ${tag}`, data != null ? JSON.stringify(data) : "");
+  console.warn(
+    `[${ts}] [vision-compare] ${tag}`,
+    data != null ? JSON.stringify(data) : ""
+  );
 };
 
 const DEFAULT_TIMEOUT_MS = 180_000;
@@ -137,7 +138,12 @@ const requestMistralChatForImage = async ({
   let attempt = 0;
   let lastError;
 
-  log("api-call-start", { page: _pageLabel, model: runtime.model, endpoint, timeoutMs });
+  log("api-call-start", {
+    page: _pageLabel,
+    model: runtime.model,
+    endpoint,
+    timeoutMs,
+  });
   const t0 = Date.now();
 
   while (attempt <= maxRetries) {
@@ -204,7 +210,12 @@ const requestMistralChatForImage = async ({
           "mistral-compare returned empty assistant text for page image."
         );
       }
-      log("api-call-done", { page: _pageLabel, ms: Date.now() - t0, attempt, textLen: text.length });
+      log("api-call-done", {
+        page: _pageLabel,
+        ms: Date.now() - t0,
+        attempt,
+        textLen: text.length,
+      });
       return text;
     } catch (error) {
       lastError = error;
@@ -216,15 +227,17 @@ const requestMistralChatForImage = async ({
     }
   }
 
-  log("api-call-failed", { page: _pageLabel, ms: Date.now() - t0, error: toErrorMessage(lastError) });
-  throw new Error(`mistral-compare failed after retries: ${toErrorMessage(lastError)}`);
+  log("api-call-failed", {
+    page: _pageLabel,
+    ms: Date.now() - t0,
+    error: toErrorMessage(lastError),
+  });
+  throw new Error(
+    `mistral-compare failed after retries: ${toErrorMessage(lastError)}`
+  );
 };
 
-const buildProposedPatches = ({
-  page,
-  currentText,
-  referenceText,
-}) => {
+const buildProposedPatches = ({ page, currentText, referenceText }) => {
   const currentLines = parseLines(currentText);
   const referenceLines = parseLines(referenceText);
   const patches = [];
@@ -249,7 +262,8 @@ const buildProposedPatches = ({
         continue;
       }
 
-      const operation = expected && actual ? "replace" : expected ? "insert" : "delete";
+      const operation =
+        expected && actual ? "replace" : expected ? "insert" : "delete";
       patchSeq += 1;
       patches.push({
         id: `p${page}-l${lineIndex + 1}-t${tokenIndex + 1}-${patchSeq}`,
@@ -281,7 +295,10 @@ const processComparePage = async ({
   const t0 = Date.now();
   const imageBuffer = await readFile(imagePath);
   const imageDataUrl = toDataUrl(imageBuffer, "image/png");
-  log("page-image-loaded", { page: pageNumber, sizeKb: Math.round(imageBuffer.length / 1024) });
+  log("page-image-loaded", {
+    page: pageNumber,
+    sizeKb: Math.round(imageBuffer.length / 1024),
+  });
   const compareText = await requestMistralChatForImage({
     apiKey,
     model,
@@ -297,7 +314,11 @@ const processComparePage = async ({
     referenceText: compareText,
   });
 
-  log("page-done", { page: pageNumber, patches: proposedPatches.length, ms: Date.now() - t0 });
+  log("page-done", {
+    page: pageNumber,
+    patches: proposedPatches.length,
+    ms: Date.now() - t0,
+  });
   return {
     page: pageNumber,
     imagePath,

@@ -15,7 +15,7 @@ const formatIds = (blocks: ScreenplayBlock[]): string[] =>
   blocks.map((b) => b.formatId);
 
 /** دالة مساعدة — تستخرج أنواع التنسيق والنصوص */
-const formatAndText = (
+const _formatAndText = (
   blocks: ScreenplayBlock[]
 ): Array<{ formatId: string; text: string }> =>
   blocks.map((b) => ({ formatId: b.formatId, text: b.text }));

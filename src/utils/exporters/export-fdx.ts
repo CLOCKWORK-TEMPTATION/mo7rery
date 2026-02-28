@@ -54,9 +54,7 @@ const mapFormatIdToFdxType = (
  * تحديد FDX Text Style بناءً على formatId.
  * Final Draft يستخدم: Bold, Italic, Underline, Bold+Italic, إلخ
  */
-const getFdxTextStyle = (
-  formatId: ScreenplayBlock["formatId"]
-): string => {
+const getFdxTextStyle = (formatId: ScreenplayBlock["formatId"]): string => {
   switch (formatId) {
     case "basmala":
     case "scene-header-1":
@@ -146,9 +144,7 @@ const buildFdxParagraphs = (blocks: ScreenplayBlock[]): FdxParagraph[] => {
     const style = getFdxTextStyle(block.formatId);
     paragraphs.push({
       "@_Type": mapFormatIdToFdxType(block.formatId),
-      Text: style
-        ? { "#text": text, "@_Style": style }
-        : { "#text": text },
+      Text: style ? { "#text": text, "@_Style": style } : { "#text": text },
     });
   }
 

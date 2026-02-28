@@ -38,9 +38,7 @@ export const downloadBlob = (fileName: string, blob: Blob): void => {
   URL.revokeObjectURL(url);
 };
 
-export const sanitizeExportFileBaseName = (
-  fileNameBase?: string
-): string => {
+export const sanitizeExportFileBaseName = (fileNameBase?: string): string => {
   const candidate = (fileNameBase ?? DEFAULT_EXPORT_FILE_BASE).trim();
   const normalized = candidate
     .replace(/[\\/:*?"<>|]+/g, "-")

@@ -95,7 +95,12 @@ const buildFountainString = (blocks: ScreenplayBlock[]): string => {
   }
 
   // تنظيف الأسطر الفارغة المتتالية (3+ → 2)
-  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
+  return (
+    lines
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim() + "\n"
+  );
 };
 
 export const exportAsFountain = (request: BlockExportRequest): void => {

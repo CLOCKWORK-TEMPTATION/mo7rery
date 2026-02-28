@@ -35,6 +35,7 @@ import { fromLegacyElementType, isElementType } from "./classification-types";
 import { ContextMemoryManager } from "./context-memory-manager";
 import {
   getDialogueProbability,
+  hasDirectDialogueCues,
   isDialogueContinuationLine,
   isDialogueLine,
 } from "./dialogue";
@@ -50,6 +51,7 @@ import {
   isCompleteSceneHeaderLine,
   splitSceneHeaderLine,
 } from "./scene-header-top-line";
+import { normalizeCharacterName } from "./text-utils";
 import { isTransitionLine } from "./transition";
 import { logger } from "../utils/logger";
 import type {
@@ -437,7 +439,8 @@ export const classifyLines = (
     memoryManager.record(entry);
   };
 
-  for (const rawLine of lines) {
+  for (let _lineIdx = 0; _lineIdx < lines.length; _lineIdx++) {
+    const rawLine = lines[_lineIdx];
     const trimmed = parseBulletLine(rawLine);
     if (!trimmed) continue;
     activeSourceHintType = consumeSourceHintTypeForLine(trimmed, hintQueues);
@@ -608,11 +611,58 @@ export const classifyLines = (
     }
 
     if (isCharacterLine(normalizedForClassification, context)) {
+      const _namePart = normalizeCharacterName(normalizedForClassification);
+      const _tokens = _namePart.split(/\s+/).filter(Boolean);
+      const _charFreq = memoryManager.getSnapshot().characterFrequency;
+      const _isFirstSingleToken =
+        _tokens.length === 1 && (_charFreq.get(_namePart) ?? 0) === 0;
+
+      if (!_isFirstSingleToken) {
+        push({
+          type: "character",
+          text: ensureCharacterTrailingColon(trimmed),
+          confidence: 88,
+          classificationMethod: "regex",
+        });
+        continue;
+      }
+
+      // كلمة وحيدة + أول ظهور → peek-ahead: لو السطر التالي حوار/parenthetical → character
+      const _nextRaw = lines
+        .slice(_lineIdx + 1)
+        .find((l) => parseBulletLine(l));
+      const _nextTrimmed = _nextRaw ? parseBulletLine(_nextRaw) : null;
+      const _nextNormalized = _nextTrimmed
+        ? convertHindiToArabic(_nextTrimmed)
+        : null;
+      // فحص حوار: مباشر + بعد تجريد حرف عطف أولي (و/ف شائعين في بداية الحوار)
+      const _nextStripped = _nextNormalized
+        ? _nextNormalized.replace(/^[وف]\s*/, "").trim()
+        : null;
+      const _hasDialogueAfter =
+        _nextNormalized != null &&
+        (isParentheticalLine(_nextNormalized) ||
+          hasDirectDialogueCues(_nextNormalized) ||
+          (_nextStripped != null &&
+            _nextStripped.length > 0 &&
+            hasDirectDialogueCues(_nextStripped)));
+
+      if (_hasDialogueAfter) {
+        push({
+          type: "character",
+          text: ensureCharacterTrailingColon(trimmed),
+          confidence: 78,
+          classificationMethod: "context",
+        });
+        continue;
+      }
+
+      // لا دليل حوار بعدها → مش اسم شخصية
       push({
-        type: "character",
-        text: ensureCharacterTrailingColon(trimmed),
-        confidence: 88,
-        classificationMethod: "regex",
+        type: "action",
+        text: trimmed,
+        confidence: 72,
+        classificationMethod: "context",
       });
       continue;
     }
@@ -1922,13 +1972,11 @@ const applyRemoteAgentReviewV2 = async (
   // 2. The agent returned no command (confirming current type is correct), OR
   // 3. The agent returned a same-type relabel (explicit confirmation)
   // Only flag as unresolved if the item wasn't even in the classified list.
-  const unresolvedForcedItemIdsFromEffect = forcedItemIds.filter(
-    (itemId) => {
-      // Check if the item exists at all in the classified data
-      const exists = corrected.some((item) => item._itemId === itemId);
-      return !exists;
-    }
-  );
+  const unresolvedForcedItemIdsFromEffect = forcedItemIds.filter((itemId) => {
+    // Check if the item exists at all in the classified data
+    const exists = corrected.some((item) => item._itemId === itemId);
+    return !exists;
+  });
   const unresolvedForcedItemIds = toNormalizedMetaIds([
     ...unresolvedForcedItemIdsFromMeta,
     ...unresolvedForcedItemIdsFromEffect,

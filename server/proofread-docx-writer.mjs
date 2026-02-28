@@ -10,7 +10,14 @@
  *   `{filename}-raw.docx`  و  `{filename}-formatted.docx`
  */
 
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  AlignmentType,
+} from "docx";
 import { writeFile, mkdir } from "node:fs/promises";
 import { basename, join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,9 +31,21 @@ try {
   logger = pino({ name: "proofread-docx-writer", level: "info" });
 } catch {
   logger = {
-    info: (obj, msg) => console.log(`[proofread-docx] INFO: ${msg || ""}`, typeof obj === "string" ? obj : ""),
-    warn: (obj, msg) => console.warn(`[proofread-docx] WARN: ${msg || ""}`, typeof obj === "string" ? obj : ""),
-    error: (obj, msg) => console.error(`[proofread-docx] ERROR: ${msg || ""}`, typeof obj === "string" ? obj : ""),
+    info: (obj, msg) =>
+      console.warn(
+        `[proofread-docx] INFO: ${msg || ""}`,
+        typeof obj === "string" ? obj : ""
+      ),
+    warn: (obj, msg) =>
+      console.warn(
+        `[proofread-docx] WARN: ${msg || ""}`,
+        typeof obj === "string" ? obj : ""
+      ),
+    error: (obj, msg) =>
+      console.error(
+        `[proofread-docx] ERROR: ${msg || ""}`,
+        typeof obj === "string" ? obj : ""
+      ),
   };
 }
 
@@ -36,7 +55,8 @@ const OUTPUT_DIR = resolve(__dirname, "proofread-output");
 
 const SCENE_HEADER_RE = /^(?:مشهد|مسـاهد|scene)\s*[0-9٠-٩]+/i;
 const SCENE_LOCATION_RE = /^(?:نهار|ليل|صباح|مساء|غروب|فجر|شروق)\s*[-–—]/i;
-const LOCATION_LINE_RE = /^(?:شقة|بيت|منزل|غرفة|شارع|مكتب|مستشفى|مسجد|كنيسة|مطعم|فندق|سيارة|طريق)/;
+const LOCATION_LINE_RE =
+  /^(?:شقة|بيت|منزل|غرفة|شارع|مكتب|مستشفى|مسجد|كنيسة|مطعم|فندق|سيارة|طريق)/;
 const CHARACTER_DIALOGUE_RE = /^([^\s:：]{1,20})\s*[:：]\s*(.+)$/;
 const BULLET_CHARACTER_RE = /^[▪•●○]\s*([^\s:：]{1,20})\s*[:：]\s*(.+)$/;
 const ACTION_CUE_RE = /^[-–—]\s+/;
@@ -98,7 +118,10 @@ const classifyLineSimple = (line) => {
 
   // أكشن (يبدأ بشرطة)
   if (ACTION_CUE_RE.test(trimmed)) {
-    return { type: "action-cue", text: trimmed.replace(ACTION_CUE_RE, "").trim() };
+    return {
+      type: "action-cue",
+      text: trimmed.replace(ACTION_CUE_RE, "").trim(),
+    };
   }
 
   return { type: "narrative", text: trimmed };
@@ -106,7 +129,7 @@ const classifyLineSimple = (line) => {
 
 // ─── توليد DOCX خام ───────────────────────────────────────────
 
-const buildRawDocx = (text, filename) => {
+const buildRawDocx = (text, _filename) => {
   const lines = text.split(/\r?\n/);
   const paragraphs = [];
 
@@ -150,7 +173,7 @@ const buildRawDocx = (text, filename) => {
 
 // ─── توليد DOCX مُنسّق ───────────────────────────────────────
 
-const buildFormattedDocx = (text, filename) => {
+const buildFormattedDocx = (text, _filename) => {
   const lines = text.split(/\r?\n/);
   const paragraphs = [];
 
@@ -337,11 +360,12 @@ export const saveProofreadAsDocx = async (text, originalFilename) => {
     return { rawPath: "", formattedPath: "" };
   }
 
-  const baseName = basename(originalFilename || "document.pdf", ".pdf")
-    .replace(/[^a-zA-Z0-9\u0600-\u06FF._-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 60) || "document";
+  const baseName =
+    basename(originalFilename || "document.pdf", ".pdf")
+      .replace(/[^a-zA-Z0-9\u0600-\u06FF._-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 60) || "document";
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const rawFileName = `${baseName}-${timestamp}-raw.docx`;

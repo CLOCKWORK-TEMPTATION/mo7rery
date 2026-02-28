@@ -19,10 +19,7 @@ function collapseBlankLines(text: string): string {
 
 function splitInlineMarkers(line: string): string[] {
   const repaired = line
-    .replace(
-      new RegExp(`^(${BASMALA})\\s+(مشهد[0-9٠-٩]+)`, "u"),
-      "$1\n$2"
-    )
+    .replace(new RegExp(`^(${BASMALA})\\s+(مشهد[0-9٠-٩]+)`, "u"), "$1\n$2")
     .replace(/([.؟?!:])\s+-\s+(?=[\u0600-\u06FF])/gu, "$1\n- ")
     .replace(
       /([^\n])\s+(مشهد[0-9٠-٩]+(?:\s*[-–—]\s*(?:داخلي|خارجي|نهار|ليل|صباح|مساء|فجر))*)/gu,

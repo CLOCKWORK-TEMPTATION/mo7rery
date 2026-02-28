@@ -48,7 +48,7 @@ export default tseslint.config(
       // منع ترك متغيرات غير مستخدمة للحفاظ على نظافة الكود، مع السماح بتلك التي تبدأ بشرطة سفلية
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_" },
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       // منع استخدام أوامر الطباعة (console.log) لتشجيع استخدام أدوات التسجيل (Logging) الاحترافية
       "no-console": ["error", { allow: ["warn", "error"] }],

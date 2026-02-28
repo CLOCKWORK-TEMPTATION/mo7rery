@@ -263,7 +263,11 @@ const CONJUNCTION_START_RE = /^[وفثم][ـ-ي]/;
 const CHARACTER_VERB_RE = /^[يتنأ][؀-ۿ]{2,}$/;
 
 const looksLikeVerbOrConjunction = (normalized: string): boolean => {
-  const words = normalized.replace(/[::،؛]/g, "").trim().split(/\s+/).filter(Boolean);
+  const words = normalized
+    .replace(/[::،؛]/g, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
   if (words.length === 0) return false;
   const firstWord = words[0];
   if (CONJUNCTION_START_RE.test(firstWord) && words.length <= 3) return true;
@@ -289,7 +293,8 @@ const createContentTypeMismatchDetector = (): SuspicionDetector => ({
         return {
           detectorId: "content-type-mismatch",
           suspicionScore: 92,
-          reason: 'مصنّف "character" لكن بدون نقطتين (:) — قاعدة حديدية من الـ schema',
+          reason:
+            'مصنّف "character" لكن بدون نقطتين (:) — قاعدة حديدية من الـ schema',
           suggestedType: features.hasActionIndicators
             ? "action"
             : features.wordCount >= 4
@@ -324,7 +329,8 @@ const createContentTypeMismatchDetector = (): SuspicionDetector => ({
         return {
           detectorId: "content-type-mismatch",
           suspicionScore: 88,
-          reason: 'مصنّف "character" لكن النص فيه فعل أو حرف عطف — مش شكل اسم شخصية',
+          reason:
+            'مصنّف "character" لكن النص فيه فعل أو حرف عطف — مش شكل اسم شخصية',
           suggestedType: features.hasActionIndicators ? "action" : "dialogue",
         };
       }
@@ -424,15 +430,13 @@ const createContentTypeMismatchDetector = (): SuspicionDetector => ({
       return {
         detectorId: "content-type-mismatch",
         suspicionScore: 85,
-        reason: 'مصنّف "action" بعد "character" لكن بدون مؤشرات وصف قوية → أرجح حوار',
+        reason:
+          'مصنّف "action" بعد "character" لكن بدون مؤشرات وصف قوية → أرجح حوار',
         suggestedType: "dialogue",
       };
     }
 
-    if (
-      type !== "basmala" &&
-      BASMALA_REVERSE_RE.test(features.normalized)
-    ) {
+    if (type !== "basmala" && BASMALA_REVERSE_RE.test(features.normalized)) {
       return {
         detectorId: "content-type-mismatch",
         suspicionScore: 95,
@@ -448,15 +452,13 @@ const createContentTypeMismatchDetector = (): SuspicionDetector => ({
       return {
         detectorId: "content-type-mismatch",
         suspicionScore: 94,
-        reason: 'مصنّف "basmala" لكن السطر فيه delimiter حواري (:) — أرجح character + dialogue',
+        reason:
+          'مصنّف "basmala" لكن السطر فيه delimiter حواري (:) — أرجح character + dialogue',
         suggestedType: "dialogue",
       };
     }
 
-    if (
-      type === "basmala" &&
-      features.wordCount > 6
-    ) {
+    if (type === "basmala" && features.wordCount > 6) {
       return {
         detectorId: "content-type-mismatch",
         suspicionScore: 85,
@@ -693,10 +695,7 @@ const createReversePatternMismatchDetector = (): SuspicionDetector => ({
       };
     }
 
-    if (
-      type !== "transition" &&
-      TRANSITION_RE.test(normalized)
-    ) {
+    if (type !== "transition" && TRANSITION_RE.test(normalized)) {
       return {
         detectorId: "reverse-pattern-mismatch",
         suspicionScore: 90,

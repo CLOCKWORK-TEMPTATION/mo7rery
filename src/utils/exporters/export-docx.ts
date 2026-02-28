@@ -80,7 +80,13 @@ const buildTopLineParagraph = (
   header1Text: string,
   header2Text: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  modules: { AlignmentType: any; Paragraph: any; TextRun: any; TabStopPosition: any; TabStopType: any }
+  modules: {
+    AlignmentType: any;
+    Paragraph: any;
+    TextRun: any;
+    TabStopPosition: any;
+    TabStopType: any;
+  }
 ) => {
   const { Paragraph, TextRun, AlignmentType } = modules;
   const h1 = normalizeText(header1Text);
@@ -124,7 +130,13 @@ export const exportToDocx = async (
 ): Promise<void> => {
   const docxLib = await import("docx");
   const { AlignmentType, Document, Packer, Paragraph, TextRun } = docxLib;
-  const modules = { AlignmentType, Paragraph, TextRun, TabStopPosition: undefined, TabStopType: undefined };
+  const modules = {
+    AlignmentType,
+    Paragraph,
+    TextRun,
+    TabStopPosition: undefined,
+    TabStopType: undefined,
+  };
 
   const blocks = resolveBlocksForExport(content, options?.blocks);
   const payload = createPayloadFromBlocks(blocks, {
@@ -150,9 +162,7 @@ export const exportToDocx = async (
     if (block.formatId === "scene-header-1") {
       const next = blocks[i + 1];
       if (next && next.formatId === "scene-header-2") {
-        paragraphs.push(
-          buildTopLineParagraph(text, next.text, modules)
-        );
+        paragraphs.push(buildTopLineParagraph(text, next.text, modules));
         i += 1;
       } else {
         paragraphs.push(buildDocxParagraph(block, modules));

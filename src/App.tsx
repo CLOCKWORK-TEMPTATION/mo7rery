@@ -150,7 +150,14 @@ type MenuActionId =
   | `format:${string}`
   | InsertActionId;
 
-type ExportFormat = "docx" | "html" | "pdf" | "pdfa" | "fdx" | "fountain" | "classified";
+type ExportFormat =
+  | "docx"
+  | "html"
+  | "pdf"
+  | "pdfa"
+  | "fdx"
+  | "fountain"
+  | "classified";
 
 /**
  * @description ربط أرقام لوحة المفاتيح (0-7) بأنواع عناصر السيناريو
@@ -251,8 +258,7 @@ const PDF_OCR_ERROR_HINTS: Record<string, string> = {
     "إعداد OCR غير مكتمل: PDF_VISION_JUDGE_MODEL غير مضبوط.",
   PDF_OCR_HEALTH_TIMEOUT:
     "تعذر التحقق من جاهزية OCR بسبب انتهاء مهلة فحص الخادم الخلفي.",
-  PDF_OCR_HEALTH_UNREACHABLE:
-    "تعذر الوصول إلى الخادم الخلفي لفحص جاهزية OCR.",
+  PDF_OCR_HEALTH_UNREACHABLE: "تعذر الوصول إلى الخادم الخلفي لفحص جاهزية OCR.",
 };
 
 const formatPdfOcrIssueDescription = (
@@ -262,7 +268,9 @@ const formatPdfOcrIssueDescription = (
   const normalizedCode =
     typeof errorCode === "string" && errorCode.trim() ? errorCode.trim() : "";
 
-  const mapped = normalizedCode ? PDF_OCR_ERROR_HINTS[normalizedCode] : undefined;
+  const mapped = normalizedCode
+    ? PDF_OCR_ERROR_HINTS[normalizedCode]
+    : undefined;
   if (mapped) {
     return `${mapped}${normalizedCode ? `\n(${normalizedCode})` : ""}`;
   }
@@ -337,7 +345,10 @@ const MENU_SECTIONS: readonly AppShellMenuSection[] = [
       { label: "تصدير HTML", actionId: "export-html" },
       { label: "تصدير FDX (Final Draft)", actionId: "export-fdx" },
       { label: "تصدير Fountain", actionId: "export-fountain" },
-      { label: "موافقة واعتماد النص (تصدير TXT)", actionId: "export-classified" },
+      {
+        label: "موافقة واعتماد النص (تصدير TXT)",
+        actionId: "export-classified",
+      },
     ],
   },
   {
@@ -1471,7 +1482,7 @@ export function App(): React.JSX.Element {
 
       <button
         type="button"
-        className="w-full rounded-lg border border-white/10 bg-[var(--brand-teal)]/20 px-3 py-2 text-xs font-bold text-[var(--brand-teal)] transition-colors hover:bg-[var(--brand-teal)] hover:text-white"
+        className="bg-[var(--brand-teal)]/20 w-full rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-[var(--brand-teal)] transition-colors hover:bg-[var(--brand-teal)] hover:text-white"
         onClick={() => {
           void runExport("classified", "النص_المصنف");
         }}
@@ -1612,8 +1623,3 @@ export function App(): React.JSX.Element {
     </div>
   );
 }
-
-
-
-
-

@@ -1,6 +1,5 @@
 const CANONICAL_MISTRAL_BASE_URL = "https://api.mistral.ai";
-export const CANONICAL_MISTRAL_OCR_ENDPOINT =
-  "https://api.mistral.ai/v1/ocr";
+export const CANONICAL_MISTRAL_OCR_ENDPOINT = "https://api.mistral.ai/v1/ocr";
 export const CANONICAL_MISTRAL_CHAT_COMPLETIONS_ENDPOINT =
   "https://api.mistral.ai/v1/chat/completions";
 export const CANONICAL_MISTRAL_CONVERSATIONS_ENDPOINT =
@@ -31,7 +30,7 @@ const withVersionedPath = (baseUrl, pathAfterV1) => {
   return `${baseUrl}/v1${pathAfterV1}`;
 };
 
-export const resolveMistralOcrRuntime = (env = process.env) => {
+export const resolveMistralOcrRuntime = (_env = process.env) => {
   return {
     baseUrl: CANONICAL_MISTRAL_BASE_URL,
     ocrEndpoint: CANONICAL_MISTRAL_OCR_ENDPOINT,
@@ -39,7 +38,7 @@ export const resolveMistralOcrRuntime = (env = process.env) => {
   };
 };
 
-export const resolveMistralChatRuntime = (env = process.env) => {
+export const resolveMistralChatRuntime = (_env = process.env) => {
   return {
     baseUrl: CANONICAL_MISTRAL_BASE_URL,
     chatCompletionsEndpoint: CANONICAL_MISTRAL_CHAT_COMPLETIONS_ENDPOINT,
@@ -47,7 +46,7 @@ export const resolveMistralChatRuntime = (env = process.env) => {
   };
 };
 
-export const resolveMistralConversationsRuntime = (env = process.env) => {
+export const resolveMistralConversationsRuntime = (_env = process.env) => {
   return {
     baseUrl: CANONICAL_MISTRAL_BASE_URL,
     conversationsEndpoint: CANONICAL_MISTRAL_CONVERSATIONS_ENDPOINT,
@@ -55,7 +54,7 @@ export const resolveMistralConversationsRuntime = (env = process.env) => {
   };
 };
 
-export const resolveMistralAgentsRuntime = (env = process.env) => {
+export const resolveMistralAgentsRuntime = (_env = process.env) => {
   return {
     baseUrl: CANONICAL_MISTRAL_BASE_URL,
     agentsEndpoint: CANONICAL_MISTRAL_AGENTS_ENDPOINT,
@@ -77,7 +76,10 @@ export const resolveMoonshotChatRuntime = (env = process.env) => {
 };
 
 export const resolveAnthropicApiRuntime = (env = process.env) => {
-  const baseUrl = normalizeBaseUrl(env.ANTHROPIC_BASE_URL, DEFAULT_ANTHROPIC_BASE_URL);
+  const baseUrl = normalizeBaseUrl(
+    env.ANTHROPIC_BASE_URL,
+    DEFAULT_ANTHROPIC_BASE_URL
+  );
   const apiVersion =
     toOptionalTrimmedString(env.ANTHROPIC_API_VERSION, 64).toLowerCase() ||
     DEFAULT_ANTHROPIC_API_VERSION;
