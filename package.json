@@ -25,6 +25,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
+    "find:issues": "tsx scripts/find-issues.ts",
     "agent:setup": "tsx scripts/clean-workspace.ts",
     "typecheck": "tsc --noEmit",
     "validate": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test",
