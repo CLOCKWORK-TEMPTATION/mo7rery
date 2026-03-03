@@ -211,9 +211,43 @@ export const parseImplicitCharacterDialogueWithoutColon = (
   return null;
 };
 
+export const buildCharacterRegistry = (lines: string[]): Set<string> => {
+  const registry = new Set<string>();
+
+  for (const line of lines) {
+    const trimmed = (line ?? "").trim();
+    if (!trimmed) continue;
+
+    // جرّب extract من inline pattern
+    const parsed = parseInlineCharacterDialogue(trimmed);
+    if (parsed) {
+      const normalizedName = normalizeCharacterName(parsed.characterName);
+      if (normalizedName && isCandidateCharacterName(normalizedName)) {
+        registry.add(normalizedName);
+      }
+      continue;
+    }
+
+    // سطر عادي ينتهي بـ : — جرّب كاسم شخصية
+    if (/[:：]\s*$/.test(trimmed)) {
+      const normalizedName = normalizeCharacterName(trimmed);
+      if (
+        normalizedName &&
+        isCandidateCharacterName(normalizedName) &&
+        !SHORT_DIALOGUE_WORDS.includes(normalizedName.toLowerCase())
+      ) {
+        registry.add(normalizedName);
+      }
+    }
+  }
+
+  return registry;
+};
+
 export const isCharacterLine = (
   line: string,
-  context?: Partial<ClassificationContext>
+  context?: Partial<ClassificationContext>,
+  knownCharacters?: ReadonlySet<string>
 ): boolean => {
   const trimmed = normalizeLine(stripLeadingBullets((line ?? "").trim()));
   if (!trimmed) return false;
@@ -224,6 +258,12 @@ export const isCharacterLine = (
   if (isParentheticalLine(trimmed)) return false;
 
   const namePart = normalizeCharacterName(trimmed);
+
+  // التحقق من الـ registry أولاً — اسم معروف = character مؤكد
+  if (knownCharacters?.has(namePart)) {
+    return true;
+  }
+
   if (!isCandidateCharacterName(namePart)) return false;
 
   const tokens = namePart.split(/\s+/).filter(Boolean);

@@ -13,7 +13,13 @@
  */
 import type { ElementType } from "./classification-types";
 import { CHARACTER_RE } from "./arabic-patterns";
-import { normalizeLine, stripLeadingBullets } from "./text-utils";
+import {
+  hasActionVerbStructure,
+  isActionVerbStart,
+  matchesActionStartPattern,
+  normalizeLine,
+  stripLeadingBullets,
+} from "./text-utils";
 
 /** نمط regex لمطابقة وسوم HTML */
 const HTML_TAG_RE = /<[^>]+>/g;
@@ -188,8 +194,20 @@ export const mergeBrokenCharacterName = (
   const currNamePart = currRaw.replace(/[:：]+\s*$/, "").trim();
   if (!prevNamePart || !currNamePart) return null;
 
-  if (prevNamePart.length > 25) return null;
+  // اسم شخصية مقسوم مستحيل يكون أكثر من 3 كلمات في الجزء الأول
+  if (prevNamePart.split(/\s+/).filter(Boolean).length > 3) return null;
   if (currNamePart.split(/\s+/).filter(Boolean).length > 3) return null;
+
+  // لو الجزء الأول فيه أفعال أو بنية سردية → ده نص سردي مش اسم
+  if (
+    isActionVerbStart(prevNamePart) ||
+    matchesActionStartPattern(prevNamePart) ||
+    hasActionVerbStructure(prevNamePart)
+  ) {
+    return null;
+  }
+
+  if (prevNamePart.length > 25) return null;
   if (prevNamePart.length + currNamePart.length > 32) return null;
 
   const directMerge = `${prevNamePart}${currNamePart}`;

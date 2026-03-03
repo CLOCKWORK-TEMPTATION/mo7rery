@@ -15,6 +15,7 @@ import {
 } from "./arabic-patterns";
 import { isStandaloneBasmalaLine } from "./basmala";
 import {
+  buildCharacterRegistry,
   ensureCharacterTrailingColon,
   isCharacterLine,
   parseImplicitCharacterDialogueWithoutColon,
@@ -482,6 +483,9 @@ export const classifyLines = (
   }
   const lines = sanitizedText.split(/\r?\n/);
 
+  // ── بناء Character Registry من inline patterns (two-pass) ──
+  const characterRegistry = buildCharacterRegistry(lines);
+
   agentReviewLogger.info("diag:classifyLines-input", {
     classificationProfile: context?.classificationProfile,
     sourceFileType: context?.sourceFileType,
@@ -687,7 +691,7 @@ export const classifyLines = (
       continue;
     }
 
-    if (isCharacterLine(normalizedForClassification, context)) {
+    if (isCharacterLine(normalizedForClassification, context, characterRegistry)) {
       push({
         type: "character",
         text: ensureCharacterTrailingColon(trimmed),
