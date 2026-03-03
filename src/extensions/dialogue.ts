@@ -17,6 +17,7 @@ import type {
   ClassificationContext,
   ElementType,
 } from "./classification-types";
+import type { ContextMemorySnapshot } from "./context-memory-manager";
 import {
   CONVERSATIONAL_MARKERS_RE,
   CONVERSATIONAL_STARTS,
@@ -157,16 +158,22 @@ export const getDialogueProbability = (
  */
 export const isDialogueLine = (
   text: string,
-  context?: Partial<ClassificationContext>
+  context?: Partial<ClassificationContext>,
+  memorySnapshot?: ContextMemorySnapshot
 ): boolean => {
   const normalized = normalizeLine(text);
   if (!normalized) return false;
 
   const actionEvidence = collectActionEvidence(normalized);
+
+  // داخل dialogue flow → byVerb أو byStructure لوحدهم مش كافيين يكسروا الحوار
+  // لازم دليل أقوى (dash/pattern/narrative/audio)
+  const inDialogueFlow = memorySnapshot?.isInDialogueFlow ?? false;
   const hasStrongAction =
     actionEvidence.byDash ||
     actionEvidence.byPattern ||
-    actionEvidence.byVerb ||
+    (actionEvidence.byVerb && !inDialogueFlow) ||
+    (actionEvidence.byStructure && !inDialogueFlow) ||
     actionEvidence.byNarrativeSyntax ||
     actionEvidence.byPronounAction ||
     actionEvidence.byThenAction ||

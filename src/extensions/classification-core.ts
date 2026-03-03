@@ -8,6 +8,7 @@ import type {
   SuspicionScoreBreakdown,
   SuspiciousLine,
 } from "./classification-types";
+import type { SequenceDisagreement } from "./structural-sequence-optimizer";
 import {
   hasActionVerbStructure,
   isActionCueLine,
@@ -38,6 +39,8 @@ export interface ReviewerConfig {
   readonly localReviewUpperBound: number;
   readonly agentForcedLowerBound: number;
   readonly enabledDetectors: ReadonlySet<string>;
+  /** اختلافات Viterbi — بتتحقن كـ findings إضافية لو موجودة */
+  readonly viterbiDisagreements?: readonly SequenceDisagreement[];
 }
 
 const DEFAULT_CONFIG: ReviewerConfig = {
@@ -53,6 +56,7 @@ const DEFAULT_CONFIG: ReviewerConfig = {
     "statistical-anomaly",
     "confidence-drop",
     "reverse-pattern-mismatch",
+    "viterbi-disagreement",
   ]),
 };
 
@@ -272,7 +276,8 @@ const looksLikeVerbOrConjunction = (normalized: string): boolean => {
   const firstWord = words[0];
   if (CONJUNCTION_START_RE.test(firstWord) && words.length <= 3) return true;
   if (words.length === 1 && CHARACTER_VERB_RE.test(firstWord)) return true;
-  return words.some((w) => FULL_ACTION_VERB_SET.has(w));
+  // فحص هيكلي: هل أي كلمة تطابق نمط فعل عربي مضارع (بدون قائمة ثابتة)؟
+  return words.some((w) => ACTION_VERB_LIKE_RE.test(w));
 };
 
 const createContentTypeMismatchDetector = (): SuspicionDetector => ({
@@ -781,7 +786,7 @@ const computeEscalationScore = (
     criticalMismatchBoost: criticalMismatch ? 10 : 0,
   };
   const weightedScore =
-    breakdown.detectorBase * 0.72 +
+    breakdown.detectorBase * 0.92 +
     breakdown.methodPenalty +
     breakdown.confidencePenalty +
     breakdown.evidenceDiversityBoost +
@@ -878,6 +883,22 @@ export class PostClassificationReviewer {
       };
     }
 
+    // بناء lookup سريع لاختلافات Viterbi (lineIndex → disagreement)
+    const viterbiLookup = new Map<number, DetectorFinding>();
+    if (
+      this.config.viterbiDisagreements &&
+      this.config.enabledDetectors.has("viterbi-disagreement")
+    ) {
+      for (const d of this.config.viterbiDisagreements) {
+        viterbiLookup.set(d.lineIndex, {
+          detectorId: "viterbi-disagreement",
+          suspicionScore: d.disagreementStrength,
+          reason: `Viterbi يقترح "${d.viterbiType}" بدل "${d.forwardType}" — تحسين تسلسلي عالمي`,
+          suggestedType: d.viterbiType,
+        });
+      }
+    }
+
     const rawSuspicious: SuspiciousLine[] = [];
 
     for (let i = 0; i < classifiedLines.length; i++) {
@@ -901,6 +922,10 @@ export class PostClassificationReviewer {
         );
         if (finding) findings.push(finding);
       }
+
+      // حقن Viterbi finding لو السطر فيه اختلاف
+      const viterbiFinding = viterbiLookup.get(line.lineIndex);
+      if (viterbiFinding) findings.push(viterbiFinding);
 
       const suspicious = this.buildSuspicionRecord(line, findings, context);
       if (suspicious) rawSuspicious.push(suspicious);

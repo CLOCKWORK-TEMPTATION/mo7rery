@@ -24,12 +24,13 @@ import {
 } from "./action";
 import { isCharacterLine } from "./character";
 import type { ClassificationContext } from "./classification-types";
+import type { ContextMemorySnapshot } from "./context-memory-manager";
 import {
   getDialogueProbability,
   hasDirectDialogueCues,
   isDialogueLine,
 } from "./dialogue";
-import { normalizeLine } from "./text-utils";
+import { normalizeCharacterName, normalizeLine } from "./text-utils";
 
 /**
  * الأنواع الثلاثة القابلة للحسم عند غموض السطر.
@@ -175,17 +176,20 @@ export const passesDialogueDefinitionGate = (
   line: string,
   context: ClassificationContext,
   dialogueScore: number,
-  evidence: ActionEvidence
+  evidence: ActionEvidence,
+  memorySnapshot?: ContextMemorySnapshot
 ): boolean => {
   if (isDialogueHardBreaker(line, context, evidence)) return false;
-  if (isDialogueLine(line, context)) return true;
+  if (isDialogueLine(line, context, memorySnapshot)) return true;
 
   const inDialogueFlow =
-    context.previousType === "character" ||
-    context.previousType === "dialogue" ||
-    context.previousType === "parenthetical";
+    memorySnapshot?.isInDialogueFlow ??
+    (context.previousType === "character" ||
+      context.previousType === "dialogue" ||
+      context.previousType === "parenthetical");
 
-  if (inDialogueFlow && dialogueScore >= 2) return true;
+  // داخل dialogue flow + أي دليل حوار (score ≥ 1) → حوار
+  if (inDialogueFlow && dialogueScore >= 1) return true;
   return dialogueScore >= 5;
 };
 
@@ -198,9 +202,10 @@ export const passesDialogueDefinitionGate = (
  */
 export const passesCharacterDefinitionGate = (
   line: string,
-  context: ClassificationContext
+  context: ClassificationContext,
+  confirmedCharacters?: ReadonlySet<string>
 ): boolean => {
-  return isCharacterLine(line, context);
+  return isCharacterLine(line, context, confirmedCharacters);
 };
 
 /**
@@ -222,7 +227,8 @@ export const passesCharacterDefinitionGate = (
  */
 export const resolveNarrativeDecision = (
   line: string,
-  context: ClassificationContext
+  context: ClassificationContext,
+  memorySnapshot?: ContextMemorySnapshot
 ): NarrativeDecision => {
   const normalized = normalizeLine(line);
   if (!normalized) {
@@ -241,9 +247,14 @@ export const resolveNarrativeDecision = (
     normalized,
     context,
     dialogueScore,
-    evidence
+    evidence,
+    memorySnapshot
   );
-  const characterCandidate = passesCharacterDefinitionGate(normalized, context);
+  const characterCandidate = passesCharacterDefinitionGate(
+    normalized,
+    context,
+    memorySnapshot?.confirmedCharacters
+  );
 
   const scores = {
     action: Number.NEGATIVE_INFINITY,
@@ -262,7 +273,13 @@ export const resolveNarrativeDecision = (
   }
 
   if (characterCandidate) {
-    scores.character = 8 + getContextTypeScore(context, ["character"]);
+    // اسم مؤكد في الـ registry ياخد نقاط أعلى
+    const charName = normalizeCharacterName(normalized);
+    const isConfirmed = charName
+      ? memorySnapshot?.confirmedCharacters?.has(charName)
+      : false;
+    scores.character =
+      (isConfirmed ? 12 : 8) + getContextTypeScore(context, ["character"]);
   }
 
   const sorted = (Object.keys(scores) as ResolvedNarrativeType[]).sort(

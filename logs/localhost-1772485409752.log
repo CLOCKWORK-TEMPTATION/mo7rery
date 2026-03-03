@@ -1,0 +1,486 @@
+client:789 [vite] connecting...
+client:912 [vite] connected.
+react-dom_client.js?v=ea1ba5f3:20103 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+logger.ts:62 2026-03-02T21:03:08.091Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T21:03:08.120Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 73, sourceFileType: undefined, sourceMethod: undefined}
+logger.ts:62 2026-03-02T21:03:08.128Z [paste.agent-review] telemetry:packet-built {totalReviewed: 73, totalSuspicious: 8, suspicionRate: 0.1095890410958904, countPass: 65, countLocalReview: 0, …}
+logger.ts:75 2026-03-02T21:03:08.129Z [paste.agent-review] packet-suspects-snapshot {lines: Array(8)}
+logger.ts:62 2026-03-02T21:03:08.130Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: 'd3216f5d-b165-428f-a70b-4d85b4c23edd', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 73}
+logger.ts:62 2026-03-02T21:03:08.130Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: 'd3216f5d-b165-428f-a70b-4d85b4c23edd', itemsSent: 8, forcedItems: 5}
+paste-classifier.ts:215  POST http://127.0.0.1:8787/api/agent/review 400 (Bad Request)
+fetchWithTimeout @ paste-classifier.ts:215
+requestAgentReview @ paste-classifier.ts:1190
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1618
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:504
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:70 2026-03-02T21:03:09.923Z [paste.agent-review] request-http-error {sessionId: 'paste-1772485388130', status: 400, body: '{"status":"error","model":"claude-opus-4-6","apiVe…olvedForcedItemIds":[]},"providerStatusCode":400}', attempt: 1, isRetryable: false}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+requestAgentReview @ paste-classifier.ts:1206
+await in requestAgentReview
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1618
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:504
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:70 2026-03-02T21:03:09.924Z [paste.agent-review] request-unhandled-error {sessionId: 'paste-1772485388130', attempt: 1, error: Error: Agent review route failed (400): {"status":"error","model":"claude-opus-4-6","apiVersion":"2…, remainingAfterAttempt: 88207}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+requestAgentReview @ paste-classifier.ts:1295
+await in requestAgentReview
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1618
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:504
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:62 2026-03-02T21:03:09.924Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 73, totalSuspicious: 8, itemsSent: 8, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T21:03:09.924Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 73, totalSuspicious: 8, itemsSent: 8, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:70 2026-03-02T21:03:09.924Z [pipeline.telemetry] agent-error {importOpId: 'd3216f5d-b165-428f-a70b-4d85b4c23edd', error: 'Agent review route failed (400): {"status":"error"…olvedForcedItemIds":[]},"providerStatusCode":400}'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+logAgentError @ telemetry.ts:100
+fallbackToLocalClassification @ paste-classifier.ts:1597
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1629
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:504
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:70 2026-03-02T21:03:09.924Z [pipeline.telemetry] agent-review-error {importOpId: 'd3216f5d-b165-428f-a70b-4d85b4c23edd', error: 'Agent review route failed (400): {"status":"error"…olvedForcedItemIds":[]},"providerStatusCode":400}'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+recordAgentReviewError @ telemetry.ts:163
+fallbackToLocalClassification @ paste-classifier.ts:1598
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1629
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:504
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:66 2026-03-02T21:03:09.924Z [paste.agent-review] agent-review-fail-open {importOpId: 'd3216f5d-b165-428f-a70b-4d85b4c23edd', reason: 'Agent review route failed (400): {"status":"error"…olvedForcedItemIds":[]},"providerStatusCode":400}', failOpenEnabled: true, stage: 'request-failed'}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+fallbackToLocalClassification @ paste-classifier.ts:1599
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1629
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:504
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:62 2026-03-02T21:03:09.925Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: 'd3216f5d-b165-428f-a70b-4d85b4c23edd', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 73, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T21:03:09.925Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 73}
+paste-classifier.ts:215 Fetch failed loading: POST "http://127.0.0.1:8787/api/agent/review".
+fetchWithTimeout @ paste-classifier.ts:215
+requestAgentReview @ paste-classifier.ts:1190
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1618
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:504
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:62 2026-03-02T21:03:09.952Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 73}
+logger.ts:62 2026-03-02T21:03:10.185Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T21:03:10.197Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T21:03:10.198Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T21:03:10.198Z [MemoryManager] Updating memory for session production-self-check with 2 records. 
+logger.ts:62 2026-03-02T21:03:10.198Z [MemoryManager] Saving context for session: production-self-check 
+logger.ts:62 2026-03-02T21:03:10.199Z [MemoryManager] Saving context for session: production-self-check 
+logger.ts:62 2026-03-02T21:03:10.199Z [MemoryManager] Loading context for session: production-self-check 
+logger.ts:62 2026-03-02T21:03:10.200Z [agent-review-client] sending-agent-review-request {sessionId: 'self-check-session', importOpId: 'b701b2ab-74d6-44e5-a262-b7867ac7f12a', itemCount: 1}
+Arabic-Screenplay-Classifier-Agent.ts:305  POST http://127.0.0.1:8787/api/agent/review 400 (Bad Request)
+requestAgentReview @ Arabic-Screenplay-Classifier-Agent.ts:305
+runExtensionFunctionCalls @ production-self-check.ts:469
+await in runExtensionFunctionCalls
+(anonymous) @ production-self-check.ts:541
+runProductionSelfCheck @ production-self-check.ts:576
+(anonymous) @ EditorArea.ts:661
+Promise.then
+requestProductionSelfCheck @ EditorArea.ts:660
+importClassifiedText @ EditorArea.ts:375
+await in importClassifiedText
+pasteFromClipboard @ EditorArea.ts:504
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:70 2026-03-02T21:03:12.055Z [agent-review-client] agent-review-http-error {status: 400, body: '{"status":"error","model":"claude-opus-4-6","apiVe…olvedForcedItemIds":[]},"providerStatusCode":400}'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+requestAgentReview @ Arabic-Screenplay-Classifier-Agent.ts:315
+await in requestAgentReview
+runExtensionFunctionCalls @ production-self-check.ts:469
+await in runExtensionFunctionCalls
+(anonymous) @ production-self-check.ts:541
+runProductionSelfCheck @ production-self-check.ts:576
+(anonymous) @ EditorArea.ts:661
+Promise.then
+requestProductionSelfCheck @ EditorArea.ts:660
+importClassifiedText @ EditorArea.ts:375
+await in importClassifiedText
+pasteFromClipboard @ EditorArea.ts:504
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:70 2026-03-02T21:03:12.055Z [agent-review-client] agent-review-request-failed {error: 'Agent review failed: 400 - {"status":"error","mode…olvedForcedItemIds":[]},"providerStatusCode":400}'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+requestAgentReview @ Arabic-Screenplay-Classifier-Agent.ts:333
+await in requestAgentReview
+runExtensionFunctionCalls @ production-self-check.ts:469
+await in runExtensionFunctionCalls
+(anonymous) @ production-self-check.ts:541
+runProductionSelfCheck @ production-self-check.ts:576
+(anonymous) @ EditorArea.ts:661
+Promise.then
+requestProductionSelfCheck @ EditorArea.ts:660
+importClassifiedText @ EditorArea.ts:375
+await in importClassifiedText
+pasteFromClipboard @ EditorArea.ts:504
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+Arabic-Screenplay-Classifier-Agent.ts:305 Fetch failed loading: POST "http://127.0.0.1:8787/api/agent/review".
+requestAgentReview @ Arabic-Screenplay-Classifier-Agent.ts:305
+runExtensionFunctionCalls @ production-self-check.ts:469
+await in runExtensionFunctionCalls
+(anonymous) @ production-self-check.ts:541
+runProductionSelfCheck @ production-self-check.ts:576
+(anonymous) @ EditorArea.ts:661
+Promise.then
+requestProductionSelfCheck @ EditorArea.ts:660
+importClassifiedText @ EditorArea.ts:375
+await in importClassifiedText
+pasteFromClipboard @ EditorArea.ts:504
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:62 2026-03-02T21:03:12.061Z [production-self-check] Production self-check completed {trigger: 'editor-import', executedFunctions: 136, failedFunctions: 0, uiFunctionsExecuted: 53, extensionFunctionsExecuted: 83, …}

@@ -1,0 +1,458 @@
+lockdown-install.js:1 SES Removing unpermitted intrinsics
+client:789 [vite] connecting...
+client:912 [vite] connected.
+react-dom-client.development.js:28004 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+logger.ts:62 2026-03-02T20:19:55.704Z [file-import] File import pipeline started {filename: '12.doc', mode: 'replace', strategy: 'backend-only-strict', pipeline: 'frontend-open->backend-extract->backend-agent-review->editor-apply'}
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+logger.ts:62 2026-03-02T20:19:55.755Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T20:19:55.797Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 114, sourceFileType: 'doc', sourceMethod: 'doc-converter-flow'}
+logger.ts:62 2026-03-02T20:19:55.818Z [paste.agent-review] telemetry:packet-built {totalReviewed: 114, totalSuspicious: 23, suspicionRate: 0.20175438596491227, countPass: 91, countLocalReview: 23, …}
+logger.ts:62 2026-03-02T20:19:55.818Z [paste.agent-review] packet-empty-forwarded {countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, countSentToAgent: 0}
+logger.ts:62 2026-03-02T20:19:55.819Z [paste.agent-review] packet-empty-after-filtering-forwarded {totalSuspicious: 23, countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, …}
+logger.ts:62 2026-03-02T20:19:55.819Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '77e0c80f-077c-409b-964c-5d4e0a17c531', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114}
+logger.ts:62 2026-03-02T20:19:55.819Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '77e0c80f-077c-409b-964c-5d4e0a17c531', itemsSent: 0, forcedItems: 0}
+logger.ts:62 2026-03-02T20:19:55.832Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772482795819', status: 'skipped', commands: 0, model: 'claude-opus-4-6', latencyMs: 0, …}
+logger.ts:62 2026-03-02T20:19:55.832Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: '77e0c80f-077c-409b-964c-5d4e0a17c531', status: 'skipped', commandsReceived: 0, latencyMs: 0}
+logger.ts:62 2026-03-02T20:19:55.832Z [pipeline.telemetry] telemetry:agent-response {requestId: 'b5b38acf-5678-475d-931a-ac9c9cf94dcd', importOpId: '77e0c80f-077c-409b-964c-5d4e0a17c531', latencyMs: 0, status: 'skipped', commandsReceived: 0}
+logger.ts:62 2026-03-02T20:19:55.833Z [pipeline.telemetry] telemetry:command-apply {importOpId: '77e0c80f-077c-409b-964c-5d4e0a17c531', requestId: 'b5b38acf-5678-475d-931a-ac9c9cf94dcd', commandsNormalized: 0, commandsApplied: 0, commandsSkipped: 0, …}
+logger.ts:62 2026-03-02T20:19:55.833Z [paste.agent-review] telemetry:response-applied {status: 'skipped', commands: 0, resolvedCommands: 0, conflictCount: 0, apiVersion: '2.0', …}
+logger.ts:62 2026-03-02T20:19:55.833Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 114, totalSuspicious: 23, itemsSent: 0, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T20:19:55.833Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: '77e0c80f-077c-409b-964c-5d4e0a17c531', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T20:19:55.833Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 114}
+logger.ts:62 2026-03-02T20:19:55.842Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 114}
+logger.ts:62 2026-03-02T20:19:55.855Z [file-import] File import pipeline completed {openPipeline: 'paste-classifier', method: 'doc-converter-flow', source: 'extracted-text', usedOcr: false, qualityScore: undefined, …}
+logger.ts:62 2026-03-02T20:19:56.026Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T20:19:56.049Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T20:19:56.049Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T20:19:56.049Z [MemoryManager] Updating memory for session production-self-check with 2 records. 
+logger.ts:62 2026-03-02T20:19:56.049Z [MemoryManager] Saving context for session: production-self-check 
+logger.ts:62 2026-03-02T20:19:56.050Z [MemoryManager] Saving context for session: production-self-check 
+logger.ts:62 2026-03-02T20:19:56.050Z [MemoryManager] Loading context for session: production-self-check 
+logger.ts:62 2026-03-02T20:19:56.051Z [agent-review-client] sending-agent-review-request {sessionId: 'self-check-session', importOpId: '3cc9f066-0f15-4d90-a232-9470ccf1f2a5', itemCount: 1}
+logger.ts:62 2026-03-02T20:20:02.278Z [file-import] File import pipeline started {filename: '12.docx', mode: 'replace', strategy: 'backend-only-strict', pipeline: 'frontend-open->backend-extract->backend-agent-review->editor-apply'}
+logger.ts:62 2026-03-02T20:20:03.469Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T20:20:03.492Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 114, sourceFileType: 'docx', sourceMethod: 'doc-converter-flow'}
+logger.ts:62 2026-03-02T20:20:03.500Z [paste.agent-review] telemetry:packet-built {totalReviewed: 114, totalSuspicious: 23, suspicionRate: 0.20175438596491227, countPass: 91, countLocalReview: 23, …}
+logger.ts:62 2026-03-02T20:20:03.500Z [paste.agent-review] packet-empty-forwarded {countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, countSentToAgent: 0}
+logger.ts:62 2026-03-02T20:20:03.500Z [paste.agent-review] packet-empty-after-filtering-forwarded {totalSuspicious: 23, countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, …}
+logger.ts:62 2026-03-02T20:20:03.501Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: 'd5048c0b-779c-4f0a-acdc-b665e7dbfac6', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114}
+logger.ts:62 2026-03-02T20:20:03.501Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: 'd5048c0b-779c-4f0a-acdc-b665e7dbfac6', itemsSent: 0, forcedItems: 0}
+logger.ts:62 2026-03-02T20:20:03.511Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772482803501', status: 'skipped', commands: 0, model: 'claude-opus-4-6', latencyMs: 0, …}
+logger.ts:62 2026-03-02T20:20:03.511Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: 'd5048c0b-779c-4f0a-acdc-b665e7dbfac6', status: 'skipped', commandsReceived: 0, latencyMs: 0}
+logger.ts:62 2026-03-02T20:20:03.512Z [pipeline.telemetry] telemetry:agent-response {requestId: '9135291c-01f1-4432-a38e-ced22ddd6129', importOpId: 'd5048c0b-779c-4f0a-acdc-b665e7dbfac6', latencyMs: 0, status: 'skipped', commandsReceived: 0}
+logger.ts:62 2026-03-02T20:20:03.512Z [pipeline.telemetry] telemetry:command-apply {importOpId: 'd5048c0b-779c-4f0a-acdc-b665e7dbfac6', requestId: '9135291c-01f1-4432-a38e-ced22ddd6129', commandsNormalized: 0, commandsApplied: 0, commandsSkipped: 0, …}
+logger.ts:62 2026-03-02T20:20:03.512Z [paste.agent-review] telemetry:response-applied {status: 'skipped', commands: 0, resolvedCommands: 0, conflictCount: 0, apiVersion: '2.0', …}
+logger.ts:62 2026-03-02T20:20:03.512Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 114, totalSuspicious: 23, itemsSent: 0, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T20:20:03.512Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: 'd5048c0b-779c-4f0a-acdc-b665e7dbfac6', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T20:20:03.512Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 114}
+logger.ts:62 2026-03-02T20:20:03.513Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 114}
+logger.ts:62 2026-03-02T20:20:03.515Z [file-import] File import pipeline completed {openPipeline: 'paste-classifier', method: 'doc-converter-flow', source: 'extracted-text', usedOcr: false, qualityScore: undefined, …}
+logger.ts:62 2026-03-02T20:20:23.292Z [agent-review-client] agent-review-response-received {requestId: '2a3dc88b-e8f9-46dc-a7a5-9a11b2e95f2b', status: 'applied', commandCount: 1}
+logger.ts:62 2026-03-02T20:20:23.297Z [production-self-check] Production self-check completed {trigger: 'editor-import', executedFunctions: 136, failedFunctions: 0, uiFunctionsExecuted: 53, extensionFunctionsExecuted: 83, …}
+logger.ts:62 2026-03-02T20:20:54.241Z [file-import] File import pipeline started {filename: '12.docx', mode: 'replace', strategy: 'backend-only-strict', pipeline: 'frontend-open->backend-extract->backend-agent-review->editor-apply'}
+logger.ts:62 2026-03-02T20:20:56.903Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T20:20:56.923Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 114, sourceFileType: 'docx', sourceMethod: 'doc-converter-flow'}
+logger.ts:62 2026-03-02T20:20:56.930Z [paste.agent-review] telemetry:packet-built {totalReviewed: 114, totalSuspicious: 23, suspicionRate: 0.20175438596491227, countPass: 91, countLocalReview: 23, …}
+logger.ts:62 2026-03-02T20:20:56.930Z [paste.agent-review] packet-empty-forwarded {countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, countSentToAgent: 0}
+logger.ts:62 2026-03-02T20:20:56.931Z [paste.agent-review] packet-empty-after-filtering-forwarded {totalSuspicious: 23, countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, …}
+logger.ts:62 2026-03-02T20:20:56.931Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: 'af09eb50-c54c-4c0e-844d-954f8cc39a34', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114}
+logger.ts:62 2026-03-02T20:20:56.931Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: 'af09eb50-c54c-4c0e-844d-954f8cc39a34', itemsSent: 0, forcedItems: 0}
+logger.ts:62 2026-03-02T20:20:56.946Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772482856931', status: 'skipped', commands: 0, model: 'claude-opus-4-6', latencyMs: 0, …}
+logger.ts:62 2026-03-02T20:20:56.946Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: 'af09eb50-c54c-4c0e-844d-954f8cc39a34', status: 'skipped', commandsReceived: 0, latencyMs: 0}
+logger.ts:62 2026-03-02T20:20:56.946Z [pipeline.telemetry] telemetry:agent-response {requestId: 'e154f240-8c8f-4e9a-9853-ad6335ff2a7c', importOpId: 'af09eb50-c54c-4c0e-844d-954f8cc39a34', latencyMs: 0, status: 'skipped', commandsReceived: 0}
+logger.ts:62 2026-03-02T20:20:56.947Z [pipeline.telemetry] telemetry:command-apply {importOpId: 'af09eb50-c54c-4c0e-844d-954f8cc39a34', requestId: 'e154f240-8c8f-4e9a-9853-ad6335ff2a7c', commandsNormalized: 0, commandsApplied: 0, commandsSkipped: 0, …}
+logger.ts:62 2026-03-02T20:20:56.947Z [paste.agent-review] telemetry:response-applied {status: 'skipped', commands: 0, resolvedCommands: 0, conflictCount: 0, apiVersion: '2.0', …}
+logger.ts:62 2026-03-02T20:20:56.947Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 114, totalSuspicious: 23, itemsSent: 0, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T20:20:56.947Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: 'af09eb50-c54c-4c0e-844d-954f8cc39a34', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T20:20:56.947Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 114}
+logger.ts:62 2026-03-02T20:20:56.948Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 114}
+logger.ts:62 2026-03-02T20:20:56.952Z [file-import] File import pipeline completed {openPipeline: 'paste-classifier', method: 'doc-converter-flow', source: 'extracted-text', usedOcr: false, qualityScore: undefined, …}
+logger.ts:62 2026-03-02T20:21:12.797Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T20:21:12.856Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 73, sourceFileType: undefined, sourceMethod: undefined}
+logger.ts:62 2026-03-02T20:21:12.861Z [paste.agent-review] telemetry:packet-built {totalReviewed: 73, totalSuspicious: 8, suspicionRate: 0.1095890410958904, countPass: 65, countLocalReview: 0, …}
+logger.ts:75 2026-03-02T20:21:12.862Z [paste.agent-review] packet-suspects-snapshot {lines: Array(8)}
+logger.ts:62 2026-03-02T20:21:12.862Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '54d7bc60-5375-4377-9b92-d54b154ef75d', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 73}
+logger.ts:62 2026-03-02T20:21:12.862Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '54d7bc60-5375-4377-9b92-d54b154ef75d', itemsSent: 8, forcedItems: 5}
+logger.ts:62 2026-03-02T20:21:46.081Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T20:21:46.121Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 123, sourceFileType: undefined, sourceMethod: undefined}
+logger.ts:62 2026-03-02T20:21:46.128Z [paste.agent-review] telemetry:packet-built {totalReviewed: 123, totalSuspicious: 49, suspicionRate: 0.3983739837398374, countPass: 74, countLocalReview: 0, …}
+logger.ts:75 2026-03-02T20:21:46.128Z [paste.agent-review] packet-suspects-snapshot {lines: Array(26)}
+logger.ts:66 2026-03-02T20:21:46.129Z [paste.agent-review] packet-budget-truncated {originalCount: 26, includedCount: 15, overflowCount: 11, totalEstimatedChars: 1679}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1512
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:502
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom-client.development.js:19116
+runWithFiberInDEV @ react-dom-client.development.js:871
+processDispatchQueue @ react-dom-client.development.js:19166
+(anonymous) @ react-dom-client.development.js:19767
+batchedUpdates$1 @ react-dom-client.development.js:3255
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:19320
+dispatchEvent @ react-dom-client.development.js:23585
+dispatchDiscreteEvent @ react-dom-client.development.js:23553
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:335
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom-client.development.js:25904
+renderWithHooksAgain @ react-dom-client.development.js:7762
+renderWithHooks @ react-dom-client.development.js:7674
+updateFunctionComponent @ react-dom-client.development.js:10166
+beginWork @ react-dom-client.development.js:11778
+runWithFiberInDEV @ react-dom-client.development.js:871
+performUnitOfWork @ react-dom-client.development.js:17641
+workLoopSync @ react-dom-client.development.js:17469
+renderRootSync @ react-dom-client.development.js:17450
+performWorkOnRoot @ react-dom-client.development.js:16504
+performSyncWorkOnRoot @ react-dom-client.development.js:18972
+flushSyncWorkAcrossRoots_impl @ react-dom-client.development.js:18814
+processRootScheduleInMicrotask @ react-dom-client.development.js:18853
+(anonymous) @ react-dom-client.development.js:18991
+logger.ts:62 2026-03-02T20:21:46.129Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: 'def17e39-489d-41e6-979d-c3c83b95bdac', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 123}
+logger.ts:62 2026-03-02T20:21:46.129Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: 'def17e39-489d-41e6-979d-c3c83b95bdac', itemsSent: 15, forcedItems: 15}
+logger.ts:66 2026-03-02T20:21:46.136Z [paste.agent-review] request-aborted {sessionId: 'paste-1772482872862', attempt: 1, timeoutForAttempt: 89800, remainingAfterAttempt: 56726}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+requestAgentReview @ paste-classifier.ts:1273
+Fetch failed loading: POST "<URL>".
+Fetch failed loading: POST "<URL>".
+Fetch failed loading: POST "<URL>".
+Fetch failed loading: POST "<URL>".
+Fetch failed loading: POST "<URL>".
+Fetch failed loading: POST "<URL>".
+Fetch failed loading: POST "<URL>".
+Fetch failed loading: POST "<URL>".
+logger.ts:66 2026-03-02T20:21:46.591Z [paste.agent-review] request-aborted {sessionId: 'paste-1772482906129', attempt: 1, timeoutForAttempt: 89800, remainingAfterAttempt: 89538}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+requestAgentReview @ paste-classifier.ts:1273
+await in requestAgentReview
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1618
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:502
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom-client.development.js:19116
+runWithFiberInDEV @ react-dom-client.development.js:871
+processDispatchQueue @ react-dom-client.development.js:19166
+(anonymous) @ react-dom-client.development.js:19767
+batchedUpdates$1 @ react-dom-client.development.js:3255
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:19320
+dispatchEvent @ react-dom-client.development.js:23585
+dispatchDiscreteEvent @ react-dom-client.development.js:23553
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:335
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom-client.development.js:25904
+renderWithHooksAgain @ react-dom-client.development.js:7762
+renderWithHooks @ react-dom-client.development.js:7674
+updateFunctionComponent @ react-dom-client.development.js:10166
+beginWork @ react-dom-client.development.js:11778
+runWithFiberInDEV @ react-dom-client.development.js:871
+performUnitOfWork @ react-dom-client.development.js:17641
+workLoopSync @ react-dom-client.development.js:17469
+renderRootSync @ react-dom-client.development.js:17450
+performWorkOnRoot @ react-dom-client.development.js:16504
+performSyncWorkOnRoot @ react-dom-client.development.js:18972
+flushSyncWorkAcrossRoots_impl @ react-dom-client.development.js:18814
+processRootScheduleInMicrotask @ react-dom-client.development.js:18853
+(anonymous) @ react-dom-client.development.js:18991
+logger.ts:66 2026-03-02T20:21:47.045Z [paste.agent-review] request-aborted {sessionId: 'paste-1772482872862', attempt: 2, timeoutForAttempt: 56073, remainingAfterAttempt: 55817}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+requestAgentReview @ paste-classifier.ts:1273
+logger.ts:66 2026-03-02T20:21:47.955Z [paste.agent-review] request-aborted {sessionId: 'paste-1772482906129', attempt: 2, timeoutForAttempt: 88886, remainingAfterAttempt: 88174}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+requestAgentReview @ paste-classifier.ts:1273
+await in requestAgentReview
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1618
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:502
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom-client.development.js:19116
+runWithFiberInDEV @ react-dom-client.development.js:871
+processDispatchQueue @ react-dom-client.development.js:19166
+(anonymous) @ react-dom-client.development.js:19767
+batchedUpdates$1 @ react-dom-client.development.js:3255
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:19320
+dispatchEvent @ react-dom-client.development.js:23585
+dispatchDiscreteEvent @ react-dom-client.development.js:23553
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:335
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom-client.development.js:25904
+renderWithHooksAgain @ react-dom-client.development.js:7762
+renderWithHooks @ react-dom-client.development.js:7674
+updateFunctionComponent @ react-dom-client.development.js:10166
+beginWork @ react-dom-client.development.js:11778
+runWithFiberInDEV @ react-dom-client.development.js:871
+performUnitOfWork @ react-dom-client.development.js:17641
+workLoopSync @ react-dom-client.development.js:17469
+renderRootSync @ react-dom-client.development.js:17450
+performWorkOnRoot @ react-dom-client.development.js:16504
+performSyncWorkOnRoot @ react-dom-client.development.js:18972
+flushSyncWorkAcrossRoots_impl @ react-dom-client.development.js:18814
+processRootScheduleInMicrotask @ react-dom-client.development.js:18853
+(anonymous) @ react-dom-client.development.js:18991
+logger.ts:66 2026-03-02T20:21:48.871Z [paste.agent-review] request-aborted {sessionId: 'paste-1772482872862', attempt: 3, timeoutForAttempt: 54709, remainingAfterAttempt: 53991}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+requestAgentReview @ paste-classifier.ts:1273
+logger.ts:66 2026-03-02T20:21:50.224Z [paste.agent-review] request-aborted {sessionId: 'paste-1772482906129', attempt: 3, timeoutForAttempt: 87060, remainingAfterAttempt: 85905}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+requestAgentReview @ paste-classifier.ts:1273
+await in requestAgentReview
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1618
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:502
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom-client.development.js:19116
+runWithFiberInDEV @ react-dom-client.development.js:871
+processDispatchQueue @ react-dom-client.development.js:19166
+(anonymous) @ react-dom-client.development.js:19767
+batchedUpdates$1 @ react-dom-client.development.js:3255
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:19320
+dispatchEvent @ react-dom-client.development.js:23585
+dispatchDiscreteEvent @ react-dom-client.development.js:23553
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:335
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom-client.development.js:25904
+renderWithHooksAgain @ react-dom-client.development.js:7762
+renderWithHooks @ react-dom-client.development.js:7674
+updateFunctionComponent @ react-dom-client.development.js:10166
+beginWork @ react-dom-client.development.js:11778
+runWithFiberInDEV @ react-dom-client.development.js:871
+performUnitOfWork @ react-dom-client.development.js:17641
+workLoopSync @ react-dom-client.development.js:17469
+renderRootSync @ react-dom-client.development.js:17450
+performWorkOnRoot @ react-dom-client.development.js:16504
+performSyncWorkOnRoot @ react-dom-client.development.js:18972
+flushSyncWorkAcrossRoots_impl @ react-dom-client.development.js:18814
+processRootScheduleInMicrotask @ react-dom-client.development.js:18853
+(anonymous) @ react-dom-client.development.js:18991
+logger.ts:66 2026-03-02T20:21:51.577Z [paste.agent-review] request-aborted {sessionId: 'paste-1772482872862', attempt: 4, timeoutForAttempt: 52440, remainingAfterAttempt: 51285}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+requestAgentReview @ paste-classifier.ts:1273
+logger.ts:62 2026-03-02T20:21:51.578Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 73, totalSuspicious: 8, itemsSent: 8, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T20:21:51.578Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 73, totalSuspicious: 8, itemsSent: 8, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:70 2026-03-02T20:21:51.578Z [pipeline.telemetry] agent-error {importOpId: '54d7bc60-5375-4377-9b92-d54b154ef75d', error: 'signal is aborted without reason'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+logAgentError @ telemetry.ts:100
+fallbackToLocalClassification @ paste-classifier.ts:1597
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1629
+logger.ts:70 2026-03-02T20:21:51.578Z [pipeline.telemetry] agent-review-error {importOpId: '54d7bc60-5375-4377-9b92-d54b154ef75d', error: 'signal is aborted without reason'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+recordAgentReviewError @ telemetry.ts:163
+fallbackToLocalClassification @ paste-classifier.ts:1598
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1629
+logger.ts:66 2026-03-02T20:21:51.578Z [paste.agent-review] agent-review-fail-open {importOpId: '54d7bc60-5375-4377-9b92-d54b154ef75d', reason: 'signal is aborted without reason', failOpenEnabled: true, stage: 'request-failed'}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+fallbackToLocalClassification @ paste-classifier.ts:1599
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1629
+logger.ts:62 2026-03-02T20:21:51.578Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: '54d7bc60-5375-4377-9b92-d54b154ef75d', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 73, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T20:21:51.578Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 73}
+logger.ts:62 2026-03-02T20:21:51.590Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 73}
+paste-classifier.ts:215  POST http://127.0.0.1:8787/api/agent/review 400 (Bad Request)
+fetchWithTimeout @ paste-classifier.ts:215
+requestAgentReview @ paste-classifier.ts:1190
+await in requestAgentReview
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1618
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:502
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom-client.development.js:19116
+runWithFiberInDEV @ react-dom-client.development.js:871
+processDispatchQueue @ react-dom-client.development.js:19166
+(anonymous) @ react-dom-client.development.js:19767
+batchedUpdates$1 @ react-dom-client.development.js:3255
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:19320
+dispatchEvent @ react-dom-client.development.js:23585
+dispatchDiscreteEvent @ react-dom-client.development.js:23553
+<button>
+exports.jsxDEV @ react-jsx-dev-runtime.development.js:335
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom-client.development.js:25904
+renderWithHooksAgain @ react-dom-client.development.js:7762
+renderWithHooks @ react-dom-client.development.js:7674
+updateFunctionComponent @ react-dom-client.development.js:10166
+beginWork @ react-dom-client.development.js:11778
+runWithFiberInDEV @ react-dom-client.development.js:871
+performUnitOfWork @ react-dom-client.development.js:17641
+workLoopSync @ react-dom-client.development.js:17469
+renderRootSync @ react-dom-client.development.js:17450
+performWorkOnRoot @ react-dom-client.development.js:16504
+performSyncWorkOnRoot @ react-dom-client.development.js:18972
+flushSyncWorkAcrossRoots_impl @ react-dom-client.development.js:18814
+processRootScheduleInMicrotask @ react-dom-client.development.js:18853
+(anonymous) @ react-dom-client.development.js:18991
+logger.ts:70 2026-03-02T20:21:53.116Z [paste.agent-review] request-http-error {sessionId: 'paste-1772482906129', status: 400, body: '{"status":"error","model":"claude-opus-4-6","apiVe…olvedForcedItemIds":[]},"providerStatusCode":400}', attempt: 4, isRetryable: false}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+requestAgentReview @ paste-classifier.ts:1206
+await in requestAgentReview
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1618
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:502
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom-client.development.js:19116
+runWithFiberInDEV @ react-dom-client.development.js:871
+processDispatchQueue @ react-dom-client.development.js:19166
+(anonymous) @ react-dom-client.development.js:19767
+batchedUpdates$1 @ react-dom-client.development.js:3255
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:19320
+dispatchEvent @ react-dom-client.development.js:23585
+dispatchDiscreteEvent @ react-dom-client.development.js:23553
+logger.ts:70 2026-03-02T20:21:53.117Z [paste.agent-review] request-unhandled-error {sessionId: 'paste-1772482906129', attempt: 4, error: Error: Agent review route failed (400): {"status":"error","model":"claude-opus-4-6","apiVersion":"2…, remainingAfterAttempt: 83012}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+requestAgentReview @ paste-classifier.ts:1295
+await in requestAgentReview
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1618
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:502
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom-client.development.js:19116
+runWithFiberInDEV @ react-dom-client.development.js:871
+processDispatchQueue @ react-dom-client.development.js:19166
+(anonymous) @ react-dom-client.development.js:19767
+batchedUpdates$1 @ react-dom-client.development.js:3255
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:19320
+dispatchEvent @ react-dom-client.development.js:23585
+dispatchDiscreteEvent @ react-dom-client.development.js:23553
+logger.ts:62 2026-03-02T20:21:53.117Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 123, totalSuspicious: 49, itemsSent: 15, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T20:21:53.117Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 123, totalSuspicious: 49, itemsSent: 15, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:70 2026-03-02T20:21:53.117Z [pipeline.telemetry] agent-error {importOpId: 'def17e39-489d-41e6-979d-c3c83b95bdac', error: 'Agent review route failed (400): {"status":"error"…olvedForcedItemIds":[]},"providerStatusCode":400}'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+logAgentError @ telemetry.ts:100
+fallbackToLocalClassification @ paste-classifier.ts:1597
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1629
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:502
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom-client.development.js:19116
+runWithFiberInDEV @ react-dom-client.development.js:871
+processDispatchQueue @ react-dom-client.development.js:19166
+(anonymous) @ react-dom-client.development.js:19767
+batchedUpdates$1 @ react-dom-client.development.js:3255
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:19320
+dispatchEvent @ react-dom-client.development.js:23585
+dispatchDiscreteEvent @ react-dom-client.development.js:23553
+logger.ts:70 2026-03-02T20:21:53.117Z [pipeline.telemetry] agent-review-error {importOpId: 'def17e39-489d-41e6-979d-c3c83b95bdac', error: 'Agent review route failed (400): {"status":"error"…olvedForcedItemIds":[]},"providerStatusCode":400}'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+recordAgentReviewError @ telemetry.ts:163
+fallbackToLocalClassification @ paste-classifier.ts:1598
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1629
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:502
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom-client.development.js:19116
+runWithFiberInDEV @ react-dom-client.development.js:871
+processDispatchQueue @ react-dom-client.development.js:19166
+(anonymous) @ react-dom-client.development.js:19767
+batchedUpdates$1 @ react-dom-client.development.js:3255
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:19320
+dispatchEvent @ react-dom-client.development.js:23585
+dispatchDiscreteEvent @ react-dom-client.development.js:23553
+logger.ts:66 2026-03-02T20:21:53.117Z [paste.agent-review] agent-review-fail-open {importOpId: 'def17e39-489d-41e6-979d-c3c83b95bdac', reason: 'Agent review route failed (400): {"status":"error"…olvedForcedItemIds":[]},"providerStatusCode":400}', failOpenEnabled: true, stage: 'request-failed'}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+fallbackToLocalClassification @ paste-classifier.ts:1599
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1629
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2196
+importClassifiedText @ EditorArea.ts:357
+pasteFromClipboard @ EditorArea.ts:502
+await in pasteFromClipboard
+handleMenuAction @ App.tsx:1299
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom-client.development.js:19116
+runWithFiberInDEV @ react-dom-client.development.js:871
+processDispatchQueue @ react-dom-client.development.js:19166
+(anonymous) @ react-dom-client.development.js:19767
+batchedUpdates$1 @ react-dom-client.development.js:3255
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:19320
+dispatchEvent @ react-dom-client.development.js:23585
+dispatchDiscreteEvent @ react-dom-client.development.js:23553
+logger.ts:62 2026-03-02T20:21:53.118Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: 'def17e39-489d-41e6-979d-c3c83b95bdac', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 123, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T20:21:53.118Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 123}
+logger.ts:62 2026-03-02T20:21:53.127Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 123}

@@ -1,0 +1,32 @@
+client:789 [vite] connecting...
+client:912 [vite] connected.
+react-dom_client.js?v=ea1ba5f3:20103 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+logger.ts:62 2026-03-03T00:20:29.154Z [paste.agent-review] diag:normalize-delta {originalLength: 7521, normalizedLength: 7448, charsRemoved: 73, charBreakdown: {…}}
+logger.ts:62 2026-03-03T00:20:29.155Z [paste.agent-review] diag:classifyLines-input {classificationProfile: 'paste', sourceFileType: undefined, hasStructuredHints: false, rawTextLength: 7448, rawLineCount: 74, …}
+logger.ts:62 2026-03-03T00:20:29.155Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T00:20:29.186Z [paste.agent-review] diag:classifyLines-output {classificationProfile: 'paste', sourceFileType: undefined, rawTextHash: 1594199534, inputLineCount: 74, classifiedCount: 73, …}
+logger.ts:62 2026-03-03T00:20:29.187Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 73, sourceFileType: undefined, sourceMethod: undefined}
+logger.ts:62 2026-03-03T00:20:29.193Z [paste.agent-review] telemetry:packet-built {totalReviewed: 73, totalSuspicious: 8, suspicionRate: 0.1095890410958904, countPass: 65, countLocalReview: 0, …}
+logger.ts:75 2026-03-03T00:20:29.193Z [paste.agent-review] packet-suspects-snapshot {lines: Array(8)}
+logger.ts:62 2026-03-03T00:20:29.195Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '72d62c04-27a1-46a0-9603-347569b9cccb', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 73}
+logger.ts:62 2026-03-03T00:20:29.195Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '72d62c04-27a1-46a0-9603-347569b9cccb', itemsSent: 8, forcedItems: 5}
+paste-classifier.ts:215 Fetch finished loading: POST "http://127.0.0.1:8787/api/agent/review".
+fetchWithTimeout @ paste-classifier.ts:215
+requestAgentReview @ paste-classifier.ts:1283
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1711
+applyPasteClassifierFlowToView @ paste-classifier.ts:2289
+handlePaste @ paste-classifier.ts:2345
+(anonymous) @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+someProp @ chunk-DVZ7DZ25.js?v=ea1ba5f3:5622
+doPaste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+editHandlers.paste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3973
+view.dom.addEventListener.view.input.eventHandlers.<computed> @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3448
+logger.ts:62 2026-03-03T00:21:15.190Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772497229195', status: 'applied', commands: 8, model: 'claude-opus-4-6', latencyMs: 45974, …}
+logger.ts:62 2026-03-03T00:21:15.190Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: '72d62c04-27a1-46a0-9603-347569b9cccb', status: 'applied', commandsReceived: 8, latencyMs: 45974}
+logger.ts:62 2026-03-03T00:21:15.190Z [pipeline.telemetry] telemetry:agent-response {requestId: '943a9d64-4d68-4d25-a8ea-09b38a79eaa2', importOpId: '72d62c04-27a1-46a0-9603-347569b9cccb', latencyMs: 45974, status: 'applied', commandsReceived: 8}
+logger.ts:62 2026-03-03T00:21:15.191Z [pipeline.telemetry] telemetry:command-apply {importOpId: '72d62c04-27a1-46a0-9603-347569b9cccb', requestId: '943a9d64-4d68-4d25-a8ea-09b38a79eaa2', commandsNormalized: 8, commandsApplied: 0, commandsSkipped: 8, …}
+logger.ts:62 2026-03-03T00:21:15.191Z [paste.agent-review] telemetry:response-applied {status: 'applied', commands: 8, resolvedCommands: 8, conflictCount: 0, apiVersion: '2.0', …}
+logger.ts:62 2026-03-03T00:21:15.191Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 73, totalSuspicious: 8, itemsSent: 8, commandsReceived: 8, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T00:21:15.191Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: '72d62c04-27a1-46a0-9603-347569b9cccb', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 73, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T00:21:15.191Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 73}
+logger.ts:62 2026-03-03T00:21:15.204Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 73}

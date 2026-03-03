@@ -4,7 +4,6 @@ import {
   ARABIC_ONLY_WITH_NUMBERS_RE,
   CHARACTER_RE,
   CHARACTER_STOP_WORDS,
-  CONVERSATIONAL_STARTS,
   INLINE_DIALOGUE_GLUE_RE,
   INLINE_DIALOGUE_RE,
   SCENE_NUMBER_EXACT_RE,
@@ -39,50 +38,20 @@ export const ensureCharacterTrailingColon = (value: string): string => {
   return `${normalized}:`;
 };
 
-const NON_CHARACTER_SINGLE_TOKENS = new Set([
-  "أنا",
-  "انا",
-  "إحنا",
-  "احنا",
-  "إنت",
-  "انت",
-  "إنتي",
-  "انتي",
-  "أنت",
-  "أنتِ",
-  "هو",
-  "هي",
-  "هم",
-  "هن",
-]);
+// regex للضمائر العربية (فصحى + عامية) — بديل ديناميكي لـ NON_CHARACTER_SINGLE_TOKENS
+const PRONOUN_RE =
+  /^(?:أنا|انا|إنت|انت|أنت|أنتِ|إنتي|انتي|هو|هي|هم|هن|إحنا|احنا|نحن|أنتم|انتم)$/;
 
-const NON_NAME_TOKENS = new Set([
-  ...Array.from(CHARACTER_STOP_WORDS),
-  ...CONVERSATIONAL_STARTS,
-  ...SHORT_DIALOGUE_WORDS,
-  "لن",
-  "لم",
-  "لا",
-  "ما",
-  "هل",
-  "لو",
-  "إن",
-  "ان",
-  "إذا",
-  "اذا",
-  "أين",
-  "اين",
-  "متى",
-  "كيف",
-  "لماذا",
-]);
+// regex للكلمات الوظيفية (حروف جر/عطف/نفي/استفهام) — بديل ديناميكي لـ NON_NAME_TOKENS
+const FUNCTIONAL_WORD_RE =
+  /^(?:و|ف|ب|ل|ك|من|في|فى|على|إلى|الى|عن|مع|هل|ما|لا|لم|لن|لو|إن|أن|ان|إذا|اذا|أين|اين|متى|كيف|لماذا)$/;
 
 const isShortDialogueWord = (line: string): boolean => {
   const normalized = normalizeLine(line).toLowerCase();
   return SHORT_DIALOGUE_WORDS.includes(normalized);
 };
 
-const isCandidateCharacterName = (value: string): boolean => {
+export const isCandidateCharacterName = (value: string): boolean => {
   const candidate = normalizeCharacterName(value);
   if (!candidate) return false;
   if (!ARABIC_ONLY_WITH_NUMBERS_RE.test(candidate)) return false;
@@ -92,12 +61,11 @@ const isCandidateCharacterName = (value: string): boolean => {
   const tokens = candidate.split(/\s+/).filter(Boolean);
   if (tokens.length === 0 || tokens.length > 5) return false;
   if (tokens.some((token) => CHARACTER_STOP_WORDS.has(token))) return false;
-  if (tokens.length === 1 && NON_CHARACTER_SINGLE_TOKENS.has(tokens[0]))
-    return false;
+  if (tokens.length === 1 && PRONOUN_RE.test(tokens[0])) return false;
   if (
     tokens.some((token) => {
       const normalizedToken = normalizeLine(token);
-      return NON_NAME_TOKENS.has(normalizedToken);
+      return FUNCTIONAL_WORD_RE.test(normalizedToken);
     })
   ) {
     return false;
@@ -164,7 +132,8 @@ export const parseInlineCharacterDialogue = (
 
 export const parseImplicitCharacterDialogueWithoutColon = (
   line: string,
-  context: Partial<ClassificationContext>
+  context: Partial<ClassificationContext>,
+  confirmedCharacters?: ReadonlySet<string>
 ): ParsedInlineCharacterDialogue | null => {
   const trimmed = (line ?? "").trim();
   if (!trimmed) return null;
@@ -185,6 +154,12 @@ export const parseImplicitCharacterDialogueWithoutColon = (
     const dialogueText = tokens.slice(k).join(" ").trim();
     if (!candidateName || !dialogueText) continue;
     if (!isCandidateCharacterName(candidateName)) continue;
+
+    // Guard: اسم كلمة واحدة لازم يكون مؤكد في الـ registry
+    const nameTokens = candidateName.split(/\s+/).filter(Boolean);
+    if (nameTokens.length === 1 && !confirmedCharacters?.has(candidateName)) {
+      continue;
+    }
 
     const hasSpeechCue =
       hasDirectDialogueCues(dialogueText) ||
@@ -211,43 +186,10 @@ export const parseImplicitCharacterDialogueWithoutColon = (
   return null;
 };
 
-export const buildCharacterRegistry = (lines: string[]): Set<string> => {
-  const registry = new Set<string>();
-
-  for (const line of lines) {
-    const trimmed = (line ?? "").trim();
-    if (!trimmed) continue;
-
-    // جرّب extract من inline pattern
-    const parsed = parseInlineCharacterDialogue(trimmed);
-    if (parsed) {
-      const normalizedName = normalizeCharacterName(parsed.characterName);
-      if (normalizedName && isCandidateCharacterName(normalizedName)) {
-        registry.add(normalizedName);
-      }
-      continue;
-    }
-
-    // سطر عادي ينتهي بـ : — جرّب كاسم شخصية
-    if (/[:：]\s*$/.test(trimmed)) {
-      const normalizedName = normalizeCharacterName(trimmed);
-      if (
-        normalizedName &&
-        isCandidateCharacterName(normalizedName) &&
-        !SHORT_DIALOGUE_WORDS.includes(normalizedName.toLowerCase())
-      ) {
-        registry.add(normalizedName);
-      }
-    }
-  }
-
-  return registry;
-};
-
 export const isCharacterLine = (
   line: string,
-  context?: Partial<ClassificationContext>,
-  knownCharacters?: ReadonlySet<string>
+  _context?: Partial<ClassificationContext>,
+  confirmedCharacters?: ReadonlySet<string>
 ): boolean => {
   const trimmed = normalizeLine(stripLeadingBullets((line ?? "").trim()));
   if (!trimmed) return false;
@@ -258,22 +200,19 @@ export const isCharacterLine = (
   if (isParentheticalLine(trimmed)) return false;
 
   const namePart = normalizeCharacterName(trimmed);
-
-  // التحقق من الـ registry أولاً — اسم معروف = character مؤكد
-  if (knownCharacters?.has(namePart)) {
-    return true;
-  }
-
   if (!isCandidateCharacterName(namePart)) return false;
 
   const tokens = namePart.split(/\s+/).filter(Boolean);
-  if (
-    context?.isInDialogueBlock &&
-    context.previousType === "dialogue" &&
-    tokens.length === 1 &&
-    namePart.length < 4
-  ) {
+
+  // Guard ديناميكي: كلمة واحدة + ":" لازم تكون مؤكدة في الـ registry
+  // غير كده → fall-through لمسار dialogue/action/hybrid
+  if (tokens.length === 1 && !confirmedCharacters?.has(namePart)) {
     return false;
+  }
+
+  // اسم مؤكد في الـ registry → character
+  if (confirmedCharacters?.has(namePart)) {
+    return true;
   }
 
   return true;

@@ -11,7 +11,8 @@
  * يُستهلك في {@link PasteClassifier} و {@link HybridClassifier}.
  */
 import type { ClassifiedDraft, ElementType } from "./classification-types";
-import { normalizeCharacterName } from "./text-utils";
+import { parseInlineCharacterDialogue, isCandidateCharacterName } from "./character";
+import { normalizeCharacterName, isActionVerbStart } from "./text-utils";
 import { loadFromStorage, saveToStorage } from "../hooks/use-local-storage";
 import { logger } from "../utils/logger";
 
@@ -63,23 +64,59 @@ export interface EnhancedContextMemory extends ContextMemory {
 export interface ContextMemorySnapshot {
   readonly recentTypes: readonly ElementType[];
   readonly characterFrequency: ReadonlyMap<string, number>;
+  readonly confirmedCharacters: ReadonlySet<string>;
+  readonly characterEvidence: ReadonlyMap<string, CharacterEvidence>;
+  readonly isInDialogueFlow: boolean;
+  readonly lastCharacterName: string | null;
+  readonly dialogueDepth: number;
 }
+
+/** أدلة تأكيد هوية الشخصية — كل عدّاد مستقل */
+export interface CharacterEvidence {
+  /** عدد مرات الظهور كـ inline pair (اسم: حوار في سطر واحد) */
+  inlinePairCount: number;
+  /** عدد مرات الظهور كـ standalone header (اسم: في سطر مستقل) */
+  standaloneHeaderCount: number;
+  /** عدد المرات اللي السطر التالي كان حوار */
+  dialogueFollowerCount: number;
+  /** عدد التكرارات الكلية */
+  repeatCount: number;
+  /** عدد مرات ظهور action contamination (الاسم ظهر في سياق فعل) */
+  actionContaminationCount: number;
+}
+
+const createEmptyEvidence = (): CharacterEvidence => ({
+  inlinePairCount: 0,
+  standaloneHeaderCount: 0,
+  dialogueFollowerCount: 0,
+  repeatCount: 0,
+  actionContaminationCount: 0,
+});
+
+/**
+ * سياسة التأكيد — متى يُعتبر الاسم مؤكد كشخصية؟
+ * مؤكد إذا:
+ *   inlinePairCount >= 1
+ *   أو (standaloneHeaderCount >= 2 و dialogueFollowerCount >= 2 و actionContaminationCount === 0)
+ */
+const isEvidenceConfirmed = (ev: CharacterEvidence): boolean => {
+  if (ev.inlinePairCount >= 1) return true;
+  if (
+    ev.standaloneHeaderCount >= 2 &&
+    ev.dialogueFollowerCount >= 2 &&
+    ev.actionContaminationCount === 0
+  ) {
+    return true;
+  }
+  return false;
+};
 
 const RUNTIME_SESSION_ID = "__runtime-paste-session__";
 const MAX_RECENT_TYPES = 20;
 const MAX_RUNTIME_RECORDS = 120;
 
-const MEMORY_INVALID_SINGLE_TOKENS = new Set([
-  "انا",
-  "أنا",
-  "انت",
-  "إنت",
-  "أنت",
-  "هي",
-  "هو",
-  "هم",
-  "هن",
-]);
+const MEMORY_INVALID_SINGLE_TOKEN_RE =
+  /^(?:أنا|انا|إنت|انت|أنت|أنتِ|إنتي|انتي|هو|هي|هم|هن|إحنا|احنا|نحن|أنتم|انتم)$/;
 
 const isValidMemoryCharacterName = (rawName: string): boolean => {
   const normalized = normalizeCharacterName(rawName);
@@ -89,7 +126,7 @@ const isValidMemoryCharacterName = (rawName: string): boolean => {
 
   const tokens = normalized.split(/\s+/).filter(Boolean);
   if (tokens.length === 0 || tokens.length > 5) return false;
-  if (tokens.length === 1 && MEMORY_INVALID_SINGLE_TOKENS.has(tokens[0]))
+  if (tokens.length === 1 && MEMORY_INVALID_SINGLE_TOKEN_RE.test(tokens[0]))
     return false;
   return true;
 };
@@ -131,6 +168,8 @@ const detectLocalRepeatedPattern = (
 export class ContextMemoryManager {
   private storage: Map<string, EnhancedContextMemory> = new Map();
   private runtimeRecords: ClassifiedDraft[] = [];
+  private _confirmedCharacters: Set<string> = new Set();
+  private _characterEvidence: Map<string, CharacterEvidence> = new Map();
 
   constructor() {
     logger.info("ContextMemoryManager initialized (enhanced).", {
@@ -318,6 +357,138 @@ export class ContextMemoryManager {
     this.rebuildRuntimeAggregates();
   }
 
+  /**
+   * بذر الـ registry من inline patterns (regex-based) — يتنادى مرة واحدة قبل الـ loop.
+   * بيعمل scan بـ `parseInlineCharacterDialogue` ويضيف الأسماء المؤكدة فقط.
+   * بيغذّي الـ evidence map بـ inlinePairCount.
+   */
+  seedFromInlinePatterns(lines: string[]): void {
+    for (const line of lines) {
+      const trimmed = (line ?? "").trim();
+      if (!trimmed) continue;
+      const parsed = parseInlineCharacterDialogue(trimmed);
+      if (parsed) {
+        const normalizedName = normalizeCharacterName(parsed.characterName);
+        if (normalizedName && isValidMemoryCharacterName(normalizedName)) {
+          this._confirmedCharacters.add(normalizedName);
+          const ev = this._characterEvidence.get(normalizedName) ?? createEmptyEvidence();
+          ev.inlinePairCount++;
+          ev.repeatCount++;
+          this._characterEvidence.set(normalizedName, ev);
+        }
+      }
+    }
+  }
+
+  /**
+   * بذر الـ registry من standalone patterns (اسم: على سطر + حوار على سطر تالي).
+   * يتنادى مرة واحدة بعد seedFromInlinePatterns وقبل الـ loop.
+   *
+   * شروط صارمة:
+   * 1. السطر ينتهي بـ `:` أو `：`
+   * 2. بعد إزالة الـ colon: ≤3 tokens + يعدّي isCandidateCharacterName
+   * 3. السطر التالي مش colon line (مش character تاني)
+   * 4. السطر التالي dialogue-leaning هيكلياً
+   * 5. النمط يتكرر ≥2 مرات لنفس الاسم
+   * 6. الاسم ليس فعل (مش action verb)
+   */
+  seedFromStandalonePatterns(lines: string[]): void {
+    // regex هيكلي — سطر تالي فيه إشارة حوار
+    const DIALOGUE_FOLLOWER_RE = /[؟?!]|(?:\.{2,}|…)/;
+    // المرحلة الأولى: جمع candidates مع عدد التكرار
+    const candidates = new Map<string, { count: number; followerCount: number }>;
+
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = (lines[i] ?? "").trim();
+      if (!trimmed) continue;
+
+      // شرط 1: ينتهي بـ colon
+      if (!/[:：]\s*$/.test(trimmed)) continue;
+
+      // شرط 2: اسم صالح بعد إزالة colon
+      const namePart = normalizeCharacterName(trimmed);
+      if (!namePart) continue;
+      const tokens = namePart.split(/\s+/).filter(Boolean);
+      if (tokens.length === 0 || tokens.length > 3) continue;
+      if (!isCandidateCharacterName(namePart)) continue;
+
+      // شرط إضافي: الاسم مش فعل
+      if (isActionVerbStart(namePart)) continue;
+
+      // شرط 3+4: السطر التالي موجود ومش colon line + dialogue-leaning
+      const nextLine = (lines[i + 1] ?? "").trim();
+      if (!nextLine) continue;
+      if (/[:：]\s*$/.test(nextLine)) continue;
+
+      // شرط 4: السطر التالي dialogue-leaning هيكلياً
+      const nextTokens = nextLine.split(/\s+/).filter(Boolean);
+      const isDialogueLeaning =
+        DIALOGUE_FOLLOWER_RE.test(nextLine) ||
+        (nextTokens.length >= 2 && nextTokens.length <= 20 && !isActionVerbStart(nextLine));
+
+      if (!isDialogueLeaning) continue;
+
+      const entry = candidates.get(namePart) ?? { count: 0, followerCount: 0 };
+      entry.count++;
+      entry.followerCount++;
+      candidates.set(namePart, entry);
+    }
+
+    // المرحلة الثانية: شرط 5 — التكرار ≥ 2 + لا action contamination
+    for (const [name, stats] of candidates) {
+      if (stats.count < 2) continue;
+
+      // شرط 6: لا action contamination — الاسم مش ظهر كبداية فعل في أي سطر آخر
+      const hasContamination = lines.some((l) => {
+        const t = (l ?? "").trim();
+        if (!t || /[:：]\s*$/.test(t)) return false;
+        const firstWord = t.split(/\s+/)[0] ?? "";
+        return normalizeCharacterName(firstWord) === name && isActionVerbStart(t);
+      });
+
+      if (hasContamination) continue;
+
+      this._confirmedCharacters.add(name);
+      const ev = this._characterEvidence.get(name) ?? createEmptyEvidence();
+      ev.standaloneHeaderCount += stats.count;
+      ev.dialogueFollowerCount += stats.followerCount;
+      ev.repeatCount += stats.count;
+      this._characterEvidence.set(name, ev);
+    }
+  }
+
+  /**
+   * الأسماء المؤكدة من المسح الأولي فقط (قبل التصنيف).
+   * يُستخدم في التصحيح الرجعي للتمييز بين الأسماء المُؤكدة والمُكتشفة أثناء التصنيف.
+   */
+  getPreSeededCharacters(): ReadonlySet<string> {
+    return this._confirmedCharacters;
+  }
+
+  /**
+   * هل الاسم ده مؤكد كشخصية؟
+   * القرار مبني على evidence policy — مش مجرد وجود في Set.
+   */
+  isConfirmedCharacter(name: string): boolean {
+    const normalized = normalizeCharacterName(name);
+    if (!normalized) return false;
+    // مؤكد من الـ seed الأولي (inline أو standalone)
+    if (this._confirmedCharacters.has(normalized)) return true;
+    // مؤكد من evidence مجمّعة أثناء الـ runtime
+    const ev = this._characterEvidence.get(normalized);
+    if (ev && isEvidenceConfirmed(ev)) return true;
+    return false;
+  }
+
+  /**
+   * جلب أدلة شخصية معينة — null لو مفيش أدلة.
+   */
+  getCharacterEvidence(name: string): CharacterEvidence | null {
+    const normalized = normalizeCharacterName(name);
+    if (!normalized) return null;
+    return this._characterEvidence.get(normalized) ?? null;
+  }
+
   getSnapshot(): ContextMemorySnapshot {
     const memory = this.getOrCreateRuntimeMemory();
     const frequency = new Map<string, number>();
@@ -329,10 +500,158 @@ export class ContextMemoryManager {
       }
     );
 
+    const recentTypes = [...memory.data.lastClassifications];
+
+    // حساب isInDialogueFlow من آخر نوع
+    const lastType = recentTypes.at(-1);
+    const isInDialogueFlow =
+      lastType === "character" ||
+      lastType === "dialogue" ||
+      lastType === "parenthetical";
+
+    // آخر شخصية اتكلمت
+    let lastCharacterName: string | null = null;
+    for (let i = this.runtimeRecords.length - 1; i >= 0; i--) {
+      if (this.runtimeRecords[i].type === "character") {
+        lastCharacterName = normalizeCharacterName(
+          this.runtimeRecords[i].text
+        );
+        break;
+      }
+    }
+
+    // عمق الحوار — كام سطر متتالي في dialogue flow
+    let dialogueDepth = 0;
+    for (let i = recentTypes.length - 1; i >= 0; i--) {
+      const t = recentTypes[i];
+      if (t === "dialogue" || t === "parenthetical") {
+        dialogueDepth++;
+      } else if (t === "character") {
+        dialogueDepth++;
+        break;
+      } else {
+        break;
+      }
+    }
+
+    // دمج inline-seeded + runtime evidence-confirmed
+    const confirmedCharacters = new Set(this._confirmedCharacters);
+    for (const [name] of this._characterEvidence) {
+      const ev = this._characterEvidence.get(name)!;
+      if (isEvidenceConfirmed(ev)) confirmedCharacters.add(name);
+    }
+    // أي اسم ظهر runtime بـ count >= 1 وعنده evidence مؤكدة
+    for (const [name, count] of frequency) {
+      if (count >= 1) {
+        const ev = this._characterEvidence.get(name);
+        if (ev && isEvidenceConfirmed(ev)) confirmedCharacters.add(name);
+      }
+    }
+
     return {
-      recentTypes: [...memory.data.lastClassifications],
+      recentTypes,
       characterFrequency: frequency,
+      confirmedCharacters,
+      characterEvidence: new Map(this._characterEvidence),
+      isInDialogueFlow,
+      lastCharacterName,
+      dialogueDepth,
     };
+  }
+
+  /**
+   * تصحيح رجعي لسجل واحد في runtimeRecords عند index محدد.
+   * يُحدّث السجل ويُعيد بناء كل الإحصائيات من ذلك الـ index حتى النهاية.
+   *
+   * @param index - موقع السجل المراد تصحيحه
+   * @param newEntry - السجل المُصحّح الجديد
+   */
+  retroCorrect(index: number, newEntry: ClassifiedDraft): void {
+    if (index < 0 || index >= this.runtimeRecords.length) return;
+    this.runtimeRecords[index] = newEntry;
+    this.rebuildRuntimeAggregates();
+  }
+
+  /**
+   * تحليل هيكلي لكتلة أسطر بين startIdx و endIdx.
+   * يُرجع إحصائيات بنيوية بدون أي قوائم كلمات ثابتة.
+   *
+   * @param startIdx - بداية الكتلة (0-indexed)
+   * @param endIdx - نهاية الكتلة (inclusive)
+   * @returns تحليل هيكلي للكتلة
+   */
+  getBlockAnalysis(
+    startIdx: number,
+    endIdx: number
+  ): {
+    totalLines: number;
+    linesEndingWithColon: number;
+    actionWithoutStrongSignal: number;
+    typeDistribution: Record<string, number>;
+    hasConsecutiveSameType: boolean;
+    dominantType: ElementType | null;
+  } {
+    const safeStart = Math.max(0, startIdx);
+    const safeEnd = Math.min(this.runtimeRecords.length - 1, endIdx);
+    const slice = this.runtimeRecords.slice(safeStart, safeEnd + 1);
+
+    const typeDist: Record<string, number> = {};
+    let linesEndingWithColon = 0;
+    let actionWithoutStrongSignal = 0;
+    let hasConsecutiveSameType = false;
+
+    for (let i = 0; i < slice.length; i++) {
+      const entry = slice[i];
+      typeDist[entry.type] = (typeDist[entry.type] ?? 0) + 1;
+
+      if (/[:：]\s*$/.test(entry.text.trim())) {
+        linesEndingWithColon++;
+      }
+
+      if (
+        entry.type === "action" &&
+        !/^[-–—]/.test(entry.text.trim())
+      ) {
+        actionWithoutStrongSignal++;
+      }
+
+      if (i > 0 && slice[i - 1].type === entry.type) {
+        hasConsecutiveSameType = true;
+      }
+    }
+
+    // النوع المهيمن
+    let dominantType: ElementType | null = null;
+    let maxCount = 0;
+    for (const [typeKey, count] of Object.entries(typeDist)) {
+      if (count > maxCount) {
+        maxCount = count;
+        dominantType = typeKey as ElementType;
+      }
+    }
+
+    return {
+      totalLines: slice.length,
+      linesEndingWithColon,
+      actionWithoutStrongSignal,
+      typeDistribution: typeDist,
+      hasConsecutiveSameType,
+      dominantType,
+    };
+  }
+
+  /**
+   * إعادة بناء كاملة من مصفوفة drafts مُصحّحة.
+   * يُستدعى من retroactiveCorrectionPass بعد تعديل التصنيفات.
+   *
+   * @param correctedDrafts - المصفوفة الكاملة بعد التصحيح الرجعي
+   */
+  rebuildFromCorrectedDrafts(correctedDrafts: readonly ClassifiedDraft[]): void {
+    this.runtimeRecords = correctedDrafts.map((d) => ({ ...d }));
+    if (this.runtimeRecords.length > MAX_RUNTIME_RECORDS) {
+      this.runtimeRecords = this.runtimeRecords.slice(-MAX_RUNTIME_RECORDS);
+    }
+    this.rebuildRuntimeAggregates();
   }
 
   /**
@@ -387,6 +706,15 @@ export class ContextMemoryManager {
 
     memory.data.characterDialogueMap[characterName] =
       (memory.data.characterDialogueMap[characterName] || 0) + 1;
+
+    // تحديث evidence map — confidence عالية (regex path) تزيد inlinePairCount
+    // confidence منخفضة (context/hybrid) تزيد repeatCount فقط (anti-contamination)
+    const ev = this._characterEvidence.get(characterName) ?? createEmptyEvidence();
+    ev.repeatCount++;
+    if (entry.confidence >= 88) {
+      ev.inlinePairCount++;
+    }
+    this._characterEvidence.set(characterName, ev);
   }
 
   private rebuildRuntimeAggregates(): void {

@@ -561,7 +561,7 @@ const PATTERN_PRONOUN = /(?:(?:و|ف)?(?:هو|هي|هم|هن)\s+)/.source;
 const PATTERN_MAZAL =
   /(?:(?:ما|لا|لم|لن)\s*(?:زال|يزال|تزال|برح|فتئ|انفك)(?:[توناواي]{1,3})?\s+)/
     .source;
-const PATTERN_VERB = /[يتنأ][\u0600-\u06FF]{2,}/.source;
+const PATTERN_VERB = /(?:[يتنأ]|ب[تيا])[\u0600-\u06FF]{2,}/.source;
 
 // 2. بناء نمط "بداية الأكشن القوية" (Strong Action Start)
 // المنطق: (ضمير + فعل) أو (مازال + فعل) أو (ضمير + مازال + فعل)

@@ -15,7 +15,6 @@ import {
 } from "./arabic-patterns";
 import { isStandaloneBasmalaLine } from "./basmala";
 import {
-  buildCharacterRegistry,
   ensureCharacterTrailingColon,
   isCharacterLine,
   parseImplicitCharacterDialogueWithoutColon,
@@ -40,6 +39,9 @@ import {
   isDialogueLine,
 } from "./dialogue";
 import { HybridClassifier } from "./hybrid-classifier";
+import { retroactiveCorrectionPass } from "./retroactive-corrector";
+import type { SequenceOptimizationResult } from "./structural-sequence-optimizer";
+import { optimizeSequence } from "./structural-sequence-optimizer";
 import {
   mergeBrokenCharacterName,
   parseBulletLine,
@@ -85,7 +87,7 @@ const CLASSIFICATION_MODE = "auto-apply" as const;
 const AGENT_REVIEW_MODEL = AGENT_MODEL_ID;
 const AGENT_REVIEW_DEADLINE_MS = 90_000;
 const AGENT_REVIEW_MAX_ATTEMPTS = 4;
-const AGENT_REVIEW_MAX_RATIO = 0.18;
+const AGENT_REVIEW_MAX_RATIO = 1.0;
 const AGENT_REVIEW_MIN_TIMEOUT_MS = 1_500;
 const AGENT_REVIEW_MAX_TIMEOUT_MS = 90_000;
 const AGENT_REVIEW_RETRY_DELAY_MS = 450;
@@ -483,9 +485,6 @@ export const classifyLines = (
   }
   const lines = sanitizedText.split(/\r?\n/);
 
-  // ── بناء Character Registry من inline patterns (two-pass) ──
-  const characterRegistry = buildCharacterRegistry(lines);
-
   agentReviewLogger.info("diag:classifyLines-input", {
     classificationProfile: context?.classificationProfile,
     sourceFileType: context?.sourceFileType,
@@ -501,6 +500,10 @@ export const classifyLines = (
   const classified: ClassifiedDraftWithId[] = [];
 
   const memoryManager = new ContextMemoryManager();
+  // بذر الـ registry من inline patterns (regex-based) قبل الـ loop
+  memoryManager.seedFromInlinePatterns(lines);
+  // بذر الـ registry من standalone patterns (اسم: سطر + حوار سطر تالي)
+  memoryManager.seedFromStandalonePatterns(lines);
   const hybridClassifier = new HybridClassifier();
 
   // استخراج الخيارات من السياق
@@ -661,9 +664,13 @@ export const classifyLines = (
       continue;
     }
 
+    // أخذ snapshot قبل parseImplicit عشان نمرر confirmedCharacters
+    const snapshot = memoryManager.getSnapshot();
+
     const implicit = parseImplicitCharacterDialogueWithoutColon(
       trimmed,
-      context
+      context,
+      snapshot.confirmedCharacters
     );
     if (implicit) {
       if (implicit.cue) {
@@ -690,8 +697,7 @@ export const classifyLines = (
       });
       continue;
     }
-
-    if (isCharacterLine(normalizedForClassification, context, characterRegistry)) {
+    if (isCharacterLine(normalizedForClassification, context, snapshot.confirmedCharacters)) {
       push({
         type: "character",
         text: ensureCharacterTrailingColon(trimmed),
@@ -707,7 +713,7 @@ export const classifyLines = (
     );
     const dialogueThreshold = detectedDialect ? 5 : 6;
     if (
-      isDialogueLine(normalizedForClassification, context) ||
+      isDialogueLine(normalizedForClassification, context, snapshot) ||
       dialogueProbability >= dialogueThreshold
     ) {
       const dialectBoost = detectedDialect ? 3 : 0;
@@ -735,7 +741,8 @@ export const classifyLines = (
 
     const decision = resolveNarrativeDecision(
       normalizedForClassification,
-      context
+      context,
+      snapshot
     );
     const hybridResult = hybridClassifier.classifyLine(
       normalizedForClassification,
@@ -790,6 +797,30 @@ export const classifyLines = (
     });
   }
 
+  // ── ممر التصحيح الرجعي (retroactive correction pass) ──
+  const _retroCorrections = retroactiveCorrectionPass(classified, memoryManager);
+  if (_retroCorrections > 0) {
+    agentReviewLogger.info("diag:retroactive-corrections", {
+      corrections: _retroCorrections,
+      classifiedCount: classified.length,
+    });
+  }
+
+  // ── ممر Viterbi للتحسين التسلسلي (Structural Sequence Optimizer) ──
+  const preSeeded = memoryManager.getPreSeededCharacters();
+  const _seqOptResult = optimizeSequence(classified, preSeeded);
+  if (_seqOptResult.totalDisagreements > 0) {
+    agentReviewLogger.info("diag:viterbi-disagreements", {
+      total: _seqOptResult.totalDisagreements,
+      rate: _seqOptResult.disagreementRate.toFixed(3),
+      top: _seqOptResult.disagreements
+        .slice(0, 5)
+        .map((d) => `L${d.lineIndex}:${d.forwardType}→${d.viterbiType}(${d.disagreementStrength})`),
+    });
+  }
+  // تخزين نتيجة Viterbi على المصفوفة لاستخدامها في agent review
+  (classified as ClassifiedDraftWithId[] & { _sequenceOptimization?: SequenceOptimizationResult })._sequenceOptimization = _seqOptResult;
+
   // ── diagnostic: ملخص نتائج التصنيف للمقارنة ──
   const _diagTypeDist: Record<string, number> = {};
   for (const item of classified) {
@@ -806,6 +837,7 @@ export const classifyLines = (
     classifiedCount: classified.length,
     mergedOrSkipped: lines.length - classified.length,
     typeDistribution: _diagTypeDist,
+    viterbiDisagreements: _seqOptResult.totalDisagreements,
   });
 
   return classified;
@@ -1483,8 +1515,15 @@ const applyRemoteAgentReviewV2 = async (
 ): Promise<ClassifiedDraftWithId[]> => {
   if (classified.length === 0) return classified;
 
+  // استخراج نتيجة Viterbi المخزنة من classifyLines (لو موجودة)
+  const storedSeqOpt = (classified as ClassifiedDraftWithId[] & { _sequenceOptimization?: SequenceOptimizationResult })._sequenceOptimization;
+
   const reviewInput = toClassifiedLineRecords(classified);
-  const reviewer = new PostClassificationReviewer();
+  const reviewer = new PostClassificationReviewer(
+    storedSeqOpt?.disagreements?.length
+      ? { viterbiDisagreements: storedSeqOpt.disagreements }
+      : undefined
+  );
   const basePacket = reviewer.review(reviewInput);
   const reviewPacket: LLMReviewPacket = {
     ...basePacket,

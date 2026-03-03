@@ -1,0 +1,190 @@
+client:789 [vite] connecting...
+client:912 [vite] connected.
+react-dom_client.js?v=ea1ba5f3:20103 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+logger.ts:62 2026-03-03T00:34:42.094Z [file-import] File import pipeline started {filename: '12.docx', mode: 'replace', strategy: 'backend-only-strict', pipeline: 'frontend-open->backend-extract->backend-agent-review->editor-apply'}
+backend-extract.ts:271 Fetch finished loading: POST "http://127.0.0.1:8787/api/file-extract".
+executeBackendExtractionRequest @ backend-extract.ts:271
+sendJsonRequest @ backend-extract.ts:432
+await in sendJsonRequest
+extractFileWithBackend @ backend-extract.ts:442
+extractImportedFile @ index.ts:47
+openFile @ App.tsx:999
+await in openFile
+handleMenuAction @ App.tsx:1209
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:62 2026-03-03T00:34:45.893Z [paste.agent-review] diag:normalize-delta {originalLength: 7380, normalizedLength: 7380, charsRemoved: 0, charBreakdown: '{"cr":0,"nbsp":0,"zwnj":0,"zwj":0,"zwsp":0,"lrm":0…tab":0,"softHyphen":0,"alm":0,"fullwidthColon":0}'}
+logger.ts:62 2026-03-03T00:34:45.893Z [paste.agent-review] diag:classifyLines-input {classificationProfile: 'generic-open', sourceFileType: 'docx', hasStructuredHints: false, rawTextLength: 7380, rawLineCount: 73, …}
+logger.ts:62 2026-03-03T00:34:45.893Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T00:34:45.919Z [paste.agent-review] diag:classifyLines-output {classificationProfile: 'generic-open', sourceFileType: 'docx', rawTextHash: -798474193, inputLineCount: 73, classifiedCount: 114, …}
+logger.ts:62 2026-03-03T00:34:45.919Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 114, sourceFileType: 'docx', sourceMethod: 'doc-converter-flow'}
+logger.ts:62 2026-03-03T00:34:45.927Z [paste.agent-review] telemetry:packet-built {totalReviewed: 114, totalSuspicious: 23, suspicionRate: 0.20175438596491227, countPass: 91, countLocalReview: 23, …}
+logger.ts:62 2026-03-03T00:34:45.927Z [paste.agent-review] packet-empty-forwarded {countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, countSentToAgent: 0}
+logger.ts:62 2026-03-03T00:34:45.928Z [paste.agent-review] packet-empty-after-filtering-forwarded {totalSuspicious: 23, countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, …}
+logger.ts:62 2026-03-03T00:34:45.929Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: 'b83775c4-fffe-49fd-b572-a6ed6086dc9e', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114}
+logger.ts:62 2026-03-03T00:34:45.929Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: 'b83775c4-fffe-49fd-b572-a6ed6086dc9e', itemsSent: 0, forcedItems: 0}
+paste-classifier.ts:215 Fetch finished loading: POST "http://127.0.0.1:8787/api/agent/review".
+fetchWithTimeout @ paste-classifier.ts:215
+requestAgentReview @ paste-classifier.ts:1283
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1711
+applyPasteClassifierFlowToView @ paste-classifier.ts:2289
+importClassifiedText @ EditorArea.ts:357
+openFile @ App.tsx:1014
+await in openFile
+handleMenuAction @ App.tsx:1209
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:62 2026-03-03T00:34:45.945Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772498085929', status: 'skipped', commands: 0, model: 'claude-opus-4-6', latencyMs: 0, …}
+logger.ts:62 2026-03-03T00:34:45.945Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: 'b83775c4-fffe-49fd-b572-a6ed6086dc9e', status: 'skipped', commandsReceived: 0, latencyMs: 0}
+logger.ts:62 2026-03-03T00:34:45.945Z [pipeline.telemetry] telemetry:agent-response {requestId: '24769a73-574b-4d92-a2dc-caa8c547fcfa', importOpId: 'b83775c4-fffe-49fd-b572-a6ed6086dc9e', latencyMs: 0, status: 'skipped', commandsReceived: 0}
+logger.ts:62 2026-03-03T00:34:45.946Z [pipeline.telemetry] telemetry:command-apply {importOpId: 'b83775c4-fffe-49fd-b572-a6ed6086dc9e', requestId: '24769a73-574b-4d92-a2dc-caa8c547fcfa', commandsNormalized: 0, commandsApplied: 0, commandsSkipped: 0, …}
+logger.ts:62 2026-03-03T00:34:45.946Z [paste.agent-review] telemetry:response-applied {status: 'skipped', commands: 0, resolvedCommands: 0, conflictCount: 0, apiVersion: '2.0', …}
+logger.ts:62 2026-03-03T00:34:45.946Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 114, totalSuspicious: 23, itemsSent: 0, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T00:34:45.946Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: 'b83775c4-fffe-49fd-b572-a6ed6086dc9e', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T00:34:45.946Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 114}
+logger.ts:62 2026-03-03T00:34:45.965Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 114}
+logger.ts:62 2026-03-03T00:34:45.981Z [file-import] File import pipeline completed {openPipeline: 'paste-classifier', method: 'doc-converter-flow', source: 'extracted-text', usedOcr: false, qualityScore: undefined, …}
+logger.ts:62 2026-03-03T00:34:46.286Z [paste.agent-review] diag:normalize-delta {originalLength: 7380, normalizedLength: 7380, charsRemoved: 0, charBreakdown: '{"cr":0,"nbsp":0,"zwnj":0,"zwj":0,"zwsp":0,"lrm":0…tab":0,"softHyphen":0,"alm":0,"fullwidthColon":0}'}
+logger.ts:62 2026-03-03T00:34:46.287Z [paste.agent-review] diag:classifyLines-input {classificationProfile: undefined, sourceFileType: undefined, hasStructuredHints: false, rawTextLength: 7380, rawLineCount: 73, …}
+logger.ts:62 2026-03-03T00:34:46.287Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T00:34:46.295Z [paste.agent-review] diag:classifyLines-output {classificationProfile: undefined, sourceFileType: undefined, rawTextHash: -798474193, inputLineCount: 73, classifiedCount: 114, …}
+logger.ts:62 2026-03-03T00:34:46.296Z [paste.agent-review] diag:normalize-delta {originalLength: 0, normalizedLength: 0, charsRemoved: 0, charBreakdown: '{"cr":0,"nbsp":0,"zwnj":0,"zwj":0,"zwsp":0,"lrm":0…tab":0,"softHyphen":0,"alm":0,"fullwidthColon":0}'}
+logger.ts:62 2026-03-03T00:34:46.296Z [paste.agent-review] diag:classifyLines-input {classificationProfile: undefined, sourceFileType: undefined, hasStructuredHints: false, rawTextLength: 0, rawLineCount: 1, …}
+logger.ts:62 2026-03-03T00:34:46.297Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T00:34:46.297Z [paste.agent-review] diag:classifyLines-output {classificationProfile: undefined, sourceFileType: undefined, rawTextHash: 0, inputLineCount: 1, classifiedCount: 0, …}
+logger.ts:62 2026-03-03T00:34:46.297Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T00:34:46.298Z [MemoryManager] Updating memory for session production-self-check with 2 records. 
+logger.ts:75 2026-03-03T00:34:46.298Z [MemoryManager] No context found for session: production-self-check (سيتم إنشاء سياق جديد) 
+logger.ts:62 2026-03-03T00:34:46.298Z [MemoryManager] Saving context for session: production-self-check 
+logger.ts:62 2026-03-03T00:34:46.299Z [MemoryManager] Saving context for session: production-self-check 
+logger.ts:62 2026-03-03T00:34:46.299Z [MemoryManager] Loading context for session: production-self-check 
+logger.ts:62 2026-03-03T00:34:46.303Z [agent-review-client] sending-agent-review-request {sessionId: 'self-check-session', importOpId: '77d3cd5b-71bc-4ba8-96b1-282bef2b13fa', itemCount: 1}
+logger.ts:62 2026-03-03T00:35:07.203Z [agent-review-client] agent-review-response-received {requestId: '80eab26b-1eb8-4d23-9b0c-1f27c9970102', status: 'applied', commandCount: 1}
+Arabic-Screenplay-Classifier-Agent.ts:305 Fetch finished loading: POST "http://127.0.0.1:8787/api/agent/review".
+requestAgentReview @ Arabic-Screenplay-Classifier-Agent.ts:305
+runExtensionFunctionCalls @ production-self-check.ts:469
+await in runExtensionFunctionCalls
+(anonymous) @ production-self-check.ts:541
+runProductionSelfCheck @ production-self-check.ts:576
+(anonymous) @ EditorArea.ts:661
+Promise.then
+requestProductionSelfCheck @ EditorArea.ts:660
+importClassifiedText @ EditorArea.ts:375
+await in importClassifiedText
+openFile @ App.tsx:1014
+await in openFile
+handleMenuAction @ App.tsx:1209
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:62 2026-03-03T00:35:07.207Z [production-self-check] Production self-check completed {trigger: 'editor-import', executedFunctions: 136, failedFunctions: 0, uiFunctionsExecuted: 53, extensionFunctionsExecuted: 83, …}
+logger.ts:62 2026-03-03T00:36:25.677Z [paste.agent-review] diag:normalize-delta {originalLength: 7521, normalizedLength: 7448, charsRemoved: 73, charBreakdown: '{"cr":73,"nbsp":0,"zwnj":0,"zwj":0,"zwsp":0,"lrm":…ab":90,"softHyphen":0,"alm":0,"fullwidthColon":0}'}
+logger.ts:62 2026-03-03T00:36:25.677Z [paste.agent-review] diag:classifyLines-input {classificationProfile: 'paste', sourceFileType: undefined, hasStructuredHints: false, rawTextLength: 7448, rawLineCount: 74, …}
+logger.ts:62 2026-03-03T00:36:25.677Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T00:36:25.686Z [paste.agent-review] diag:classifyLines-output {classificationProfile: 'paste', sourceFileType: undefined, rawTextHash: 1594199534, inputLineCount: 74, classifiedCount: 114, …}
+logger.ts:62 2026-03-03T00:36:25.686Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 114, sourceFileType: undefined, sourceMethod: undefined}
+logger.ts:62 2026-03-03T00:36:25.690Z [paste.agent-review] telemetry:packet-built {totalReviewed: 114, totalSuspicious: 23, suspicionRate: 0.20175438596491227, countPass: 91, countLocalReview: 23, …}
+logger.ts:62 2026-03-03T00:36:25.690Z [paste.agent-review] packet-empty-forwarded {countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, countSentToAgent: 0}
+logger.ts:62 2026-03-03T00:36:25.690Z [paste.agent-review] packet-empty-after-filtering-forwarded {totalSuspicious: 23, countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, …}
+logger.ts:62 2026-03-03T00:36:25.691Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '750f9ce4-a358-4693-904c-48f2bc2bd766', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114}
+logger.ts:62 2026-03-03T00:36:25.691Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '750f9ce4-a358-4693-904c-48f2bc2bd766', itemsSent: 0, forcedItems: 0}
+logger.ts:62 2026-03-03T00:36:25.700Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772498185691', status: 'skipped', commands: 0, model: 'claude-opus-4-6', latencyMs: 0, …}
+logger.ts:62 2026-03-03T00:36:25.700Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: '750f9ce4-a358-4693-904c-48f2bc2bd766', status: 'skipped', commandsReceived: 0, latencyMs: 0}
+logger.ts:62 2026-03-03T00:36:25.700Z [pipeline.telemetry] telemetry:agent-response {requestId: '9fa393c3-0c00-4276-9c66-c427a8313f4e', importOpId: '750f9ce4-a358-4693-904c-48f2bc2bd766', latencyMs: 0, status: 'skipped', commandsReceived: 0}
+logger.ts:62 2026-03-03T00:36:25.700Z [pipeline.telemetry] telemetry:command-apply {importOpId: '750f9ce4-a358-4693-904c-48f2bc2bd766', requestId: '9fa393c3-0c00-4276-9c66-c427a8313f4e', commandsNormalized: 0, commandsApplied: 0, commandsSkipped: 0, …}
+logger.ts:62 2026-03-03T00:36:25.700Z [paste.agent-review] telemetry:response-applied {status: 'skipped', commands: 0, resolvedCommands: 0, conflictCount: 0, apiVersion: '2.0', …}
+logger.ts:62 2026-03-03T00:36:25.700Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 114, totalSuspicious: 23, itemsSent: 0, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T00:36:25.700Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: '750f9ce4-a358-4693-904c-48f2bc2bd766', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T00:36:25.701Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 114}
+logger.ts:62 2026-03-03T00:36:25.708Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 114}
+paste-classifier.ts:215 Fetch finished loading: POST "http://127.0.0.1:8787/api/agent/review".
+fetchWithTimeout @ paste-classifier.ts:215
+requestAgentReview @ paste-classifier.ts:1283
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1711
+applyPasteClassifierFlowToView @ paste-classifier.ts:2289
+handlePaste @ paste-classifier.ts:2345
+(anonymous) @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+someProp @ chunk-DVZ7DZ25.js?v=ea1ba5f3:5622
+doPaste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+editHandlers.paste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3973
+view.dom.addEventListener.view.input.eventHandlers.<computed> @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3448

@@ -1,0 +1,100 @@
+client:789 [vite] connecting...
+client:912 [vite] connected.
+react-dom_client.js?v=ea1ba5f3:20103 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+logger.ts:62 2026-03-02T22:32:43.635Z [paste.agent-review] diag:classifyLines-input {classificationProfile: 'paste', sourceFileType: undefined, hasStructuredHints: false, rawTextLength: 7521, rawLineCount: 74, …}
+logger.ts:62 2026-03-02T22:32:43.640Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T22:32:43.666Z [paste.agent-review] diag:classifyLines-output {classificationProfile: 'paste', sourceFileType: undefined, rawTextHash: 1341017871, inputLineCount: 74, classifiedCount: 73, …}
+logger.ts:62 2026-03-02T22:32:43.667Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 73, sourceFileType: undefined, sourceMethod: undefined}
+logger.ts:62 2026-03-02T22:32:43.673Z [paste.agent-review] telemetry:packet-built {totalReviewed: 73, totalSuspicious: 8, suspicionRate: 0.1095890410958904, countPass: 65, countLocalReview: 0, …}
+logger.ts:75 2026-03-02T22:32:43.674Z [paste.agent-review] packet-suspects-snapshot {lines: Array(8)}
+logger.ts:62 2026-03-02T22:32:43.675Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: 'bfabab55-4172-40e3-9e86-230b13c7e521', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 73}
+logger.ts:62 2026-03-02T22:32:43.676Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: 'bfabab55-4172-40e3-9e86-230b13c7e521', itemsSent: 8, forcedItems: 5}
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+logger.ts:62 2026-03-02T22:33:29.108Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772490763676', status: 'applied', commands: 8, model: 'claude-opus-4-6', latencyMs: 45416, …}
+logger.ts:62 2026-03-02T22:33:29.108Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: 'bfabab55-4172-40e3-9e86-230b13c7e521', status: 'applied', commandsReceived: 8, latencyMs: 45416}
+logger.ts:62 2026-03-02T22:33:29.108Z [pipeline.telemetry] telemetry:agent-response {requestId: '9bd61255-5b4c-4dc4-b7b4-881ecdb65110', importOpId: 'bfabab55-4172-40e3-9e86-230b13c7e521', latencyMs: 45416, status: 'applied', commandsReceived: 8}
+logger.ts:62 2026-03-02T22:33:29.109Z [pipeline.telemetry] telemetry:command-apply {importOpId: 'bfabab55-4172-40e3-9e86-230b13c7e521', requestId: '9bd61255-5b4c-4dc4-b7b4-881ecdb65110', commandsNormalized: 8, commandsApplied: 8, commandsSkipped: 0, …}
+logger.ts:62 2026-03-02T22:33:29.109Z [paste.agent-review] telemetry:response-applied {status: 'applied', commands: 8, resolvedCommands: 8, conflictCount: 0, apiVersion: '2.0', …}
+logger.ts:62 2026-03-02T22:33:29.109Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 73, totalSuspicious: 8, itemsSent: 8, commandsReceived: 8, commandsApplied: 8, …}
+logger.ts:62 2026-03-02T22:33:29.109Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: 'bfabab55-4172-40e3-9e86-230b13c7e521', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 73, commandsApplied: 8, …}
+logger.ts:62 2026-03-02T22:33:29.110Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 81}
+logger.ts:62 2026-03-02T22:33:29.115Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 81}
+logger.ts:62 2026-03-02T22:33:43.467Z [file-import] File import pipeline started {filename: '12.doc', mode: 'replace', strategy: 'backend-only-strict', pipeline: 'frontend-open->backend-extract->backend-agent-review->editor-apply'}
+logger.ts:62 2026-03-02T22:33:43.587Z [paste.agent-review] diag:classifyLines-input {classificationProfile: 'generic-open', sourceFileType: 'doc', hasStructuredHints: false, rawTextLength: 7380, rawLineCount: 73, …}
+logger.ts:62 2026-03-02T22:33:43.587Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T22:33:43.603Z [paste.agent-review] diag:classifyLines-output {classificationProfile: 'generic-open', sourceFileType: 'doc', rawTextHash: -798474193, inputLineCount: 73, classifiedCount: 114, …}
+logger.ts:62 2026-03-02T22:33:43.604Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 114, sourceFileType: 'doc', sourceMethod: 'doc-converter-flow'}
+logger.ts:62 2026-03-02T22:33:43.608Z [paste.agent-review] telemetry:packet-built {totalReviewed: 114, totalSuspicious: 23, suspicionRate: 0.20175438596491227, countPass: 91, countLocalReview: 23, …}
+logger.ts:62 2026-03-02T22:33:43.609Z [paste.agent-review] packet-empty-forwarded {countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, countSentToAgent: 0}
+logger.ts:62 2026-03-02T22:33:43.610Z [paste.agent-review] packet-empty-after-filtering-forwarded {totalSuspicious: 23, countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, …}
+logger.ts:62 2026-03-02T22:33:43.610Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '07b65ccd-fa38-4032-b85a-723322cd9918', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114}
+logger.ts:62 2026-03-02T22:33:43.610Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '07b65ccd-fa38-4032-b85a-723322cd9918', itemsSent: 0, forcedItems: 0}
+react-dom_client.js?v=ea1ba5f3:13527 [Violation] 'requestAnimationFrame' handler took 75ms
+logger.ts:62 2026-03-02T22:33:43.707Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772490823610', status: 'skipped', commands: 0, model: 'claude-opus-4-6', latencyMs: 3, …}
+logger.ts:62 2026-03-02T22:33:43.708Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: '07b65ccd-fa38-4032-b85a-723322cd9918', status: 'skipped', commandsReceived: 0, latencyMs: 3}
+logger.ts:62 2026-03-02T22:33:43.708Z [pipeline.telemetry] telemetry:agent-response {requestId: 'a54c28a3-d182-4950-8982-27b13515cfa2', importOpId: '07b65ccd-fa38-4032-b85a-723322cd9918', latencyMs: 3, status: 'skipped', commandsReceived: 0}
+logger.ts:62 2026-03-02T22:33:43.708Z [pipeline.telemetry] telemetry:command-apply {importOpId: '07b65ccd-fa38-4032-b85a-723322cd9918', requestId: 'a54c28a3-d182-4950-8982-27b13515cfa2', commandsNormalized: 0, commandsApplied: 0, commandsSkipped: 0, …}
+logger.ts:62 2026-03-02T22:33:43.708Z [paste.agent-review] telemetry:response-applied {status: 'skipped', commands: 0, resolvedCommands: 0, conflictCount: 0, apiVersion: '2.0', …}
+logger.ts:62 2026-03-02T22:33:43.708Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 114, totalSuspicious: 23, itemsSent: 0, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T22:33:43.708Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: '07b65ccd-fa38-4032-b85a-723322cd9918', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T22:33:43.708Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 114}
+logger.ts:62 2026-03-02T22:33:43.718Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 114}
+logger.ts:62 2026-03-02T22:33:43.728Z [file-import] File import pipeline completed {openPipeline: 'paste-classifier', method: 'doc-converter-flow', source: 'extracted-text', usedOcr: false, qualityScore: undefined, …}
+logger.ts:62 2026-03-02T22:33:44.173Z [paste.agent-review] diag:classifyLines-input {classificationProfile: undefined, sourceFileType: undefined, hasStructuredHints: false, rawTextLength: 7380, rawLineCount: 73, …}
+logger.ts:62 2026-03-02T22:33:44.174Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T22:33:44.182Z [paste.agent-review] diag:classifyLines-output {classificationProfile: undefined, sourceFileType: undefined, rawTextHash: -798474193, inputLineCount: 73, classifiedCount: 114, …}
+logger.ts:62 2026-03-02T22:33:44.183Z [paste.agent-review] diag:classifyLines-input {classificationProfile: undefined, sourceFileType: undefined, hasStructuredHints: false, rawTextLength: 0, rawLineCount: 1, …}
+logger.ts:62 2026-03-02T22:33:44.183Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T22:33:44.183Z [paste.agent-review] diag:classifyLines-output {classificationProfile: undefined, sourceFileType: undefined, rawTextHash: 0, inputLineCount: 1, classifiedCount: 0, …}
+logger.ts:62 2026-03-02T22:33:44.184Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T22:33:44.184Z [MemoryManager] Updating memory for session production-self-check with 2 records. 
+logger.ts:75 2026-03-02T22:33:44.184Z [MemoryManager] No context found for session: production-self-check (سيتم إنشاء سياق جديد) 
+logger.ts:62 2026-03-02T22:33:44.184Z [MemoryManager] Saving context for session: production-self-check 
+logger.ts:62 2026-03-02T22:33:44.186Z [MemoryManager] Saving context for session: production-self-check 
+logger.ts:62 2026-03-02T22:33:44.186Z [MemoryManager] Loading context for session: production-self-check 
+logger.ts:62 2026-03-02T22:33:44.187Z [agent-review-client] sending-agent-review-request {sessionId: 'self-check-session', importOpId: 'bad31daa-e699-43de-8699-2377d71e5032', itemCount: 1}
+logger.ts:62 2026-03-02T22:34:05.669Z [agent-review-client] agent-review-response-received {requestId: 'f0c2890f-fa30-4906-b95f-4d8020495506', status: 'applied', commandCount: 1}
+logger.ts:62 2026-03-02T22:34:05.675Z [production-self-check] Production self-check completed {trigger: 'editor-import', executedFunctions: 136, failedFunctions: 0, uiFunctionsExecuted: 53, extensionFunctionsExecuted: 83, …}
+logger.ts:62 2026-03-02T22:34:13.853Z [paste.agent-review] diag:classifyLines-input {classificationProfile: 'paste', sourceFileType: undefined, hasStructuredHints: false, rawTextLength: 7521, rawLineCount: 74, …}
+logger.ts:62 2026-03-02T22:34:13.854Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T22:34:13.868Z [paste.agent-review] diag:classifyLines-output {classificationProfile: 'paste', sourceFileType: undefined, rawTextHash: 1341017871, inputLineCount: 74, classifiedCount: 73, …}
+logger.ts:62 2026-03-02T22:34:13.868Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 73, sourceFileType: undefined, sourceMethod: undefined}
+logger.ts:62 2026-03-02T22:34:13.871Z [paste.agent-review] telemetry:packet-built {totalReviewed: 73, totalSuspicious: 8, suspicionRate: 0.1095890410958904, countPass: 65, countLocalReview: 0, …}
+logger.ts:75 2026-03-02T22:34:13.871Z [paste.agent-review] packet-suspects-snapshot {lines: Array(8)}
+logger.ts:62 2026-03-02T22:34:13.872Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: 'd122ff95-6c7c-48dd-9f9b-4b4a49f57d26', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 73}
+logger.ts:62 2026-03-02T22:34:13.872Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: 'd122ff95-6c7c-48dd-9f9b-4b4a49f57d26', itemsSent: 8, forcedItems: 5}
+logger.ts:62 2026-03-02T22:35:08.648Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772490853872', status: 'applied', commands: 8, model: 'claude-opus-4-6', latencyMs: 54762, …}
+logger.ts:62 2026-03-02T22:35:08.649Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: 'd122ff95-6c7c-48dd-9f9b-4b4a49f57d26', status: 'applied', commandsReceived: 8, latencyMs: 54762}
+logger.ts:62 2026-03-02T22:35:08.649Z [pipeline.telemetry] telemetry:agent-response {requestId: '85e11785-eb58-41b9-9df6-e1026e99552e', importOpId: 'd122ff95-6c7c-48dd-9f9b-4b4a49f57d26', latencyMs: 54762, status: 'applied', commandsReceived: 8}
+logger.ts:62 2026-03-02T22:35:08.650Z [pipeline.telemetry] telemetry:command-apply {importOpId: 'd122ff95-6c7c-48dd-9f9b-4b4a49f57d26', requestId: '85e11785-eb58-41b9-9df6-e1026e99552e', commandsNormalized: 8, commandsApplied: 8, commandsSkipped: 0, …}
+logger.ts:62 2026-03-02T22:35:08.650Z [paste.agent-review] telemetry:response-applied {status: 'applied', commands: 8, resolvedCommands: 8, conflictCount: 0, apiVersion: '2.0', …}
+logger.ts:62 2026-03-02T22:35:08.650Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 73, totalSuspicious: 8, itemsSent: 8, commandsReceived: 8, commandsApplied: 8, …}
+logger.ts:62 2026-03-02T22:35:08.650Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: 'd122ff95-6c7c-48dd-9f9b-4b4a49f57d26', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 73, commandsApplied: 8, …}
+logger.ts:62 2026-03-02T22:35:08.650Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 81}
+logger.ts:62 2026-03-02T22:35:08.661Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 81}
+logger.ts:62 2026-03-02T22:35:21.678Z [file-import] File import pipeline started {filename: '12.docx', mode: 'replace', strategy: 'backend-only-strict', pipeline: 'frontend-open->backend-extract->backend-agent-review->editor-apply'}
+logger.ts:62 2026-03-02T22:35:24.794Z [paste.agent-review] diag:classifyLines-input {classificationProfile: 'generic-open', sourceFileType: 'docx', hasStructuredHints: false, rawTextLength: 7380, rawLineCount: 73, …}
+logger.ts:62 2026-03-02T22:35:24.794Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-02T22:35:24.801Z [paste.agent-review] diag:classifyLines-output {classificationProfile: 'generic-open', sourceFileType: 'docx', rawTextHash: -798474193, inputLineCount: 73, classifiedCount: 114, …}
+logger.ts:62 2026-03-02T22:35:24.801Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 114, sourceFileType: 'docx', sourceMethod: 'doc-converter-flow'}
+logger.ts:62 2026-03-02T22:35:24.805Z [paste.agent-review] telemetry:packet-built {totalReviewed: 114, totalSuspicious: 23, suspicionRate: 0.20175438596491227, countPass: 91, countLocalReview: 23, …}
+logger.ts:62 2026-03-02T22:35:24.805Z [paste.agent-review] packet-empty-forwarded {countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, countSentToAgent: 0}
+logger.ts:62 2026-03-02T22:35:24.805Z [paste.agent-review] packet-empty-after-filtering-forwarded {totalSuspicious: 23, countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, …}
+logger.ts:62 2026-03-02T22:35:24.806Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: 'aefedbfc-98ba-47f2-a806-20f14002b977', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114}
+logger.ts:62 2026-03-02T22:35:24.806Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: 'aefedbfc-98ba-47f2-a806-20f14002b977', itemsSent: 0, forcedItems: 0}
+logger.ts:62 2026-03-02T22:35:24.872Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772490924806', status: 'skipped', commands: 0, model: 'claude-opus-4-6', latencyMs: 0, …}
+logger.ts:62 2026-03-02T22:35:24.873Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: 'aefedbfc-98ba-47f2-a806-20f14002b977', status: 'skipped', commandsReceived: 0, latencyMs: 0}
+logger.ts:62 2026-03-02T22:35:24.873Z [pipeline.telemetry] telemetry:agent-response {requestId: 'f8787ad3-493b-4515-a1c8-3029030b3b5d', importOpId: 'aefedbfc-98ba-47f2-a806-20f14002b977', latencyMs: 0, status: 'skipped', commandsReceived: 0}
+logger.ts:62 2026-03-02T22:35:24.873Z [pipeline.telemetry] telemetry:command-apply {importOpId: 'aefedbfc-98ba-47f2-a806-20f14002b977', requestId: 'f8787ad3-493b-4515-a1c8-3029030b3b5d', commandsNormalized: 0, commandsApplied: 0, commandsSkipped: 0, …}
+logger.ts:62 2026-03-02T22:35:24.873Z [paste.agent-review] telemetry:response-applied {status: 'skipped', commands: 0, resolvedCommands: 0, conflictCount: 0, apiVersion: '2.0', …}
+logger.ts:62 2026-03-02T22:35:24.873Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 114, totalSuspicious: 23, itemsSent: 0, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T22:35:24.873Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: 'aefedbfc-98ba-47f2-a806-20f14002b977', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114, commandsApplied: 0, …}
+logger.ts:62 2026-03-02T22:35:24.873Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 114}
+logger.ts:62 2026-03-02T22:35:24.880Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 114}
+logger.ts:62 2026-03-02T22:35:24.886Z [file-import] File import pipeline completed {openPipeline: 'paste-classifier', method: 'doc-converter-flow', source: 'extracted-text', usedOcr: false, qualityScore: undefined, …}

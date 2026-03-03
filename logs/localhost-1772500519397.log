@@ -1,0 +1,563 @@
+client:789 [vite] connecting...
+client:912 [vite] connected.
+react-dom_client.js?v=ea1ba5f3:20103 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+logger.ts:62 2026-03-03T01:02:08.499Z [file-import] File import pipeline started {filename: 'آخر ليلة.doc', mode: 'replace', strategy: 'backend-only-strict', pipeline: 'frontend-open->backend-extract->backend-agent-review->editor-apply'}
+backend-extract.ts:271  POST http://127.0.0.1:8787/api/file-extract 422 (Unprocessable Entity)
+executeBackendExtractionRequest @ backend-extract.ts:271
+sendJsonRequest @ backend-extract.ts:432
+await in sendJsonRequest
+extractFileWithBackend @ backend-extract.ts:442
+extractImportedFile @ index.ts:47
+openFile @ App.tsx:999
+logger.ts:70 2026-03-03T01:02:08.634Z [file-import] File import pipeline failed {name: 'Error', message: 'Backend returned HTTP 422: فشل تحويل ملف DOC عبر a…antiword.exe): antiword: فشل التنفيذ برمز خروج 1.', stack: 'Error: Backend returned HTTP 422: فشل تحويل ملف DO…localhost:3002/src/App.tsx?t=1772498361380:931:9)'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+openFile @ App.tsx:1059
+Fetch failed loading: POST "<URL>".
+Fetch failed loading: POST "<URL>".
+Fetch failed loading: POST "<URL>".
+Fetch failed loading: POST "<URL>".
+Fetch failed loading: POST "<URL>".
+Fetch failed loading: POST "<URL>".
+logger.ts:62 2026-03-03T01:02:41.682Z [file-import] File import pipeline started {filename: 'المشهد السابع .. خمارة القط الأسود.doc', mode: 'replace', strategy: 'backend-only-strict', pipeline: 'frontend-open->backend-extract->backend-agent-review->editor-apply'}
+backend-extract.ts:271  POST http://127.0.0.1:8787/api/file-extract 422 (Unprocessable Entity)
+executeBackendExtractionRequest @ backend-extract.ts:271
+sendJsonRequest @ backend-extract.ts:432
+await in sendJsonRequest
+extractFileWithBackend @ backend-extract.ts:442
+extractImportedFile @ index.ts:47
+openFile @ App.tsx:999
+await in openFile
+handleMenuAction @ App.tsx:1209
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:70 2026-03-03T01:02:42.159Z [file-import] File import pipeline failed {name: 'Error', message: 'Backend returned HTTP 422: فشل تحويل ملف DOC عبر a…antiword.exe): antiword: فشل التنفيذ برمز خروج 1.', stack: 'Error: Backend returned HTTP 422: فشل تحويل ملف DO…localhost:3002/src/App.tsx?t=1772498361380:931:9)'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+openFile @ App.tsx:1059
+await in openFile
+handleMenuAction @ App.tsx:1209
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:62 2026-03-03T01:03:19.198Z [file-import] File import pipeline started {filename: 'الشعلة الرابعة .. لو قال ..1987 _.doc', mode: 'replace', strategy: 'backend-only-strict', pipeline: 'frontend-open->backend-extract->backend-agent-review->editor-apply'}
+backend-extract.ts:271  POST http://127.0.0.1:8787/api/file-extract 422 (Unprocessable Entity)
+executeBackendExtractionRequest @ backend-extract.ts:271
+sendJsonRequest @ backend-extract.ts:432
+await in sendJsonRequest
+extractFileWithBackend @ backend-extract.ts:442
+extractImportedFile @ index.ts:47
+openFile @ App.tsx:999
+await in openFile
+handleMenuAction @ App.tsx:1209
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:70 2026-03-03T01:03:19.321Z [file-import] File import pipeline failed {name: 'Error', message: 'Backend returned HTTP 422: فشل تحويل ملف DOC عبر a…antiword.exe): antiword: فشل التنفيذ برمز خروج 1.', stack: 'Error: Backend returned HTTP 422: فشل تحويل ملف DO…localhost:3002/src/App.tsx?t=1772498361380:931:9)'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+openFile @ App.tsx:1059
+await in openFile
+handleMenuAction @ App.tsx:1209
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:62 2026-03-03T01:05:52.747Z [file-import] File import pipeline started {filename: '1990.doc', mode: 'replace', strategy: 'backend-only-strict', pipeline: 'frontend-open->backend-extract->backend-agent-review->editor-apply'}
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+Fetch finished loading: POST "<URL>".
+logger.ts:62 2026-03-03T01:05:52.826Z [paste.agent-review] diag:normalize-delta {originalLength: 32265, normalizedLength: 32265, charsRemoved: 0, charBreakdown: '{"cr":0,"nbsp":0,"zwnj":0,"zwj":0,"zwsp":0,"lrm":0…tab":0,"softHyphen":0,"alm":0,"fullwidthColon":0}'}
+logger.ts:62 2026-03-03T01:05:52.828Z [paste.agent-review] diag:classifyLines-input {classificationProfile: 'generic-open', sourceFileType: 'doc', hasStructuredHints: false, rawTextLength: 32265, rawLineCount: 1379, …}
+logger.ts:62 2026-03-03T01:05:52.829Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T01:05:52.918Z [paste.agent-review] diag:classifyLines-output {classificationProfile: 'generic-open', sourceFileType: 'doc', rawTextHash: 1941969894, inputLineCount: 1379, classifiedCount: 881, …}
+logger.ts:62 2026-03-03T01:05:52.919Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 881, sourceFileType: 'doc', sourceMethod: 'doc-converter-flow'}
+logger.ts:62 2026-03-03T01:05:52.936Z [paste.agent-review] telemetry:packet-built {totalReviewed: 881, totalSuspicious: 218, suspicionRate: 0.2474460839954597, countPass: 663, countLocalReview: 20, …}
+logger.ts:75 2026-03-03T01:05:52.936Z [paste.agent-review] packet-suspects-snapshot {lines: Array(151)}
+logger.ts:66 2026-03-03T01:05:52.939Z [paste.agent-review] packet-budget-truncated {originalCount: 151, includedCount: 30, overflowCount: 121, totalEstimatedChars: 4697}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1609
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+importClassifiedText @ EditorArea.ts:357
+openFile @ App.tsx:1014
+await in openFile
+handleMenuAction @ App.tsx:1209
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+logger.ts:62 2026-03-03T01:05:52.939Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '4b7217d9-b93a-4af3-957f-188691188678', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 881}
+logger.ts:62 2026-03-03T01:05:52.940Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '4b7217d9-b93a-4af3-957f-188691188678', itemsSent: 30, forcedItems: 15}
+logger.ts:70 2026-03-03T01:07:22.748Z [paste.agent-review] request-unhandled-error {sessionId: 'paste-1772499952939', attempt: 1, error: TimeoutError: signal timed out, remainingAfterAttempt: 193}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+requestAgentReview @ paste-classifier.ts:1392
+logger.ts:62 2026-03-03T01:07:22.749Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 881, totalSuspicious: 218, itemsSent: 30, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T01:07:22.749Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 881, totalSuspicious: 218, itemsSent: 30, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:70 2026-03-03T01:07:22.749Z [pipeline.telemetry] agent-error {importOpId: '4b7217d9-b93a-4af3-957f-188691188678', error: 'signal timed out'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+logAgentError @ telemetry.ts:100
+fallbackToLocalClassification @ paste-classifier.ts:1694
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1726
+logger.ts:70 2026-03-03T01:07:22.749Z [pipeline.telemetry] agent-review-error {importOpId: '4b7217d9-b93a-4af3-957f-188691188678', error: 'signal timed out'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+recordAgentReviewError @ telemetry.ts:163
+fallbackToLocalClassification @ paste-classifier.ts:1695
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1726
+logger.ts:66 2026-03-03T01:07:22.749Z [paste.agent-review] agent-review-fail-open {importOpId: '4b7217d9-b93a-4af3-957f-188691188678', reason: 'signal timed out', failOpenEnabled: true, stage: 'request-failed'}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+fallbackToLocalClassification @ paste-classifier.ts:1696
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1726
+logger.ts:62 2026-03-03T01:07:22.749Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: '4b7217d9-b93a-4af3-957f-188691188678', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 881, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T01:07:22.749Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 881}
+logger.ts:62 2026-03-03T01:07:22.806Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 881}
+logger.ts:62 2026-03-03T01:07:22.863Z [file-import] File import pipeline completed {openPipeline: 'paste-classifier', method: 'doc-converter-flow', source: 'extracted-text', usedOcr: false, qualityScore: undefined, …}
+logger.ts:62 2026-03-03T01:07:23.076Z [paste.agent-review] diag:normalize-delta {originalLength: 32265, normalizedLength: 32265, charsRemoved: 0, charBreakdown: '{"cr":0,"nbsp":0,"zwnj":0,"zwj":0,"zwsp":0,"lrm":0…tab":0,"softHyphen":0,"alm":0,"fullwidthColon":0}'}
+logger.ts:62 2026-03-03T01:07:23.077Z [paste.agent-review] diag:classifyLines-input {classificationProfile: undefined, sourceFileType: undefined, hasStructuredHints: false, rawTextLength: 32265, rawLineCount: 1379, …}
+logger.ts:62 2026-03-03T01:07:23.077Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T01:07:23.147Z [paste.agent-review] diag:classifyLines-output {classificationProfile: undefined, sourceFileType: undefined, rawTextHash: 1941969894, inputLineCount: 1379, classifiedCount: 881, …}
+logger.ts:62 2026-03-03T01:07:23.148Z [paste.agent-review] diag:normalize-delta {originalLength: 0, normalizedLength: 0, charsRemoved: 0, charBreakdown: '{"cr":0,"nbsp":0,"zwnj":0,"zwj":0,"zwsp":0,"lrm":0…tab":0,"softHyphen":0,"alm":0,"fullwidthColon":0}'}
+logger.ts:62 2026-03-03T01:07:23.148Z [paste.agent-review] diag:classifyLines-input {classificationProfile: undefined, sourceFileType: undefined, hasStructuredHints: false, rawTextLength: 0, rawLineCount: 1, …}
+logger.ts:62 2026-03-03T01:07:23.148Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T01:07:23.148Z [paste.agent-review] diag:classifyLines-output {classificationProfile: undefined, sourceFileType: undefined, rawTextHash: 0, inputLineCount: 1, classifiedCount: 0, …}
+logger.ts:62 2026-03-03T01:07:23.149Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T01:07:23.149Z [MemoryManager] Updating memory for session production-self-check with 2 records. 
+logger.ts:62 2026-03-03T01:07:23.150Z [MemoryManager] Saving context for session: production-self-check 
+logger.ts:62 2026-03-03T01:07:23.150Z [MemoryManager] Saving context for session: production-self-check 
+logger.ts:62 2026-03-03T01:07:23.151Z [MemoryManager] Loading context for session: production-self-check 
+logger.ts:62 2026-03-03T01:07:23.152Z [agent-review-client] sending-agent-review-request {sessionId: 'self-check-session', importOpId: '1cf22ee5-2496-4cf2-9aab-4955ff0a16cd', itemCount: 1}
+logger.ts:62 2026-03-03T01:07:50.368Z [agent-review-client] agent-review-response-received {requestId: 'b7641ceb-a16a-4bcd-bfb6-fd4c06b41c74', status: 'partial', commandCount: 0}
+logger.ts:62 2026-03-03T01:07:50.373Z [production-self-check] Production self-check completed {trigger: 'editor-import', executedFunctions: 136, failedFunctions: 0, uiFunctionsExecuted: 53, extensionFunctionsExecuted: 83, …}
+logger.ts:62 2026-03-03T01:07:50.871Z [file-import] File import pipeline started {filename: '1990.docx', mode: 'replace', strategy: 'backend-only-strict', pipeline: 'frontend-open->backend-extract->backend-agent-review->editor-apply'}
+logger.ts:62 2026-03-03T01:07:53.790Z [paste.agent-review] diag:normalize-delta {originalLength: 32180, normalizedLength: 32180, charsRemoved: 0, charBreakdown: '{"cr":0,"nbsp":0,"zwnj":0,"zwj":0,"zwsp":0,"lrm":0…tab":0,"softHyphen":0,"alm":0,"fullwidthColon":0}'}
+logger.ts:62 2026-03-03T01:07:53.791Z [paste.agent-review] diag:classifyLines-input {classificationProfile: 'generic-open', sourceFileType: 'docx', hasStructuredHints: false, rawTextLength: 32180, rawLineCount: 1369, …}
+logger.ts:62 2026-03-03T01:07:53.791Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T01:07:53.848Z [paste.agent-review] diag:classifyLines-output {classificationProfile: 'generic-open', sourceFileType: 'docx', rawTextHash: -1000213360, inputLineCount: 1369, classifiedCount: 875, …}
+logger.ts:62 2026-03-03T01:07:53.848Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 875, sourceFileType: 'docx', sourceMethod: 'doc-converter-flow'}
+logger.ts:62 2026-03-03T01:07:53.856Z [paste.agent-review] telemetry:packet-built {totalReviewed: 875, totalSuspicious: 218, suspicionRate: 0.24914285714285714, countPass: 657, countLocalReview: 20, …}
+logger.ts:75 2026-03-03T01:07:53.856Z [paste.agent-review] packet-suspects-snapshot {lines: Array(151)}
+logger.ts:66 2026-03-03T01:07:53.858Z [paste.agent-review] packet-budget-truncated {originalCount: 151, includedCount: 30, overflowCount: 121, totalEstimatedChars: 4697}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1609
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+importClassifiedText @ EditorArea.ts:357
+openFile @ App.tsx:1014
+await in openFile
+handleMenuAction @ App.tsx:1209
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+<button>
+exports.jsxDEV @ react_jsx-dev-runtime.js?v=ea1ba5f3:247
+(anonymous) @ AppHeader.tsx:96
+(anonymous) @ AppHeader.tsx:95
+AppHeader @ AppHeader.tsx:73
+react_stack_bottom_frame @ react-dom_client.js?v=ea1ba5f3:18509
+renderWithHooksAgain @ react-dom_client.js?v=ea1ba5f3:5729
+renderWithHooks @ react-dom_client.js?v=ea1ba5f3:5665
+updateFunctionComponent @ react-dom_client.js?v=ea1ba5f3:7475
+beginWork @ react-dom_client.js?v=ea1ba5f3:8525
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+performUnitOfWork @ react-dom_client.js?v=ea1ba5f3:12561
+workLoopSync @ react-dom_client.js?v=ea1ba5f3:12424
+renderRootSync @ react-dom_client.js?v=ea1ba5f3:12408
+performWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
+logger.ts:62 2026-03-03T01:07:53.858Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '2074b111-b9c6-47ec-86fd-c38302dffea7', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 875}
+logger.ts:62 2026-03-03T01:07:53.858Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '2074b111-b9c6-47ec-86fd-c38302dffea7', itemsSent: 30, forcedItems: 15}
+logger.ts:70 2026-03-03T01:09:24.252Z [paste.agent-review] request-unhandled-error {sessionId: 'paste-1772500073858', attempt: 1, error: TimeoutError: signal timed out, remainingAfterAttempt: -393}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+requestAgentReview @ paste-classifier.ts:1392
+logger.ts:62 2026-03-03T01:09:24.252Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 875, totalSuspicious: 218, itemsSent: 30, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T01:09:24.252Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 875, totalSuspicious: 218, itemsSent: 30, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:70 2026-03-03T01:09:24.252Z [pipeline.telemetry] agent-error {importOpId: '2074b111-b9c6-47ec-86fd-c38302dffea7', error: 'signal timed out'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+logAgentError @ telemetry.ts:100
+fallbackToLocalClassification @ paste-classifier.ts:1694
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1726
+logger.ts:70 2026-03-03T01:09:24.252Z [pipeline.telemetry] agent-review-error {importOpId: '2074b111-b9c6-47ec-86fd-c38302dffea7', error: 'signal timed out'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+recordAgentReviewError @ telemetry.ts:163
+fallbackToLocalClassification @ paste-classifier.ts:1695
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1726
+logger.ts:66 2026-03-03T01:09:24.252Z [paste.agent-review] agent-review-fail-open {importOpId: '2074b111-b9c6-47ec-86fd-c38302dffea7', reason: 'signal timed out', failOpenEnabled: true, stage: 'request-failed'}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+fallbackToLocalClassification @ paste-classifier.ts:1696
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1726
+logger.ts:62 2026-03-03T01:09:24.252Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: '2074b111-b9c6-47ec-86fd-c38302dffea7', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 875, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T01:09:24.252Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 875}
+logger.ts:62 2026-03-03T01:09:24.311Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 875}
+logger.ts:62 2026-03-03T01:09:24.343Z [file-import] File import pipeline completed {openPipeline: 'paste-classifier', method: 'doc-converter-flow', source: 'extracted-text', usedOcr: false, qualityScore: undefined, …}
+logger.ts:62 2026-03-03T01:11:30.132Z [file-import] File import pipeline started {filename: 'test.docx', mode: 'replace', strategy: 'backend-only-strict', pipeline: 'frontend-open->backend-extract->backend-agent-review->editor-apply'}
+logger.ts:62 2026-03-03T01:11:32.964Z [paste.agent-review] diag:normalize-delta {originalLength: 8314, normalizedLength: 8314, charsRemoved: 0, charBreakdown: '{"cr":0,"nbsp":0,"zwnj":0,"zwj":0,"zwsp":0,"lrm":0…tab":0,"softHyphen":0,"alm":0,"fullwidthColon":0}'}
+logger.ts:62 2026-03-03T01:11:32.964Z [paste.agent-review] diag:classifyLines-input {classificationProfile: 'generic-open', sourceFileType: 'docx', hasStructuredHints: false, rawTextLength: 8314, rawLineCount: 1, …}
+logger.ts:62 2026-03-03T01:11:32.964Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T01:11:32.970Z [paste.agent-review] diag:classifyLines-output {classificationProfile: 'generic-open', sourceFileType: 'docx', rawTextHash: 1403036033, inputLineCount: 1, classifiedCount: 1, …}
+logger.ts:62 2026-03-03T01:11:32.970Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 1, sourceFileType: 'docx', sourceMethod: 'doc-converter-flow'}
+logger.ts:62 2026-03-03T01:11:32.971Z [paste.agent-review] telemetry:packet-built {totalReviewed: 1, totalSuspicious: 1, suspicionRate: 1, countPass: 0, countLocalReview: 0, …}
+logger.ts:75 2026-03-03T01:11:32.972Z [paste.agent-review] packet-suspects-snapshot {lines: Array(1)}
+logger.ts:62 2026-03-03T01:11:32.972Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '2428e950-d02f-40cc-84c5-180606d916a2', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 1}
+logger.ts:62 2026-03-03T01:11:32.972Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '2428e950-d02f-40cc-84c5-180606d916a2', itemsSent: 1, forcedItems: 1}
+logger.ts:62 2026-03-03T01:11:58.150Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772500292972', status: 'partial', commands: 0, model: 'claude-opus-4-6', latencyMs: 25164, …}
+logger.ts:62 2026-03-03T01:11:58.150Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: '2428e950-d02f-40cc-84c5-180606d916a2', status: 'partial', commandsReceived: 0, latencyMs: 25164}
+logger.ts:62 2026-03-03T01:11:58.151Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 1, totalSuspicious: 1, itemsSent: 1, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T01:11:58.151Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 1, totalSuspicious: 1, itemsSent: 1, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:70 2026-03-03T01:11:58.151Z [pipeline.telemetry] agent-error {importOpId: '2428e950-d02f-40cc-84c5-180606d916a2', error: 'مراجعة الوكيل غير مكتملة: الوكيل لم يُرجع أوامر كا…iredItemIds: 5bc4fdf2-260d-4f62-b8d1-45c5921142ce'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+logAgentError @ telemetry.ts:100
+fallbackToLocalClassification @ paste-classifier.ts:1694
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1781
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+importClassifiedText @ EditorArea.ts:357
+openFile @ App.tsx:1014
+await in openFile
+handleMenuAction @ App.tsx:1209
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+logger.ts:70 2026-03-03T01:11:58.151Z [pipeline.telemetry] agent-review-error {importOpId: '2428e950-d02f-40cc-84c5-180606d916a2', error: 'مراجعة الوكيل غير مكتملة: الوكيل لم يُرجع أوامر كا…iredItemIds: 5bc4fdf2-260d-4f62-b8d1-45c5921142ce'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+recordAgentReviewError @ telemetry.ts:163
+fallbackToLocalClassification @ paste-classifier.ts:1695
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1781
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+importClassifiedText @ EditorArea.ts:357
+openFile @ App.tsx:1014
+await in openFile
+handleMenuAction @ App.tsx:1209
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+logger.ts:66 2026-03-03T01:11:58.151Z [paste.agent-review] agent-review-fail-open {importOpId: '2428e950-d02f-40cc-84c5-180606d916a2', reason: 'مراجعة الوكيل غير مكتملة: الوكيل لم يُرجع أوامر كا…iredItemIds: 5bc4fdf2-260d-4f62-b8d1-45c5921142ce', failOpenEnabled: true, stage: 'response-partial', status: 'partial'}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+fallbackToLocalClassification @ paste-classifier.ts:1696
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1781
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+importClassifiedText @ EditorArea.ts:357
+openFile @ App.tsx:1014
+await in openFile
+handleMenuAction @ App.tsx:1209
+onAction @ App.tsx:1569
+onClick @ AppHeader.tsx:99
+executeDispatch @ react-dom_client.js?v=ea1ba5f3:13622
+runWithFiberInDEV @ react-dom_client.js?v=ea1ba5f3:997
+processDispatchQueue @ react-dom_client.js?v=ea1ba5f3:13658
+(anonymous) @ react-dom_client.js?v=ea1ba5f3:14071
+batchedUpdates$1 @ react-dom_client.js?v=ea1ba5f3:2626
+dispatchEventForPluginEventSystem @ react-dom_client.js?v=ea1ba5f3:13763
+dispatchEvent @ react-dom_client.js?v=ea1ba5f3:16784
+dispatchDiscreteEvent @ react-dom_client.js?v=ea1ba5f3:16765
+logger.ts:62 2026-03-03T01:11:58.151Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: '2428e950-d02f-40cc-84c5-180606d916a2', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 1, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T01:11:58.151Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 1}
+logger.ts:62 2026-03-03T01:11:58.160Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 1}
+logger.ts:62 2026-03-03T01:11:58.165Z [file-import] File import pipeline completed {openPipeline: 'paste-classifier', method: 'doc-converter-flow', source: 'extracted-text', usedOcr: false, qualityScore: undefined, …}
+logger.ts:62 2026-03-03T01:12:14.153Z [paste.agent-review] diag:normalize-delta {originalLength: 8315, normalizedLength: 8315, charsRemoved: 0, charBreakdown: '{"cr":0,"nbsp":0,"zwnj":0,"zwj":0,"zwsp":0,"lrm":0…tab":0,"softHyphen":0,"alm":0,"fullwidthColon":0}'}
+logger.ts:62 2026-03-03T01:12:14.153Z [paste.agent-review] diag:classifyLines-input {classificationProfile: 'paste', sourceFileType: undefined, hasStructuredHints: false, rawTextLength: 8315, rawLineCount: 1, …}
+logger.ts:62 2026-03-03T01:12:14.153Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T01:12:14.157Z [paste.agent-review] diag:classifyLines-output {classificationProfile: 'paste', sourceFileType: undefined, rawTextHash: 544444095, inputLineCount: 1, classifiedCount: 1, …}
+logger.ts:62 2026-03-03T01:12:14.158Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 1, sourceFileType: undefined, sourceMethod: undefined}
+logger.ts:62 2026-03-03T01:12:14.159Z [paste.agent-review] telemetry:packet-built {totalReviewed: 1, totalSuspicious: 1, suspicionRate: 1, countPass: 0, countLocalReview: 0, …}
+logger.ts:75 2026-03-03T01:12:14.159Z [paste.agent-review] packet-suspects-snapshot {lines: Array(1)}
+logger.ts:62 2026-03-03T01:12:14.160Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '44a50ce5-a73e-4a67-9c86-6696ec06bad1', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 1}
+logger.ts:62 2026-03-03T01:12:14.160Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '44a50ce5-a73e-4a67-9c86-6696ec06bad1', itemsSent: 1, forcedItems: 1}
+logger.ts:62 2026-03-03T01:12:43.380Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772500334160', status: 'partial', commands: 0, model: 'claude-opus-4-6', latencyMs: 29210, …}
+logger.ts:62 2026-03-03T01:12:43.380Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: '44a50ce5-a73e-4a67-9c86-6696ec06bad1', status: 'partial', commandsReceived: 0, latencyMs: 29210}
+logger.ts:62 2026-03-03T01:12:43.381Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 1, totalSuspicious: 1, itemsSent: 1, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T01:12:43.381Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 1, totalSuspicious: 1, itemsSent: 1, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:70 2026-03-03T01:12:43.381Z [pipeline.telemetry] agent-error {importOpId: '44a50ce5-a73e-4a67-9c86-6696ec06bad1', error: 'مراجعة الوكيل غير مكتملة: الوكيل لم يُرجع أوامر كا…iredItemIds: cb744577-6cc7-4d26-b97c-0360630a5283'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+logAgentError @ telemetry.ts:100
+fallbackToLocalClassification @ paste-classifier.ts:1694
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1781
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+handlePaste @ paste-classifier.ts:2349
+(anonymous) @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+someProp @ chunk-DVZ7DZ25.js?v=ea1ba5f3:5622
+doPaste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+editHandlers.paste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3973
+view.dom.addEventListener.view.input.eventHandlers.<computed> @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3448
+logger.ts:70 2026-03-03T01:12:43.381Z [pipeline.telemetry] agent-review-error {importOpId: '44a50ce5-a73e-4a67-9c86-6696ec06bad1', error: 'مراجعة الوكيل غير مكتملة: الوكيل لم يُرجع أوامر كا…iredItemIds: cb744577-6cc7-4d26-b97c-0360630a5283'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+recordAgentReviewError @ telemetry.ts:163
+fallbackToLocalClassification @ paste-classifier.ts:1695
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1781
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+handlePaste @ paste-classifier.ts:2349
+(anonymous) @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+someProp @ chunk-DVZ7DZ25.js?v=ea1ba5f3:5622
+doPaste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+editHandlers.paste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3973
+view.dom.addEventListener.view.input.eventHandlers.<computed> @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3448
+logger.ts:66 2026-03-03T01:12:43.381Z [paste.agent-review] agent-review-fail-open {importOpId: '44a50ce5-a73e-4a67-9c86-6696ec06bad1', reason: 'مراجعة الوكيل غير مكتملة: الوكيل لم يُرجع أوامر كا…iredItemIds: cb744577-6cc7-4d26-b97c-0360630a5283', failOpenEnabled: true, stage: 'response-partial', status: 'partial'}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+fallbackToLocalClassification @ paste-classifier.ts:1696
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1781
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+handlePaste @ paste-classifier.ts:2349
+(anonymous) @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+someProp @ chunk-DVZ7DZ25.js?v=ea1ba5f3:5622
+doPaste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+editHandlers.paste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3973
+view.dom.addEventListener.view.input.eventHandlers.<computed> @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3448
+logger.ts:62 2026-03-03T01:12:43.381Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: '44a50ce5-a73e-4a67-9c86-6696ec06bad1', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 1, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T01:12:43.381Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 1}
+logger.ts:62 2026-03-03T01:12:43.388Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 1}
+logger.ts:62 2026-03-03T01:13:16.701Z [paste.agent-review] diag:normalize-delta {originalLength: 34422, normalizedLength: 31850, charsRemoved: 2572, charBreakdown: '{"cr":1405,"nbsp":0,"zwnj":0,"zwj":0,"zwsp":0,"lrm…b":435,"softHyphen":0,"alm":0,"fullwidthColon":0}'}
+logger.ts:62 2026-03-03T01:13:16.702Z [paste.agent-review] diag:classifyLines-input {classificationProfile: 'paste', sourceFileType: undefined, hasStructuredHints: false, rawTextLength: 31850, rawLineCount: 1398, …}
+logger.ts:62 2026-03-03T01:13:16.702Z [MemoryManager] ContextMemoryManager initialized (enhanced). 
+logger.ts:62 2026-03-03T01:13:16.777Z [paste.agent-review] diag:classifyLines-output {classificationProfile: 'paste', sourceFileType: undefined, rawTextHash: 1033173026, inputLineCount: 1398, classifiedCount: 875, …}
+logger.ts:62 2026-03-03T01:13:16.778Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-classify-complete', totalLines: 875, sourceFileType: undefined, sourceMethod: undefined}
+logger.ts:62 2026-03-03T01:13:16.786Z [paste.agent-review] telemetry:packet-built {totalReviewed: 875, totalSuspicious: 218, suspicionRate: 0.24914285714285714, countPass: 657, countLocalReview: 20, …}
+logger.ts:75 2026-03-03T01:13:16.786Z [paste.agent-review] packet-suspects-snapshot {lines: Array(151)}
+logger.ts:66 2026-03-03T01:13:16.787Z [paste.agent-review] packet-budget-truncated {originalCount: 151, includedCount: 30, overflowCount: 121, totalEstimatedChars: 4697}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1609
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+handlePaste @ paste-classifier.ts:2349
+(anonymous) @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+someProp @ chunk-DVZ7DZ25.js?v=ea1ba5f3:5622
+doPaste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+editHandlers.paste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3973
+view.dom.addEventListener.view.input.eventHandlers.<computed> @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3448
+logger.ts:62 2026-03-03T01:13:16.788Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '2ec0464f-5cb2-48ce-9c40-3fb1b51d7c5d', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 875}
+logger.ts:62 2026-03-03T01:13:16.788Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '2ec0464f-5cb2-48ce-9c40-3fb1b51d7c5d', itemsSent: 30, forcedItems: 15}
+chunk-DVZ7DZ25.js?v=ea1ba5f3:3446 [Violation] 'paste' handler took 311ms
+logger.ts:70 2026-03-03T01:14:46.606Z [paste.agent-review] request-unhandled-error {sessionId: 'paste-1772500396788', attempt: 1, error: TimeoutError: signal timed out, remainingAfterAttempt: 182}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+requestAgentReview @ paste-classifier.ts:1392
+await in requestAgentReview
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1715
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+handlePaste @ paste-classifier.ts:2349
+(anonymous) @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+someProp @ chunk-DVZ7DZ25.js?v=ea1ba5f3:5622
+doPaste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+editHandlers.paste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3973
+view.dom.addEventListener.view.input.eventHandlers.<computed> @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3448
+logger.ts:62 2026-03-03T01:14:46.607Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 875, totalSuspicious: 218, itemsSent: 30, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T01:14:46.607Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 875, totalSuspicious: 218, itemsSent: 30, commandsReceived: 0, commandsApplied: 0, …}
+logger.ts:70 2026-03-03T01:14:46.607Z [pipeline.telemetry] agent-error {importOpId: '2ec0464f-5cb2-48ce-9c40-3fb1b51d7c5d', error: 'signal timed out'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+logAgentError @ telemetry.ts:100
+fallbackToLocalClassification @ paste-classifier.ts:1694
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1726
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+handlePaste @ paste-classifier.ts:2349
+(anonymous) @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+someProp @ chunk-DVZ7DZ25.js?v=ea1ba5f3:5622
+doPaste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+editHandlers.paste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3973
+view.dom.addEventListener.view.input.eventHandlers.<computed> @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3448
+logger.ts:70 2026-03-03T01:14:46.607Z [pipeline.telemetry] agent-review-error {importOpId: '2ec0464f-5cb2-48ce-9c40-3fb1b51d7c5d', error: 'signal timed out'}
+writeLog @ logger.ts:70
+error @ logger.ts:98
+error @ logger.ts:124
+recordAgentReviewError @ telemetry.ts:163
+fallbackToLocalClassification @ paste-classifier.ts:1695
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1726
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+handlePaste @ paste-classifier.ts:2349
+(anonymous) @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+someProp @ chunk-DVZ7DZ25.js?v=ea1ba5f3:5622
+doPaste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+editHandlers.paste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3973
+view.dom.addEventListener.view.input.eventHandlers.<computed> @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3448
+logger.ts:66 2026-03-03T01:14:46.607Z [paste.agent-review] agent-review-fail-open {importOpId: '2ec0464f-5cb2-48ce-9c40-3fb1b51d7c5d', reason: 'signal timed out', failOpenEnabled: true, stage: 'request-failed'}
+writeLog @ logger.ts:66
+warn @ logger.ts:94
+warn @ logger.ts:122
+fallbackToLocalClassification @ paste-classifier.ts:1696
+applyRemoteAgentReviewV2 @ paste-classifier.ts:1726
+await in applyRemoteAgentReviewV2
+applyPasteClassifierFlowToView @ paste-classifier.ts:2293
+handlePaste @ paste-classifier.ts:2349
+(anonymous) @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+someProp @ chunk-DVZ7DZ25.js?v=ea1ba5f3:5622
+doPaste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
+editHandlers.paste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3973
+view.dom.addEventListener.view.input.eventHandlers.<computed> @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3448
+logger.ts:62 2026-03-03T01:14:46.607Z [pipeline.telemetry] telemetry:ingestion-complete {importOpId: '2ec0464f-5cb2-48ce-9c40-3fb1b51d7c5d', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 875, commandsApplied: 0, …}
+logger.ts:62 2026-03-03T01:14:46.607Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'backend-review-complete', totalLines: 875}
+logger.ts:62 2026-03-03T01:14:46.645Z [paste.agent-review] telemetry:paste-pipeline-stage {stage: 'frontend-render-applied', nodesApplied: 875}

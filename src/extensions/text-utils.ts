@@ -186,6 +186,8 @@ export function isActionVerbStart(text: string): boolean {
   if (FULL_ACTION_VERB_SET.has(normalizedFirstWord)) return true;
   if (/^(?:[وف]?)[يتنأ][\u0600-\u06FF]{2,}$/.test(normalizedFirstWord))
     return true;
+  if (/^(?:[وف]?)ب[تيا][\u0600-\u06FF]{2,}$/.test(normalizedFirstWord))
+    return true;
   if (NEGATION_PLUS_VERB_RE.test(normalized)) return true;
 
   return false;

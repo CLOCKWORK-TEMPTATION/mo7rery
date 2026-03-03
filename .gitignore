@@ -226,3 +226,7 @@ dist/
 
 # Ignore all files in the node_modules directory
 node_modules/
+
+# Sample/test document files
+نسخ الملفات ال docanddocx/
+نسخ الملفات ال docanddocx/venv/
