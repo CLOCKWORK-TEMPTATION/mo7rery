@@ -320,20 +320,32 @@ export class EditorArea implements EditorHandle {
     // ضمان تفعيل دورة القياس في امتداد الصفحات قبل/بعد إدراج النص.
     this.editor.commands.focus(mode === "replace" ? "start" : "end");
 
-    const unstructured = maybeReconstructUnstructured(text, {
-      threshold: 0.7,
-      replaceBullets: true,
-    });
+    // الـ unstructured pipeline يتنادى بس لما النص فعلاً unstructured:
+    // - مش paste عادي (classificationProfile !== "paste")
+    // - مفيش structuredHints جاهزة من المصدر
+    // - مش ملف doc/docx (اللي عنده بنية أصلاً)
+    const skipUnstructured =
+      context?.classificationProfile === "paste" ||
+      (context?.structuredHints && context.structuredHints.length > 0) ||
+      context?.sourceFileType === "doc" ||
+      context?.sourceFileType === "docx";
 
-    if (unstructured.applied) {
-      const existingHints = context?.structuredHints ?? [];
-      const mergedHints = unstructured.structuredBlocks.concat(existingHints);
+    if (!skipUnstructured) {
+      const unstructured = maybeReconstructUnstructured(text, {
+        threshold: 0.7,
+        replaceBullets: true,
+      });
 
-      text = unstructured.structuredText;
-      context = {
-        ...(context ?? {}),
-        structuredHints: mergedHints,
-      };
+      if (unstructured.applied) {
+        const existingHints = context?.structuredHints ?? [];
+        const mergedHints = unstructured.structuredBlocks.concat(existingHints);
+
+        text = unstructured.structuredText;
+        context = {
+          ...(context ?? {}),
+          structuredHints: mergedHints,
+        };
+      }
     }
 
     const state = this.editor.view.state;
@@ -384,7 +396,11 @@ export class EditorArea implements EditorHandle {
       .trim();
     if (!sourceText) return;
 
-    await this.importClassifiedText(sourceText, mode);
+    // تمرير البلوكات الأصلية كـ structuredHints عشان الـ paste-classifier
+    // يستفيد منها + يتخطى الـ unstructured pipeline تلقائياً
+    await this.importClassifiedText(sourceText, mode, {
+      structuredHints: blocks,
+    });
   };
 
   getBlocks = (): ScreenplayBlock[] =>
@@ -473,7 +489,9 @@ export class EditorArea implements EditorHandle {
               }
 
               if (parsed.plainText.trim()) {
-                await this.importClassifiedText(parsed.plainText, "insert");
+                await this.importClassifiedText(parsed.plainText, "insert", {
+                  classificationProfile: "paste",
+                });
                 return true;
               }
             }
@@ -483,7 +501,9 @@ export class EditorArea implements EditorHandle {
             const plainBlob = await item.getType("text/plain");
             const text = await plainBlob.text();
             if (text.trim()) {
-              await this.importClassifiedText(text, "insert");
+              await this.importClassifiedText(text, "insert", {
+                classificationProfile: "paste",
+              });
               return true;
             }
           }
@@ -498,7 +518,9 @@ export class EditorArea implements EditorHandle {
     const text = await navigator.clipboard.readText();
     if (!text.trim()) return false;
 
-    await this.importClassifiedText(text, "insert");
+    await this.importClassifiedText(text, "insert", {
+      classificationProfile: "paste",
+    });
     return true;
   };
 

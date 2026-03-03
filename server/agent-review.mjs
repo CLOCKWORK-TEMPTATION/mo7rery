@@ -11,7 +11,7 @@ config();
 export const DEFAULT_MODEL_ID = "claude-opus-4-6";
 const FALLBACK_MODEL_ID = "claude-sonnet-4-20250514";
 const REVIEW_TEMPERATURE = 0.0;
-const DEFAULT_TIMEOUT_MS = 90_000;
+const DEFAULT_TIMEOUT_MS = 180_000;
 const AGENT_API_VERSION = "2.0";
 const AGENT_API_MODE = "auto-apply";
 const NON_ANTHROPIC_MODEL_RE =

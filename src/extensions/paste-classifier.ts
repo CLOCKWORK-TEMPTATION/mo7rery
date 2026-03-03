@@ -35,7 +35,6 @@ import { fromLegacyElementType, isElementType } from "./classification-types";
 import { ContextMemoryManager } from "./context-memory-manager";
 import {
   getDialogueProbability,
-  hasDirectDialogueCues,
   isDialogueContinuationLine,
   isDialogueLine,
 } from "./dialogue";
@@ -51,7 +50,6 @@ import {
   isCompleteSceneHeaderLine,
   splitSceneHeaderLine,
 } from "./scene-header-top-line";
-import { normalizeCharacterName } from "./text-utils";
 import { isTransitionLine } from "./transition";
 import { logger } from "../utils/logger";
 import type {
@@ -400,6 +398,36 @@ const consumeSourceHintTypeForLine = (
   return hintType;
 };
 
+// ─── توحيد النص الخام ──────────────────────────────────────────────
+// يزيل فقط الحروف غير المرئية الزائدة التي يضيفها Word clipboard
+// بدون المساس بالمحتوى الفعلي (ZWNJ/ZWJ/مسافات/trailing).
+
+/** حروف غير مرئية clipboard-only (بدون ZWNJ U+200C و ZWJ U+200D — مستخدمين في العربية) */
+const CLIPBOARD_INVISIBLE_RE =
+  // ZWSP (200B), LRM (200E), RLM (200F) — بدون ZWNJ/ZWJ
+  // Bidi controls: LRE (202A), RLE (202B), PDF (202C), LRO (202D), RLO (202E)
+  // Bidi isolates: LRI (2066), RLI (2067), FSI (2068), PDI (2069)
+  // Word Joiner (2060), Arabic Letter Mark (061C)
+  // BOM (FEFF), Soft Hyphen (00AD), Object Replacement (FFFC)
+  /[\u200B\u200E\u200F\u061C\u2060-\u2069\u202A-\u202E\uFEFF\u00AD\uFFFC]/g;
+
+/**
+ * يُطبّع النص الخام قبل أي معالجة أخرى:
+ * 1. توحيد line endings (\r\n → \n)
+ * 2. إزالة الحروف غير المرئية clipboard-only فقط
+ * (لا يمس: ZWNJ, ZWJ, NBSP, مسافات، أو محتوى فعلي)
+ */
+const normalizeRawInputText = (text: string): string => {
+  return text
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(CLIPBOARD_INVISIBLE_RE, "")
+    .replace(/\t/g, " ")
+    .replace(/ {2,}/g, " ")
+    .replace(/ +\n/g, "\n")
+    .replace(/\n+$/, "");
+};
+
 /**
  * تصنيف النصوص المُلصقة محلياً مع توليد معرف فريد (_itemId) لكل عنصر.
  * المعرّف يُستخدم لاحقاً في تتبع الأوامر من الوكيل.
@@ -408,8 +436,44 @@ export const classifyLines = (
   text: string,
   context?: ClassifyLinesContext
 ): ClassifiedDraftWithId[] => {
+  // ── توحيد النص: إزالة الحروف غير المرئية التي يضيفها Word clipboard ──
+  const normalizedText = normalizeRawInputText(text);
+
+  // ── diagnostic: بصمة النص المُدخل للمقارنة بين المسارات ──
+  const _diagRawLen = normalizedText.length;
+  const _diagRawLines = normalizedText.split(/\r?\n/).length;
+  const _diagRawHash = Array.from(normalizedText).reduce(
+    (h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0,
+    0
+  );
+  const _diagFirst80 = normalizedText.slice(0, 80).replace(/\n/g, "↵");
+  const _diagLast80 = normalizedText.slice(-80).replace(/\n/g, "↵");
+
+  // ── diagnostic: تفصيل أنواع الحروف الخاصة في النص الأصلي ──
+  const _diagCharBreakdown = {
+    cr: (text.match(/\r/g) || []).length,
+    nbsp: (text.match(/\u00A0/g) || []).length,
+    zwnj: (text.match(/\u200C/g) || []).length,
+    zwj: (text.match(/\u200D/g) || []).length,
+    zwsp: (text.match(/\u200B/g) || []).length,
+    lrm: (text.match(/\u200E/g) || []).length,
+    rlm: (text.match(/\u200F/g) || []).length,
+    bom: (text.match(/\uFEFF/g) || []).length,
+    tab: (text.match(/\t/g) || []).length,
+    softHyphen: (text.match(/\u00AD/g) || []).length,
+    alm: (text.match(/\u061C/g) || []).length,
+    fullwidthColon: (text.match(/\uFF1A/g) || []).length,
+  };
+
+  agentReviewLogger.info("diag:normalize-delta", {
+    originalLength: text.length,
+    normalizedLength: normalizedText.length,
+    charsRemoved: text.length - normalizedText.length,
+    charBreakdown: JSON.stringify(_diagCharBreakdown),
+  });
+
   const { sanitizedText, removedLines } =
-    sanitizeOcrArtifactsForClassification(text);
+    sanitizeOcrArtifactsForClassification(normalizedText);
   if (removedLines > 0) {
     agentReviewLogger.telemetry("artifact-lines-stripped", {
       layer: "frontend-classifier",
@@ -417,6 +481,19 @@ export const classifyLines = (
     });
   }
   const lines = sanitizedText.split(/\r?\n/);
+
+  agentReviewLogger.info("diag:classifyLines-input", {
+    classificationProfile: context?.classificationProfile,
+    sourceFileType: context?.sourceFileType,
+    hasStructuredHints: !!(context?.structuredHints && context.structuredHints.length > 0),
+    rawTextLength: _diagRawLen,
+    rawLineCount: _diagRawLines,
+    rawTextHash: _diagRawHash,
+    sanitizedLineCount: lines.length,
+    sanitizedRemovedLines: removedLines,
+    first80: _diagFirst80,
+    last80: _diagLast80,
+  });
   const classified: ClassifiedDraftWithId[] = [];
 
   const memoryManager = new ContextMemoryManager();
@@ -611,58 +688,11 @@ export const classifyLines = (
     }
 
     if (isCharacterLine(normalizedForClassification, context)) {
-      const _namePart = normalizeCharacterName(normalizedForClassification);
-      const _tokens = _namePart.split(/\s+/).filter(Boolean);
-      const _charFreq = memoryManager.getSnapshot().characterFrequency;
-      const _isFirstSingleToken =
-        _tokens.length === 1 && (_charFreq.get(_namePart) ?? 0) === 0;
-
-      if (!_isFirstSingleToken) {
-        push({
-          type: "character",
-          text: ensureCharacterTrailingColon(trimmed),
-          confidence: 88,
-          classificationMethod: "regex",
-        });
-        continue;
-      }
-
-      // كلمة وحيدة + أول ظهور → peek-ahead: لو السطر التالي حوار/parenthetical → character
-      const _nextRaw = lines
-        .slice(_lineIdx + 1)
-        .find((l) => parseBulletLine(l));
-      const _nextTrimmed = _nextRaw ? parseBulletLine(_nextRaw) : null;
-      const _nextNormalized = _nextTrimmed
-        ? convertHindiToArabic(_nextTrimmed)
-        : null;
-      // فحص حوار: مباشر + بعد تجريد حرف عطف أولي (و/ف شائعين في بداية الحوار)
-      const _nextStripped = _nextNormalized
-        ? _nextNormalized.replace(/^[وف]\s*/, "").trim()
-        : null;
-      const _hasDialogueAfter =
-        _nextNormalized != null &&
-        (isParentheticalLine(_nextNormalized) ||
-          hasDirectDialogueCues(_nextNormalized) ||
-          (_nextStripped != null &&
-            _nextStripped.length > 0 &&
-            hasDirectDialogueCues(_nextStripped)));
-
-      if (_hasDialogueAfter) {
-        push({
-          type: "character",
-          text: ensureCharacterTrailingColon(trimmed),
-          confidence: 78,
-          classificationMethod: "context",
-        });
-        continue;
-      }
-
-      // لا دليل حوار بعدها → مش اسم شخصية
       push({
-        type: "action",
-        text: trimmed,
-        confidence: 72,
-        classificationMethod: "context",
+        type: "character",
+        text: ensureCharacterTrailingColon(trimmed),
+        confidence: 88,
+        classificationMethod: "regex",
       });
       continue;
     }
@@ -755,6 +785,24 @@ export const classifyLines = (
       classificationMethod: hybridResult.classificationMethod,
     });
   }
+
+  // ── diagnostic: ملخص نتائج التصنيف للمقارنة ──
+  const _diagTypeDist: Record<string, number> = {};
+  for (const item of classified) {
+    _diagTypeDist[item.type] = (_diagTypeDist[item.type] ?? 0) + 1;
+  }
+  agentReviewLogger.info("diag:classifyLines-output", {
+    classificationProfile: context?.classificationProfile,
+    sourceFileType: context?.sourceFileType,
+    rawTextHash: Array.from(normalizedText).reduce(
+      (h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0,
+      0
+    ),
+    inputLineCount: lines.length,
+    classifiedCount: classified.length,
+    mergedOrSkipped: lines.length - classified.length,
+    typeDistribution: _diagTypeDist,
+  });
 
   return classified;
 };
@@ -2300,6 +2348,7 @@ export const PasteClassifier = Extension.create<PasteClassifierOptions>({
             event.preventDefault();
             void applyPasteClassifierFlowToView(view, text, {
               agentReview,
+              classificationProfile: "paste",
             }).catch((error) => {
               const message =
                 error instanceof Error ? error.message : String(error);
