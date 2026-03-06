@@ -55,6 +55,9 @@ import {
 } from "./scene-header-top-line";
 import { isTransitionLine } from "./transition";
 import { logger } from "../utils/logger";
+import { progressiveUpdater } from "./ai-progressive-updater";
+import { requestContextEnhancement } from "./ai-context-layer";
+import { requestDoubtResolution } from "./ai-doubt-layer";
 import type {
   AgentReviewRequestPayload,
   AgentReviewResponsePayload,
@@ -2297,11 +2300,15 @@ export const classifyTextWithAgentReview = async (
 };
 
 /**
- * تطبيق تصنيف اللصق على العرض بنمط Fail-fast (Backend-only).
+ * تطبيق تصنيف اللصق على العرض بنمط Render-First.
  *
- * 1) تصنيف محلي
- * 2) مراجعة Backend (إلزامية — فشل = رفض)
- * 3) إدراج النتيجة النهائية في المحرر مرة واحدة
+ * 1) تصنيف محلي → عرض فوري
+ * 2) Gemini Flash — تعزيز السياق (streaming)
+ * 3) Kimi 2.5 — حل الشبهة (streaming)
+ * 4) Claude Agent Review — مراجعة نهائية
+ *
+ * المستخدم يشوف المحتوى فوراً (الخطوة 1)،
+ * ثم التحسينات بتتطبق تدريجياً في الـ background.
  */
 export const applyPasteClassifierFlowToView = async (
   view: EditorView,
@@ -2314,7 +2321,7 @@ export const applyPasteClassifierFlowToView = async (
   const sourceMethod = options?.sourceMethod;
   const structuredHints = options?.structuredHints;
 
-  // 1) التصنيف المحلي
+  // ── Phase 0: التصنيف المحلي ──
   const initiallyClassified = classifyLines(text, {
     classificationProfile,
     sourceFileType,
@@ -2332,17 +2339,8 @@ export const applyPasteClassifierFlowToView = async (
     sourceMethod,
   });
 
-  // 2) مراجعة الباك اند الإلزامية — أي فشل هنا يوقف العملية بالكامل
-  const backendReviewed = await applyRemoteAgentReviewV2(locallyReviewed);
-  if (backendReviewed.length === 0 || view.isDestroyed) return false;
-
-  agentReviewLogger.telemetry("paste-pipeline-stage", {
-    stage: "backend-review-complete",
-    totalLines: backendReviewed.length,
-  });
-
-  // 3) الإدراج النهائي داخل المحرر
-  const nodes = classifiedToNodes(backendReviewed, view.state.schema);
+  // ── Phase 0.5: عرض فوري (Render-First) ──
+  const nodes = classifiedToNodes(locallyReviewed, view.state.schema);
   if (nodes.length === 0) return false;
 
   const fragment = Fragment.from(nodes);
@@ -2354,11 +2352,180 @@ export const applyPasteClassifierFlowToView = async (
   view.dispatch(tr);
 
   agentReviewLogger.telemetry("paste-pipeline-stage", {
-    stage: "frontend-render-applied",
+    stage: "frontend-render-first",
     nodesApplied: nodes.length,
   });
 
+  // ── Phase 1–4: AI layers + Claude في الـ background ──
+  // لا ننتظرها — بتشتغل async وبتحدّث المحرر تدريجياً
+  void runAIEnhancementPipeline(
+    view,
+    locallyReviewed
+  ).catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    agentReviewLogger.error("ai-enhancement-pipeline-error", {
+      error: message,
+    });
+  });
+
   return true;
+};
+
+/**
+ * AI Enhancement Pipeline — يشتغل في الـ background بعد العرض الفوري.
+ *
+ * 1) Gemini Flash — تعزيز السياق
+ * 2) Kimi 2.5 — حل الشبهة
+ * 3) Claude Agent Review — مراجعة نهائية
+ *
+ * كل طبقة بتطبق تصحيحاتها تدريجياً عبر ProgressiveUpdateSession.
+ */
+const runAIEnhancementPipeline = async (
+  view: EditorView,
+  locallyReviewed: ClassifiedDraftWithId[]
+): Promise<void> => {
+  if (view.isDestroyed) return;
+
+  const sessionId = `ai-enhance-${Date.now()}`;
+  const abortController = new AbortController();
+
+  // إنشاء جلسة تحديث تدريجي
+  const updateSession = progressiveUpdater.createSession(sessionId, {
+    minConfidenceThreshold: 0.65,
+    allowLayerOverride: true,
+    layerPriority: ["claude-review", "kimi-doubt", "gemini-context"],
+  });
+
+  // تحويل التصنيفات لصيغة ClassifiedLine للطبقات
+  const classifiedLineRecords = toClassifiedLineRecords(locallyReviewed);
+
+  try {
+    // ── Phase 1: Gemini Flash — تعزيز السياق (streaming) ──
+    agentReviewLogger.telemetry("paste-pipeline-stage", {
+      stage: "gemini-context-start",
+      totalLines: classifiedLineRecords.length,
+    });
+
+    const contextResult = await requestContextEnhancement({
+      sessionId,
+      classifiedLines: classifiedLineRecords,
+      updateSession,
+      view,
+      signal: abortController.signal,
+    });
+
+    agentReviewLogger.telemetry("paste-pipeline-stage", {
+      stage: "gemini-context-complete",
+      totalCorrections: contextResult.totalCorrections,
+      appliedCorrections: contextResult.appliedCorrections,
+      latencyMs: contextResult.latencyMs,
+      success: contextResult.success,
+    });
+
+    if (view.isDestroyed) return;
+
+    // ── Phase 2: Kimi 2.5 — حل الشبهة (streaming) ──
+    // بنحتاج نبني حزمة الشبهة من الكواشف الحالية
+    const storedSeqOpt = (locallyReviewed as ClassifiedDraftWithId[] & {
+      _sequenceOptimization?: SequenceOptimizationResult;
+    })._sequenceOptimization;
+
+    const reviewer = new PostClassificationReviewer(
+      storedSeqOpt?.disagreements?.length
+        ? { viterbiDisagreements: storedSeqOpt.disagreements }
+        : undefined
+    );
+
+    const reviewInput = toClassifiedLineRecords(locallyReviewed);
+    const reviewPacket = reviewer.review(reviewInput);
+
+    if (reviewPacket.suspiciousLines.length > 0) {
+      agentReviewLogger.telemetry("paste-pipeline-stage", {
+        stage: "kimi-doubt-start",
+        suspiciousCount: reviewPacket.suspiciousLines.length,
+      });
+
+      const doubtResult = await requestDoubtResolution({
+        sessionId,
+        suspiciousLines: reviewPacket.suspiciousLines,
+        updateSession,
+        view,
+        signal: abortController.signal,
+      });
+
+      agentReviewLogger.telemetry("paste-pipeline-stage", {
+        stage: "kimi-doubt-complete",
+        totalVerdicts: doubtResult.totalVerdicts,
+        appliedCorrections: doubtResult.appliedCorrections,
+        confirmedCount: doubtResult.confirmedCount,
+        relabeledCount: doubtResult.relabeledCount,
+        latencyMs: doubtResult.latencyMs,
+        success: doubtResult.success,
+      });
+    } else {
+      agentReviewLogger.telemetry("paste-pipeline-stage", {
+        stage: "kimi-doubt-skipped",
+        reason: "no-suspicious-lines",
+      });
+    }
+
+    if (view.isDestroyed) return;
+
+    // ── Phase 3: Claude Agent Review — مراجعة نهائية ──
+    agentReviewLogger.telemetry("paste-pipeline-stage", {
+      stage: "claude-review-start",
+    });
+
+    const backendReviewed = await applyRemoteAgentReviewV2(locallyReviewed);
+
+    if (backendReviewed.length > 0 && !view.isDestroyed) {
+      // تطبيق تصحيحات Claude كـ progressive updates
+      let claudeApplied = 0;
+      for (let i = 0; i < backendReviewed.length; i += 1) {
+        const original = locallyReviewed[i];
+        const corrected = backendReviewed[i];
+        if (!original || !corrected) continue;
+        if (original.type === corrected.type) continue;
+
+        const applied = updateSession.applyCorrection(view, {
+          lineIndex: i,
+          correctedType: corrected.type,
+          confidence: corrected.confidence / 100,
+          reason: "Claude agent review",
+          source: "claude-review",
+        });
+        if (applied) claudeApplied += 1;
+      }
+
+      agentReviewLogger.telemetry("paste-pipeline-stage", {
+        stage: "claude-review-complete",
+        totalLines: backendReviewed.length,
+        claudeApplied,
+      });
+    }
+
+    // إنهاء الجلسة بنجاح
+    updateSession.complete();
+
+    const stats = updateSession.getStats();
+    agentReviewLogger.telemetry("paste-pipeline-stage", {
+      stage: "ai-enhancement-pipeline-complete",
+      totalReceived: stats.totalReceived,
+      totalApplied: stats.totalApplied,
+      totalSkipped: stats.totalSkipped,
+      totalConflicted: stats.totalConflicted,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    agentReviewLogger.error("ai-enhancement-pipeline-failed", {
+      sessionId,
+      error: message,
+    });
+
+    // fail-open: التصنيف المحلي موجود أصلاً في المحرر
+    // الـ AI layers فشلت بس المستخدم مش هيتأثر
+    updateSession.complete();
+  }
 };
 
 /**

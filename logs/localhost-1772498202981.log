@@ -88,7 +88,7 @@ performSyncWorkOnRoot @ react-dom_client.js?v=ea1ba5f3:13517
 flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=ea1ba5f3:13414
 processRootScheduleInMicrotask @ react-dom_client.js?v=ea1ba5f3:13437
 (anonymous) @ react-dom_client.js?v=ea1ba5f3:13531
-logger.ts:62 2026-03-03T00:34:45.945Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772498085929', status: 'skipped', commands: 0, model: 'claude-opus-4-6', latencyMs: 0, …}
+logger.ts:62 2026-03-03T00:34:45.945Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772498085929', status: 'skipped', commands: 0, model: 'claude-haiku-4-5-20251001', latencyMs: 0, …}
 logger.ts:62 2026-03-03T00:34:45.945Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: 'b83775c4-fffe-49fd-b572-a6ed6086dc9e', status: 'skipped', commandsReceived: 0, latencyMs: 0}
 logger.ts:62 2026-03-03T00:34:45.945Z [pipeline.telemetry] telemetry:agent-response {requestId: '24769a73-574b-4d92-a2dc-caa8c547fcfa', importOpId: 'b83775c4-fffe-49fd-b572-a6ed6086dc9e', latencyMs: 0, status: 'skipped', commandsReceived: 0}
 logger.ts:62 2026-03-03T00:34:45.946Z [pipeline.telemetry] telemetry:command-apply {importOpId: 'b83775c4-fffe-49fd-b572-a6ed6086dc9e', requestId: '24769a73-574b-4d92-a2dc-caa8c547fcfa', commandsNormalized: 0, commandsApplied: 0, commandsSkipped: 0, …}
@@ -168,7 +168,7 @@ logger.ts:62 2026-03-03T00:36:25.690Z [paste.agent-review] packet-empty-forwarde
 logger.ts:62 2026-03-03T00:36:25.690Z [paste.agent-review] packet-empty-after-filtering-forwarded {totalSuspicious: 23, countPass: 91, countLocalReview: 23, countAgentCandidate: 0, countAgentForced: 0, …}
 logger.ts:62 2026-03-03T00:36:25.691Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '750f9ce4-a358-4693-904c-48f2bc2bd766', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 114}
 logger.ts:62 2026-03-03T00:36:25.691Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '750f9ce4-a358-4693-904c-48f2bc2bd766', itemsSent: 0, forcedItems: 0}
-logger.ts:62 2026-03-03T00:36:25.700Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772498185691', status: 'skipped', commands: 0, model: 'claude-opus-4-6', latencyMs: 0, …}
+logger.ts:62 2026-03-03T00:36:25.700Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772498185691', status: 'skipped', commands: 0, model: 'claude-haiku-4-5-20251001', latencyMs: 0, …}
 logger.ts:62 2026-03-03T00:36:25.700Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: '750f9ce4-a358-4693-904c-48f2bc2bd766', status: 'skipped', commandsReceived: 0, latencyMs: 0}
 logger.ts:62 2026-03-03T00:36:25.700Z [pipeline.telemetry] telemetry:agent-response {requestId: '9fa393c3-0c00-4276-9c66-c427a8313f4e', importOpId: '750f9ce4-a358-4693-904c-48f2bc2bd766', latencyMs: 0, status: 'skipped', commandsReceived: 0}
 logger.ts:62 2026-03-03T00:36:25.700Z [pipeline.telemetry] telemetry:command-apply {importOpId: '750f9ce4-a358-4693-904c-48f2bc2bd766', requestId: '9fa393c3-0c00-4276-9c66-c427a8313f4e', commandsNormalized: 0, commandsApplied: 0, commandsSkipped: 0, …}

@@ -17,6 +17,8 @@ import {
   requestAnthropicReview,
   validateAgentReviewRequestBody,
 } from "./agent-review.mjs";
+import { handleContextEnhance, getGeminiContextHealth } from "./ai-context-gemini.mjs";
+import { handleDoubtResolve, getKimiDoubtHealth } from "./ai-doubt-kimi.mjs";
 import {
   ExecFileClassifiedError,
   classifyExecError,
@@ -1161,6 +1163,8 @@ app.get("/health", async (req, res) => {
     docxConverterScriptPath: DOCX_TO_DOC_SCRIPT_PATH,
     docxConverterScriptExists: DOCX_TO_DOC_SCRIPT_EXISTS,
     agentReviewConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
+    aiContextLayer: getGeminiContextHealth(),
+    aiDoubtLayer: getKimiDoubtHealth(),
     ocrConfigured: ocrAgent.configured,
     ocrAgent,
     reviewModel: getAnthropicReviewModel(),
@@ -1174,9 +1178,21 @@ app.get("/health", async (req, res) => {
   });
 });
 
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 200,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  handler: (req, res, next, options) => {
+    sendJson(res, options.statusCode, { success: false, error: options.message });
+  }
+});
+
 app.post("/api/file-extract", extractLimiter, handleExtract);
 app.post("/api/files/extract", extractLimiter, handleExtract);
 app.post("/api/agent/review", reviewLimiter, handleAgentReview);
+app.post("/api/ai/context-enhance", aiLimiter, handleContextEnhance);
+app.post("/api/ai/doubt-resolve", aiLimiter, handleDoubtResolve);
 app.post("/api/export/pdfa", handleExportPdfA);
 
 app.use((req, res) => {
@@ -1217,6 +1233,10 @@ server.listen(PORT, HOST, () => {
   console.log(`extract endpoint: http://${HOST}:${PORT}/api/file-extract`);
   // eslint-disable-next-line no-console
   console.log(`review endpoint:  http://${HOST}:${PORT}/api/agent/review`);
+  // eslint-disable-next-line no-console
+  console.log(`ai-context:       http://${HOST}:${PORT}/api/ai/context-enhance`);
+  // eslint-disable-next-line no-console
+  console.log(`ai-doubt:         http://${HOST}:${PORT}/api/ai/doubt-resolve`);
   // eslint-disable-next-line no-console
   console.log(`health:           http://${HOST}:${PORT}/health`);
   if (FILE_IMPORT_PREFLIGHT_WARNINGS.length > 0) {

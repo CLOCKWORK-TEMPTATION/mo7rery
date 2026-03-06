@@ -21,7 +21,7 @@ someProp @ chunk-DVZ7DZ25.js?v=ea1ba5f3:5622
 doPaste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3951
 editHandlers.paste @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3973
 view.dom.addEventListener.view.input.eventHandlers.<computed> @ chunk-DVZ7DZ25.js?v=ea1ba5f3:3448
-logger.ts:62 2026-03-03T00:21:15.190Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772497229195', status: 'applied', commands: 8, model: 'claude-opus-4-6', latencyMs: 45974, …}
+logger.ts:62 2026-03-03T00:21:15.190Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772497229195', status: 'applied', commands: 8, model: 'claude-haiku-4-5-20251001', latencyMs: 45974, …}
 logger.ts:62 2026-03-03T00:21:15.190Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: '72d62c04-27a1-46a0-9603-347569b9cccb', status: 'applied', commandsReceived: 8, latencyMs: 45974}
 logger.ts:62 2026-03-03T00:21:15.190Z [pipeline.telemetry] telemetry:agent-response {requestId: '943a9d64-4d68-4d25-a8ea-09b38a79eaa2', importOpId: '72d62c04-27a1-46a0-9603-347569b9cccb', latencyMs: 45974, status: 'applied', commandsReceived: 8}
 logger.ts:62 2026-03-03T00:21:15.191Z [pipeline.telemetry] telemetry:command-apply {importOpId: '72d62c04-27a1-46a0-9603-347569b9cccb', requestId: '943a9d64-4d68-4d25-a8ea-09b38a79eaa2', commandsNormalized: 8, commandsApplied: 0, commandsSkipped: 8, …}

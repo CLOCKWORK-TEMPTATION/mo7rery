@@ -23,6 +23,7 @@ export const EDITOR_STYLE_FORMAT_IDS = [
   "scene-header-3",
   "action",
   "character",
+  "parenthetical",
   "dialogue",
   "parenthetical",
   "transition",

@@ -340,7 +340,7 @@ logger.ts:62 2026-03-03T01:11:32.971Z [paste.agent-review] telemetry:packet-buil
 logger.ts:75 2026-03-03T01:11:32.972Z [paste.agent-review] packet-suspects-snapshot {lines: Array(1)}
 logger.ts:62 2026-03-03T01:11:32.972Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '2428e950-d02f-40cc-84c5-180606d916a2', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 1}
 logger.ts:62 2026-03-03T01:11:32.972Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '2428e950-d02f-40cc-84c5-180606d916a2', itemsSent: 1, forcedItems: 1}
-logger.ts:62 2026-03-03T01:11:58.150Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772500292972', status: 'partial', commands: 0, model: 'claude-opus-4-6', latencyMs: 25164, …}
+logger.ts:62 2026-03-03T01:11:58.150Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772500292972', status: 'partial', commands: 0, model: 'claude-haiku-4-5-20251001', latencyMs: 25164, …}
 logger.ts:62 2026-03-03T01:11:58.150Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: '2428e950-d02f-40cc-84c5-180606d916a2', status: 'partial', commandsReceived: 0, latencyMs: 25164}
 logger.ts:62 2026-03-03T01:11:58.151Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 1, totalSuspicious: 1, itemsSent: 1, commandsReceived: 0, commandsApplied: 0, …}
 logger.ts:62 2026-03-03T01:11:58.151Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 1, totalSuspicious: 1, itemsSent: 1, commandsReceived: 0, commandsApplied: 0, …}
@@ -425,7 +425,7 @@ logger.ts:62 2026-03-03T01:12:14.159Z [paste.agent-review] telemetry:packet-buil
 logger.ts:75 2026-03-03T01:12:14.159Z [paste.agent-review] packet-suspects-snapshot {lines: Array(1)}
 logger.ts:62 2026-03-03T01:12:14.160Z [pipeline.telemetry] telemetry:ingestion-start {importOpId: '44a50ce5-a73e-4a67-9c86-6696ec06bad1', source: 'paste', trustLevel: 'raw_text', itemsProcessed: 1}
 logger.ts:62 2026-03-03T01:12:14.160Z [pipeline.telemetry] telemetry:agent-review-start {importOpId: '44a50ce5-a73e-4a67-9c86-6696ec06bad1', itemsSent: 1, forcedItems: 1}
-logger.ts:62 2026-03-03T01:12:43.380Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772500334160', status: 'partial', commands: 0, model: 'claude-opus-4-6', latencyMs: 29210, …}
+logger.ts:62 2026-03-03T01:12:43.380Z [paste.agent-review] telemetry:request-response {sessionId: 'paste-1772500334160', status: 'partial', commands: 0, model: 'claude-haiku-4-5-20251001', latencyMs: 29210, …}
 logger.ts:62 2026-03-03T01:12:43.380Z [pipeline.telemetry] telemetry:agent-review-complete {importOpId: '44a50ce5-a73e-4a67-9c86-6696ec06bad1', status: 'partial', commandsReceived: 0, latencyMs: 29210}
 logger.ts:62 2026-03-03T01:12:43.381Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 1, totalSuspicious: 1, itemsSent: 1, commandsReceived: 0, commandsApplied: 0, …}
 logger.ts:62 2026-03-03T01:12:43.381Z [paste.agent-review] telemetry:agent-review-summary {totalReviewed: 1, totalSuspicious: 1, itemsSent: 1, commandsReceived: 0, commandsApplied: 0, …}

@@ -26,7 +26,7 @@ import type { LineType } from "../types/screenplay";
 // ─── الثوابت والإعدادات ────────────────────────────────────────────
 
 /** معرف موديل Claude الافتراضي المستخدم في الطلبات */
-export const MODEL_ID = "claude-opus-4-6";
+export const MODEL_ID = "claude-haiku-4-5-20251001";
 
 /**
  * واجهة النتيجة المتوافقة — للتوافقية مع الأكواد السابقة التي قد تتوقع هذا الشكل

@@ -8,7 +8,7 @@ import { resolveAnthropicApiRuntime } from "./provider-api-runtime.mjs";
 // تحميل متغيرات البيئة
 config();
 
-export const DEFAULT_MODEL_ID = "claude-opus-4-6";
+export const DEFAULT_MODEL_ID = "claude-haiku-4-5-20251001";
 const FALLBACK_MODEL_ID = "claude-sonnet-4-20250514";
 const REVIEW_TEMPERATURE = 0.0;
 const DEFAULT_TIMEOUT_MS = 180_000;
